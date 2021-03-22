@@ -1,29 +1,11 @@
-# README #
+# ziamath
 
-This README would normally document whatever steps are necessary to get your application up and running.
+Render MathML or LaTeX Math expressions as SVG. Does not require a Latex installation.
 
-### What is this repository for? ###
+Ziamath comes with the STIXTwoMath-Regular font installed for use by default.
+Other Math-enabled fonts may also be used.
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+![Example](example.png)
 
-### How do I get set up? ###
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+Documentation is available at [readthedocs](https://ziamath.readthedocs.io)

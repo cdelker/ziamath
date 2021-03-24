@@ -37,5 +37,6 @@ setuptools.setup(
     'Intended Audience :: Science/Research',
     'Intended Audience :: End Users/Desktop',
     'Intended Audience :: Developers',
+    'Topic :: Scientific/Engineering :: Mathematics',
     ],
 )

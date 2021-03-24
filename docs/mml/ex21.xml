@@ -1,0 +1,58 @@
+<math display="block">
+<mrow>
+  <mo stretchy="false">{</mo>
+  <munder>
+    <mrow>
+      <mover>
+        <mrow>
+          <mpadded width="0em"><mphantom><mo>(</mo></mphantom></mpadded>
+          <mi>a</mi>
+          <mo>,</mo>
+          <mo>...</mo>
+          <mo>,</mo>
+          <mi>a</mi>
+        </mrow>
+        <mover>
+          <mo>⏞</mo>
+          <mrow>
+            <mi>k</mi>
+            <mtext> </mtext>
+            <mi>a</mi>
+            <mtext>'s</mtext>
+          </mrow>
+        </mover>
+      </mover>
+      <mo>,</mo>
+      <mover>
+        <mrow>
+          <mpadded width="0em"><mphantom><mo>(</mo></mphantom></mpadded>
+          <mi>b</mi>
+          <mo>,</mo>
+          <mo>...</mo>
+          <mo>,</mo>
+          <mi>b</mi>
+        </mrow>
+        <mover>
+          <mo>⏞</mo>
+          <mrow>
+            <mi>ℓ</mi>
+            <mtext> </mtext>
+            <mi>b</mi>
+            <mtext>'s</mtext>
+          </mrow>
+        </mover>
+      </mover>
+    </mrow>
+    <munder>
+      <mo>⏟</mo>
+      <mrow>
+        <mi>k</mi>
+        <mo>+</mo>
+        <mi>ℓ</mi>
+        <mtext> elements</mtext>
+      </mrow>
+    </munder>
+  </munder>
+  <mo stretchy="false">}</mo>
+</mrow>
+</math>

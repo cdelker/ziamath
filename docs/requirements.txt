@@ -1,0 +1,3 @@
+jupyter_sphinx
+latex2mathml
+ziafont

@@ -1,4 +1,6 @@
 ''' Math element nodes '''
+
+from __future__ import annotations
 from typing import Optional, Union, MutableMapping
 
 from copy import copy

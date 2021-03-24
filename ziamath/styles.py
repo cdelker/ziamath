@@ -2,6 +2,8 @@
     characters [A-Z, a-z, and 0-9] to their higher unicode alternatives. Note
     this does not check whether the new character glyph exists in the font.
 '''
+
+from __future__ import annotations
 from typing import Literal
 
 StyleType = Literal['serif', 'sans', 'script', 'fraktur', 'double', 'mono']

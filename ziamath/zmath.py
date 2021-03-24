@@ -1,5 +1,6 @@
 ''' Main math rendering class '''
 
+from __future__ import annotations
 from typing import Union
 import importlib.resources as pkg_resources
 import xml.etree.ElementTree as ET

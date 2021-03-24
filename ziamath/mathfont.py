@@ -1,5 +1,6 @@
 ''' Math Font extends Ziafont with MATH table '''
 
+from __future__ import annotations
 from typing import Union
 from pathlib import Path
 

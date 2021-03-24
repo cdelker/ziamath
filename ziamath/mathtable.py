@@ -3,6 +3,7 @@
     Reference: https://docs.microsoft.com/en-us/typography/opentype/spec/math
 '''
 
+from __future__ import annotations
 from typing import Union, Sequence, Optional, TYPE_CHECKING
 from collections import namedtuple
 from dataclasses import dataclass

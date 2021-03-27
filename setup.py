@@ -5,7 +5,7 @@ with open('README.md', 'r') as f:
 
 setuptools.setup(
     name = 'ziamath',
-    version = '0.1',
+    version = '0.2',
     description = 'Render MathML and LaTeX Math to SVG without Latex installation',
     author = 'Collin J. Delker',
     author_email = 'ziaplot@collindelker.com',

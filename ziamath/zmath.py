@@ -115,7 +115,7 @@ class Math:
                 if mathstyle:
                     mathel.attrib['mathvariant'] = mathstyle
                 mml.append(mathel)
-        return cls(mml)
+        return cls(mml, size, font)
     
     def svgxml(self) -> ET.Element:
         ''' Get standalone SVG of expression as XML Element Tree '''
@@ -133,13 +133,15 @@ class Math:
         return svg
 
     def drawon(self, x: float, y: float, svg: ET.Element,
-               halign: Halign='left', valign: Valign='baseline') -> None:
+               color: str=None,
+               halign: Halign='left', valign: Valign='baseline') -> ET.Element:
         ''' Draw the math expression on an existing SVG
 
             Args:
                 x: Horizontal position in SVG coordinates
                 y: Vertical position in SVG coordinates
                 svg: The image (XML object) to draw on
+                color: Color name or #000000 hex code
                 halign: Horizontal alignment
                 valign: Vertical alignment
 
@@ -157,7 +159,11 @@ class Math:
         xshift = {'center': -width/2,
                   'right': -width}.get(halign, 0)
 
-        self.node.draw(x+xshift, y+yshift, svg)
+        svgelm = ET.SubElement(svg, 'g')  # Put it in a group
+        if color:
+            svgelm.attrib['fill'] = color
+        self.node.draw(x+xshift, y+yshift, svgelm)
+        return svgelm
 
     def svg(self) -> str:
         ''' Get expression as SVG string '''

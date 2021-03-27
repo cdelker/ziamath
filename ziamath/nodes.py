@@ -263,10 +263,13 @@ class MHLine(Mnode):
                 svg: SVG drawing as XML
         '''
         if not self.phantom:
-            bar = ET.SubElement(svg, 'path')
-            bar.attrib['d'] = f'M {x} {y+self.lw/2} L {x+self.length} {y+self.lw/2}'
-            bar.attrib['stroke-width'] = str(self.lw)
-            bar.attrib['stroke'] = 'black'
+            # Use rectangle so it can change color with 'fill' attribute
+            # and not mess up glyphs with 'stroke' attribute
+            bar = ET.SubElement(svg, 'rect')
+            bar.attrib['x'] = str(x)
+            bar.attrib['y'] = str(y + self.lw/2)
+            bar.attrib['width'] = str(self.length)
+            bar.attrib['height'] = str(self.lw)
         return x+self.length, y
 
 
@@ -534,7 +537,7 @@ class Moperator(Mnumber):
 
         # Add lspace
         if addspace:
-            lspace = getspaceems(self.params.get('lspace', '0')) / self.emscale
+            lspace = getspaceems(self.params.get('lspace', '0')) * self.emscale * self.font.info.layout.unitsperem
             x += lspace
 
         glyphs = [self.font.glyph(char) for char in self.string]
@@ -555,7 +558,7 @@ class Moperator(Mnumber):
             ymax = max(ymax, glyph.path.bbox.ymax * self.emscale)
 
         if addspace:
-            rspace = getspaceems(self.params.get('rspace', '0')) / self.emscale
+            rspace = getspaceems(self.params.get('rspace', '0')) * self.emscale * self.font.info.layout.unitsperem
             x += rspace
 
         self.bbox = BBox(glyphs[0].path.bbox.xmin * self.emscale, x, ymin, ymax)
@@ -1048,9 +1051,9 @@ class Mspace(Mnode):
     ''' Blank space '''
     def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
         super().__init__(element, size, parent, **kwargs)
-        self.width = getspaceems(element.attrib.get('width', '0')) / self.emscale
-        self.height = getspaceems(element.attrib.get('height', '0')) /self.emscale  # ymax
-        self.depth = getspaceems(element.attrib.get('depth', '0')) / self.emscale   # ymin
+        self.width = getspaceems(element.attrib.get('width', '0'))  * self.emscale * self.font.info.layout.unitsperem
+        self.height = getspaceems(element.attrib.get('height', '0'))  * self.emscale * self.font.info.layout.unitsperem
+        self.depth = getspaceems(element.attrib.get('depth', '0'))  * self.emscale * self.font.info.layout.unitsperem
         self._setup(**kwargs)
         
     def _setup(self, **kwargs) -> None:

@@ -267,7 +267,7 @@ class MHLine(Mnode):
             # and not mess up glyphs with 'stroke' attribute
             bar = ET.SubElement(svg, 'rect')
             bar.attrib['x'] = str(x)
-            bar.attrib['y'] = str(y + self.lw/2)
+            bar.attrib['y'] = str(y)
             bar.attrib['width'] = str(self.length)
             bar.attrib['height'] = str(self.lw)
         return x+self.length, y

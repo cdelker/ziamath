@@ -1,7 +1,9 @@
 ''' Main math rendering class '''
 
 from __future__ import annotations
-from typing import Union
+from typing import Union, Literal
+import re
+from itertools import zip_longest
 import importlib.resources as pkg_resources
 import xml.etree.ElementTree as ET
 
@@ -16,6 +18,10 @@ try:
     from latex2mathml.converter import convert  # type: ignore
 except ImportError:
     convert = False
+
+
+Halign = Literal['left', 'center', 'right']
+Valign = Literal['top', 'center', 'baseline', 'axis', 'bottom']
 
 
 def denamespace(element: ET.Element) -> ET.Element:
@@ -60,20 +66,57 @@ class Math:
         self.node = makenode(mathml, parent=self, size=size)  # type: ignore
 
     @classmethod
-    def fromlatex(cls, latex: str, size: float=24, font: str=None):
-        ''' Create Math Renderer from LaTeX expression. Requires
+    def fromlatex(cls, latex: str, size: float=24, mathstyle: str=None, font: str=None):
+        ''' Create Math Renderer from a single LaTeX expression. Requires
             latex2mathml Python package.
 
             Args:
                 latex: Latex string
                 size: Base font size
+                mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
                 font: Font file name
         '''
         if not convert:
             raise ValueError('fromlatex requires latex2mathml package.')
         mathml = convert(latex)
+        if mathstyle:
+            mathml = ET.fromstring(mathml)
+            mathml.attrib['mathvariant'] = mathstyle
         return cls(mathml, size, font)
 
+    @classmethod
+    def fromlatextext(cls, latex: str, size: float=24, mathstyle: str=None,
+                      textstyle: str=None, font: str=None):
+        ''' Create Math Renderer from a sentance containing zero or more LaTeX
+            expressions delimited by $..$.
+            Requires latex2mathml Python package.
+
+            Args:
+                latex: string
+                size: Base font size
+                mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
+                textstyle: Style parameter for text, equivalent to "mathvariant" MathML attribute
+                font: Font file name
+        '''
+        # Extract each $..$, convert to MathML, but the raw text in <mtext>, and join
+        # into a single <math>
+        parts = re.split('\$(.*?)\$', latex)
+        texts = parts[::2]
+        maths = [convert(p) for p in parts[1::2]]
+        mathels = [ET.fromstring(m)[0] for m in maths]   # Convert to xml, but drop opening <math>
+        mml = ET.Element('math')
+        for text, mathel in zip_longest(texts, mathels):
+            if text:
+                mtext = ET.SubElement(mml, 'mtext')
+                if textstyle:
+                    mtext.attrib['mathvariant'] = textstyle
+                mtext.text = text
+            if mathel is not None:
+                if mathstyle:
+                    mathel.attrib['mathvariant'] = mathstyle
+                mml.append(mathel)
+        return cls(mml)
+    
     def svgxml(self) -> ET.Element:
         ''' Get standalone SVG of expression as XML Element Tree '''
         svg = ET.Element('svg')
@@ -89,15 +132,32 @@ class Math:
         svg.attrib['viewBox'] = f'0 {-bbox.ymax-1} {width} {height}'
         return svg
 
-    def drawon(self, x: float, y: float, svg: ET.Element) -> None:
+    def drawon(self, x: float, y: float, svg: ET.Element,
+               halign: Halign='left', valign: Valign='baseline') -> None:
         ''' Draw the math expression on an existing SVG
 
             Args:
                 x: Horizontal position in SVG coordinates
                 y: Vertical position in SVG coordinates
                 svg: The image (XML object) to draw on
+                halign: Horizontal alignment
+                valign: Vertical alignment
+
+            Note: Horizontal alignment can be the typical 'left', 'center', or 'right'.
+            Vertical alignment can be 'top', 'bottom', or 'center' to align with the
+            expression's bounding box, or 'baseline' to align with the bottom
+            of the first text element, or 'axis', aligning with the height of a minus
+            sign above the baseline.
         '''
-        self.node.draw(x, y, svg)
+        width, height = self.getsize()
+        yshift = {'top': self.node.bbox.ymax,
+                  'center': height/2 + self.node.bbox.ymin,
+                  'axis': self.font.math.consts.axisHeight * self.node.emscale,  # type: ignore
+                  'bottom': self.node.bbox.ymin}.get(valign, 0)
+        xshift = {'center': -width/2,
+                  'right': -width}.get(halign, 0)
+
+        self.node.draw(x+xshift, y+yshift, svg)
 
     def svg(self) -> str:
         ''' Get expression as SVG string '''
@@ -113,7 +173,12 @@ class Math:
         ''' Shortcut to just return SVG string directly '''
         return cls(mathml, size=size, font=font).svg()
 
-
+    def getsize(self) -> tuple[float, float]:
+        ''' Get size of rendered text '''
+        return (self.node.bbox.xmax - self.node.bbox.xmin,
+                self.node.bbox.ymax - self.node.bbox.ymin)
+    
+    
 # Cache the loaded fonts to prevent reloading all the time
 with pkg_resources.path('ziamath.fonts', 'STIXTwoMath-Regular.ttf') as p:
     fontname = p

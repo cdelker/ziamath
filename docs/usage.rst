@@ -47,6 +47,16 @@ To render a math expression in Latex format, create the Math object using :py:me
     zm.Math.fromlatex(r'c = \pm \sqrt{a^2 + b^2}')
 
 
+Text containing embedded math, enclosed within $..$, can also be drawn using :py:meth:`ziamath.zmath.Math.fromlatextext`.
+
+.. jupyter-execute::
+
+    zm.Math.fromlatextext(r'The volume of a sphere is $V = \frac{4}{3}\pi r^3$.', textstyle='sans')
+
+The `textstyle` argument provides styling to the plain text, and `mathstyle` provides styling
+to the math expressions. Both arguments may be an allowable MathML "mathvariant" attribute, such as 'sans', 'serif', 'italic', 'bold', 'sans-bold', etc.
+
+
 Drawing on an existing SVG
 --------------------------
 

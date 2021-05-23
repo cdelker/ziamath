@@ -42,9 +42,10 @@ class Math:
             mathml: MathML expression, in string or XML Element
             size: Base font size, pixels
             font: Filename of font file. Must contain MATH typesetting table.
+            svg2: Use SVG2.0 specification. Disable for compatibility.
     '''
     def __init__(self, mathml: Union[str, ET.Element],
-                 size: float=24, font: str=None):
+                 size: float=24, font: str=None, svg2: bool=True):
         self.mathml = mathml
         self.size = size
 
@@ -56,6 +57,7 @@ class Math:
             self.font = MathFont(font, size)
             loadedfonts[font] = self.font
 
+        self.font.svg2 = svg2
         if isinstance(mathml, str):
             mathml = unescape(mathml)
             mathml = ET.fromstring(mathml)
@@ -66,7 +68,7 @@ class Math:
         self.node = makenode(mathml, parent=self, size=size)  # type: ignore
 
     @classmethod
-    def fromlatex(cls, latex: str, size: float=24, mathstyle: str=None, font: str=None):
+    def fromlatex(cls, latex: str, size: float=24, mathstyle: str=None, font: str=None, svg2: bool=True):
         ''' Create Math Renderer from a single LaTeX expression. Requires
             latex2mathml Python package.
 
@@ -75,6 +77,7 @@ class Math:
                 size: Base font size
                 mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
                 font: Font file name
+                svg2: Use SVG2.0 specification. Disable for compatibility.
         '''
         if not convert:
             raise ValueError('fromlatex requires latex2mathml package.')
@@ -82,11 +85,11 @@ class Math:
         if mathstyle:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathvariant'] = mathstyle
-        return cls(mathml, size, font)
+        return cls(mathml, size, font, svg2=svg2)
 
     @classmethod
     def fromlatextext(cls, latex: str, size: float=24, mathstyle: str=None,
-                      textstyle: str=None, font: str=None):
+                      textstyle: str=None, font: str=None, svg2=True):
         ''' Create Math Renderer from a sentance containing zero or more LaTeX
             expressions delimited by $..$.
             Requires latex2mathml Python package.
@@ -97,6 +100,7 @@ class Math:
                 mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
                 textstyle: Style parameter for text, equivalent to "mathvariant" MathML attribute
                 font: Font file name
+                svg2: Use SVG2.0 specification. Disable for compatibility.
         '''
         # Extract each $..$, convert to MathML, but the raw text in <mtext>, and join
         # into a single <math>
@@ -115,7 +119,7 @@ class Math:
                 if mathstyle:
                     mathel.attrib['mathvariant'] = mathstyle
                 mml.append(mathel)
-        return cls(mml, size, font)
+        return cls(mml, size, font, svg2=svg2)
     
     def svgxml(self) -> ET.Element:
         ''' Get standalone SVG of expression as XML Element Tree '''
@@ -129,6 +133,8 @@ class Math:
         svg.attrib['width'] = str(width)
         svg.attrib['height'] = str(height)
         svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
+        if not self.font.svg2:
+            svg.attrib['xmlns:xlink'] = 'http://www.w3.org/1999/xlink'
         svg.attrib['viewBox'] = f'0 {-bbox.ymax-1} {width} {height}'
         return svg
 

@@ -85,6 +85,18 @@ Then use :py:meth:`ziamath.zmath.Math.drawon`, with the x and y position and svg
     SVG(ET.tostring(svg))
 
 
+SVG Version Compatibility
+-------------------------
+
+Some SVG renderers, including recent versions of Inkscape and some OS built-in image viewers, are not fully compatible with the SVG 2.0 specification.
+Set the `svg2` Font parameter to `False` for better compatibility. This may result in larger file sizes
+as each glyph is included as its own <path> element rather than being reused with <symbol> and <use> elements.
+
+.. code-block:: python
+
+    zm.Math.fromlatextext('$x^2 + y^2$', svg2=False)
+
+
 Limitations
 -----------
 

@@ -15,9 +15,10 @@ class MathFont(Font):
         Args:
             fname: File name of font
             basesize: Default font size
+            svg2: Use SVG2.0 specification. Disable for compatibility.
     '''
-    def __init__(self, fname: Union[str, Path], basesize: float=24):
-        super().__init__(fname)
+    def __init__(self, fname: Union[str, Path], basesize: float=24, svg2: bool=True):
+        super().__init__(fname, svg2=svg2)
         self.basesize = basesize
         if 'MATH' not in self.tables:
             raise ValueError('Font has no MATH table!')

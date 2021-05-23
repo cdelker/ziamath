@@ -226,7 +226,7 @@ class MGlyph(Mnode):
         '''
         symbols = svg.findall('symbol')
         symids = [sym.attrib.get('id') for sym in symbols]
-        if self.glyph.id not in symids:
+        if self.glyph.id not in symids and self.glyph.font.svg2:
             svg.append(self.glyph.svgsymbol())
         if not self.phantom:
             svg.append(self.glyph.place(x, y, self.size))

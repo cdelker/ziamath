@@ -433,11 +433,17 @@ class Mrow(Mnode):
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
-        return self.nodes[0].firstglyph()
+        try:
+            return self.nodes[0].firstglyph()
+        except IndexError:
+            return None
 
     def lastglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the last glyph in this node '''
-        return self.nodes[-1].lastglyph()
+        try:
+            return self.nodes[-1].lastglyph()
+        except IndexError:
+            return None
 
     def lastchar(self) -> Optional[str]:
         ''' Get the last character in this node '''
@@ -462,7 +468,15 @@ class Mopfence(Mnode):
 
     def _setup(self, **kwargs) -> None:
         mrow = Mrow(self.element[0], self.size, parent=self)
-        height = mrow.bbox.ymax - mrow.bbox.ymin
+        if len(mrow.nodes) == 0:
+            # Opening fence with nothing in it
+            openglyph = self.font.glyph(self.openchr)
+            mglyph = MGlyph(openglyph, self.openchr, self.size, self.emscale, **kwargs)
+            height = mglyph.bbox.ymax - mglyph.bbox.ymin
+            mrowbbox = mglyph.bbox
+        else:
+            height = mrow.bbox.ymax - mrow.bbox.ymin
+            mrowbbox = mrow.bbox
         self.nodes = []
         x = 0
         if height > self.size * 1.5:
@@ -470,7 +484,11 @@ class Mopfence(Mnode):
             rowbaseline = -self.font.math.consts.axisHeight * self.emscale
         else:
             rowbaseline = 0
-        rowcenter = rowbaseline - mrow.bbox.ymin - (mrow.bbox.ymax - mrow.bbox.ymin)/2
+        
+        rowcenter = rowbaseline - mrowbbox.ymin - (mrowbbox.ymax - mrowbbox.ymin)/2
+
+        yglyphmin = 0
+        yglyphmax = 0
 
         if self.openchr:
             openglyph = self.font.glyph(self.openchr)
@@ -481,29 +499,41 @@ class Mopfence(Mnode):
             self.nodes.append(mglyph)
             self.nodexy.append((x, yofst))
             x += openglyph.advance() * self.emscale
+            yglyphmin = min(yofst+mglyph.bbox.ymin, yglyphmin)
+            yglyphmax = max(yofst+mglyph.bbox.ymax, yglyphmax)
 
-        self.nodes.append(mrow)
-        self.nodexy.append((x, rowbaseline))
-        x += mrow.bbox.xmax
+        if len(mrow.nodes) > 0:
+            self.nodes.append(mrow)
+            self.nodexy.append((x, rowbaseline))
+            x += mrowbbox.xmax
 
         if self.closechr:
             closeglyph = self.font.glyph(self.closechr)
             closeglyph = self.font.math.variant(closeglyph.index, height/self.emscale, vert=True)
-
+            mglyph = MGlyph(closeglyph, self.closechr, self.size, self.emscale, **kwargs)
             yofst = rowcenter + mglyph.bbox.ymin + (mglyph.bbox.ymax - mglyph.bbox.ymin)/2
-            self.nodes.append(MGlyph(closeglyph, self.closechr, self.size, self.emscale, **kwargs))
+
+            self.nodes.append(mglyph)
             self.nodexy.append((x, yofst))
             x += closeglyph.advance() * self.emscale
+            yglyphmin = min(yofst+mglyph.bbox.ymin, yglyphmin)
+            yglyphmax = max(yofst+mglyph.bbox.ymax, yglyphmax)
 
-        self.bbox = BBox(0, x, -rowbaseline+mrow.bbox.ymin, -rowbaseline+mrow.bbox.ymax)
+        self.bbox = BBox(0, x, min(yglyphmin, -rowbaseline+mrowbbox.ymin), max(yglyphmax, -rowbaseline+mrowbbox.ymax))
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
-        return self.nodes[0].firstglyph()
+        try:
+            return self.nodes[0].firstglyph()
+        except IndexError:
+            return None
 
     def lastglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the last glyph in this node '''
-        return self.nodes[-1].firstglyph()
+        try:
+            return self.nodes[-1].lastglyph()
+        except IndexError:
+            return None
 
     def lastchar(self) -> Optional[str]:
         ''' Get the last character in this node '''
@@ -650,11 +680,17 @@ class Msup(Mnode):
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
-        return self.nodes[0].firstglyph()
+        try:
+            return self.nodes[0].firstglyph()
+        except IndexError:
+            return None
 
     def lastglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the last glyph in this node '''
-        return self.nodes[-1].lastglyph()
+        try:
+            return self.nodes[-1].lastglyph()
+        except IndexError:
+            return None
 
     def lastchar(self) -> Optional[str]:
         ''' Get the last character in this node '''
@@ -692,11 +728,17 @@ class Msub(Mnode):
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
-        return self.nodes[0].firstglyph()
+        try:
+            return self.nodes[0].firstglyph()
+        except IndexError:
+            return None
 
     def lastglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the last glyph in this node '''
-        return self.nodes[-1].lastglyph()
+        try:
+            return self.nodes[-1].lastglyph()
+        except IndexError:
+            return None
 
     def lastchar(self) -> Optional[str]:
         ''' Get the last character in this node '''
@@ -746,11 +788,17 @@ class Msubsup(Mnode):
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
-        return self.nodes[0].firstglyph()
+        try:
+            return self.nodes[0].firstglyph()
+        except IndexError:
+            return None
 
     def lastglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the last glyph in this node '''
-        return self.nodes[-1].lastglyph()
+        try:
+            return self.nodes[-1].lastglyph()
+        except IndexError:
+            return None
 
     def lastchar(self) -> Optional[str]:
         ''' Get the last character in this node '''

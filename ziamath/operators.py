@@ -263,6 +263,7 @@ operators = {
     ('±', 'prefix'): {'lspace': '0em', 'rspace': 'veryverythinmathspace'},
     ('.', 'infix'): {'lspace': '0em', 'rspace': '0em'},
     ('⨯', 'infix'): {'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},  # &Cross;
+    ('÷', 'infix'): {'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},
     ('**', 'infix'): {'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},
     ('⊙', 'infix'): {'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},
     ('∘', 'infix'): {'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},  # &SmallCircle;

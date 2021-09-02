@@ -31,6 +31,6 @@ def unescape(xmlstr: str) -> str:
     # Replace hyphens with real minus signs, but only within numbers/operators
     # (due to re.escape, the compiled regex used above won't
     #  work for these substitutions)
-    xml = re.sub(r'<mn>\s*-', '<mn>−', xml)
-    xml = re.sub(r'<mo>\s*-\s*</mo>', '<mo> − </mo>', xml)
+    xml = re.sub(r'<mn.*>\s*-', '<mn>−', xml)
+    xml = re.sub(r'<mo.*>\s*-\s*</mo>', '<mo> − </mo>', xml)
     return xml

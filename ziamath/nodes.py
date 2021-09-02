@@ -479,12 +479,12 @@ class Mopfence(Mnode):
             mrowbbox = mrow.bbox
         self.nodes = []
         x = 0
-        if height > self.size * 1.5:
-            # Tall enclosures (like tables) should be centered vertically
+        if len(mrow.nodes) and isinstance(mrow.nodes[0], Mtable):
+            # Tables should be centered vertically
             rowbaseline = -self.font.math.consts.axisHeight * self.emscale
         else:
             rowbaseline = 0
-        
+
         rowcenter = rowbaseline - mrowbbox.ymin - (mrowbbox.ymax - mrowbbox.ymin)/2
 
         yglyphmin = 0

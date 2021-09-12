@@ -107,7 +107,6 @@ Unsupported elements and attributes inculde:
 - <ms>
 - <mglyph>
 - <merror>
-- <mfenced>
 - <menclose>
 - <mmultiscripts>
 - <mlabeledtr>

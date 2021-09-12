@@ -5,6 +5,7 @@ from typing import Optional, Union, MutableMapping
 
 from copy import copy
 from collections import ChainMap
+import itertools
 import xml.etree.ElementTree as ET
 
 from ziafont import Font
@@ -68,6 +69,7 @@ def makenode(element: ET.Element, size: float,
             'mroot': Mroot,
             'mtext': Mtext,
             'mspace': Mspace,
+            'mfenced': Mfenced,
             'mpadded': Mpadded,
             'mphantom': Mphantom,
             'mtable': Mtable,
@@ -408,11 +410,14 @@ class Mrow(Mnode):
                         children = self.element[i+1:]
                         fencekwargs['open'] = getelementtext(child)
                         fencekwargs['close'] = None
-                    fenced = ET.Element('fenceop')
+                    fencekwargs['separators'] = ''
+                    fenced = ET.Element('mfenced')
                     fenced.attrib.update(child.attrib)
-                    frow = ET.SubElement(fenced, 'mrow')
-                    frow.extend(children)
-                    node = Mopfence(fenced, self.size, parent=self, **fencekwargs)
+                    fenced.attrib.update(fencekwargs)
+                    if len(children) > 0:
+                        frow = ET.SubElement(fenced, 'mrow')
+                        frow.extend(children)
+                    node = Mfenced(fenced, self.size, parent=self, **kwargs)
                     i = j + 1
 
                 else:
@@ -452,31 +457,42 @@ class Mrow(Mnode):
         except IndexError:
             return None
 
-
-class Mopfence(Mnode):
-    ''' Fenced operator. MathML doesn't put items inside fence () in xml subelement
-        which means it's not easy to calculate the stretch size of the fence glyphs.
-        This class wraps the content of the fence and handles both opening and closing
-        operators.
+        
+class Mfenced(Mnode):
+    ''' Mfence element. Puts contents in parenthesis or other fence glyphs, with
+        optional separators between components.
     '''
     def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
         super().__init__(element, size, parent, **kwargs)
-        assert len(element) == 1  # Should contain 1 mrow with contents of Opfence
-        self.openchr = kwargs.get('open')
-        self.closechr = kwargs.get('close')
+        self.openchr = element.attrib.get('open', '(')
+        self.closechr = element.attrib.get('close', ')')
+        self.separators = element.attrib.get('separators', ',').replace(' ', '')
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
-        mrow = Mrow(self.element[0], self.size, parent=self)
+        separator_elms = [ET.fromstring(f'<mo>{k}</mo>') for k in self.separators]
+        fencedelms = []
+        # Insert separators
+        if len(self.element) > 1 and len(self.separators) > 0:
+            fencedelms = itertools.zip_longest(self.element, separator_elms, fillvalue=separator_elms[-1])
+            fencedelms = list(itertools.chain.from_iterable(fencedelms))   # flatten
+            fencedelms = fencedelms[:len(self.element)*2-1]  # Remove any separators at end
+        else:
+            # Single element in fence, no separators
+            fencedelms = self.element
+
+        mrowelm = ET.Element('mrow')
+        mrowelm.extend(fencedelms)
+        mrow = Mrow(mrowelm, self.size, parent=self)
         if len(mrow.nodes) == 0:
             # Opening fence with nothing in it
             openglyph = self.font.glyph(self.openchr)
             mglyph = MGlyph(openglyph, self.openchr, self.size, self.emscale, **kwargs)
             height = mglyph.bbox.ymax - mglyph.bbox.ymin
-            mrowbbox = mglyph.bbox
+            fencebbox = mglyph.bbox
         else:
             height = mrow.bbox.ymax - mrow.bbox.ymin
-            mrowbbox = mrow.bbox
+            fencebbox = mrow.bbox
         self.nodes = []
         x = 0
         if len(mrow.nodes) and isinstance(mrow.nodes[0], Mtable):
@@ -485,7 +501,7 @@ class Mopfence(Mnode):
         else:
             rowbaseline = 0
 
-        rowcenter = rowbaseline - mrowbbox.ymin - (mrowbbox.ymax - mrowbbox.ymin)/2
+        rowcenter = rowbaseline - fencebbox.ymin - (fencebbox.ymax - fencebbox.ymin)/2
 
         yglyphmin = 0
         yglyphmax = 0
@@ -502,10 +518,10 @@ class Mopfence(Mnode):
             yglyphmin = min(yofst+mglyph.bbox.ymin, yglyphmin)
             yglyphmax = max(yofst+mglyph.bbox.ymax, yglyphmax)
 
-        if len(mrow.nodes) > 0:
+        if len(fencedelms) > 0:
             self.nodes.append(mrow)
             self.nodexy.append((x, rowbaseline))
-            x += mrowbbox.xmax
+            x += fencebbox.xmax
 
         if self.closechr:
             closeglyph = self.font.glyph(self.closechr)
@@ -519,7 +535,7 @@ class Mopfence(Mnode):
             yglyphmin = min(yofst+mglyph.bbox.ymin, yglyphmin)
             yglyphmax = max(yofst+mglyph.bbox.ymax, yglyphmax)
 
-        self.bbox = BBox(0, x, min(yglyphmin, -rowbaseline+mrowbbox.ymin), max(yglyphmax, -rowbaseline+mrowbbox.ymax))
+        self.bbox = BBox(0, x, min(yglyphmin, -rowbaseline+fencebbox.ymin), max(yglyphmax, -rowbaseline+fencebbox.ymax))
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''

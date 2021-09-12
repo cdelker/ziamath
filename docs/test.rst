@@ -14,7 +14,7 @@ Examples
         return zm.Math(xml)
 
 
-Mozilla has a `torture test <https://mdn.mozillademos.org/en-US/docs/Mozilla/MathML_Project/MathML_Torture_Test$samples/MathML_Torture_Test?revision=1506691>`_ for MathML.
+Mozilla has a `torture test <https://www-archive.mozilla.org/projects/mathml/demo/texvsmml.xhtml>`_ for MathML.
 This page shows Ziamath's results with these examples.
 
 ------------

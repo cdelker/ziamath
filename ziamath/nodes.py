@@ -140,14 +140,14 @@ class Mnode:
         self.parent = parent
         self.style: MutableMapping[str, Union[str, bool]] = ChainMap(getstyle(self.element), copy(parent.style))
         self.emscale = size / self.font.info.layout.unitsperem
-        self.nodes: list[Mnode] = []
+        self.nodes: list[Mnode|Glyph|MHLine] = []
         self.nodexy: list[tuple[float, float]] = []
 
     def _setup(self, **kwargs) -> None:
         ''' Calculate node position assuming this node is at 0, 0. Also set bbox. '''
         self.bbox = BBox(0, 0, 0, 0)
 
-    def leftsibling(self) -> Optional['Mnode']:
+    def leftsibling(self) -> Optional['Mnode|Glyph|MHLine']:
         ''' Left node sibling. The one that was just placed. '''
         try:
             return self.parent.nodes[-1]
@@ -192,7 +192,7 @@ class Mnode:
 
 class Glyph():
     ''' A single glyph node (not <mglyph>, but used by other nodes) '''
-    def __init__(self, glyph: SimpleGlyph, char: str, size: float, emscale: float, style: dict=None, **kwargs):
+    def __init__(self, glyph: SimpleGlyph, char: str, size: float, emscale: float, style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
         self.glyph = glyph
         self.char = char
         self.size = size
@@ -236,14 +236,14 @@ class Glyph():
         if not self.phantom:
             svg.append(self.glyph.place(x, y, self.size))
             if 'mathcolor' in self.style:
-                svg[-1].set('fill', self.style['mathcolor'])
+                svg[-1].set('fill', self.style['mathcolor'])  # type: ignore
         x += self.glyph.advance() * self.emscale
         return x, y
 
 
 class MHLine():
     ''' SVG Horizontal Line. Used by mfrac and msqrt. '''
-    def __init__(self, length: float, lw: float, style: dict=None, **kwargs):
+    def __init__(self, length: float, lw: float, style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
         self.length = length
         self.lw = lw
         self.phantom = kwargs.get('phantom', False)
@@ -279,7 +279,7 @@ class MHLine():
             bar.attrib['width'] = str(self.length)
             bar.attrib['height'] = str(self.lw)
             if 'mathcolor' in self.style:
-                bar.attrib['fill'] = self.style['mathcolor']
+                bar.attrib['fill'] = self.style['mathcolor']  # type: ignore
         return x+self.length, y
 
 
@@ -479,11 +479,11 @@ class Mfenced(Mnode):
 
     def _setup(self, **kwargs) -> None:
         separator_elms = [ET.fromstring(f'<mo>{k}</mo>') for k in self.separators]
-        fencedelms = []
+        fencedelms: Union[list[ET.Element], ET.Element] = []
         # Insert separators
         if len(self.element) > 1 and len(self.separators) > 0:
-            fencedelms = itertools.zip_longest(self.element, separator_elms, fillvalue=separator_elms[-1])
-            fencedelms = list(itertools.chain.from_iterable(fencedelms))   # flatten
+            fencedelms = list(itertools.chain.from_iterable(
+                itertools.zip_longest(self.element, separator_elms, fillvalue=separator_elms[-1])))   # flatten
             fencedelms = fencedelms[:len(self.element)*2-1]  # Remove any separators at end
         else:
             # Single element in fence, no separators

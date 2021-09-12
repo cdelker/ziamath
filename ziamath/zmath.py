@@ -57,7 +57,7 @@ class Math:
             self.font = MathFont(font, size)
             loadedfonts[font] = self.font
 
-        self.font.svg2 = svg2
+        self.font.svg2 = svg2  # type:ignore
         if isinstance(mathml, str):
             mathml = unescape(mathml)
             mathml = ET.fromstring(mathml)
@@ -138,7 +138,7 @@ class Math:
         svg.attrib['width'] = str(width)
         svg.attrib['height'] = str(height)
         svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
-        if not self.font.svg2:
+        if not self.font.svg2:  # type: ignore
             svg.attrib['xmlns:xlink'] = 'http://www.w3.org/1999/xlink'
         svg.attrib['viewBox'] = f'0 {-bbox.ymax-1} {width} {height}'
         return svg

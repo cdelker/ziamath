@@ -43,6 +43,8 @@ def getstyle(element: ET.Element) -> dict:
         styleargs['displaystyle'] = element.attrib['displaystyle']
     if 'mathcolor' in element.attrib:
         styleargs['mathcolor'] = element.attrib['mathcolor']
+    if 'mathbackground' in element.attrib:
+        styleargs['mathbackground'] = element.attrib['mathbackground']
     return styleargs
 
 
@@ -184,6 +186,14 @@ class Mnode:
             rect.attrib['stroke'] = 'blue'
             rect.attrib['stroke-width'] = '0.2'
 
+        if 'mathbackground' in self.style:
+            rect = ET.SubElement(svg, 'rect')
+            rect.set('x', str(x))
+            rect.set('y', str(y - self.bbox.ymax))
+            rect.set('width', str((self.bbox.xmax - self.bbox.xmin)))
+            rect.set('height', str((self.bbox.ymax - self.bbox.ymin)))
+            rect.set('fill', self.style['mathbackground'])  # type: ignore
+            
         xi = yi = 0.
         for (xi, yi), node in zip(self.nodexy, self.nodes):
             node.draw(x+xi, y+yi, svg)

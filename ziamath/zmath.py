@@ -68,7 +68,7 @@ class Math:
         self.node = makenode(mathml, parent=self, size=size)  # type: ignore
 
     @classmethod
-    def fromlatex(cls, latex: str, size: float=24, mathstyle: str=None, font: str=None, svg2: bool=True):
+    def fromlatex(cls, latex: str, size: float=24, mathstyle: str=None, color: str=None, font: str=None, svg2: bool=True):
         ''' Create Math Renderer from a single LaTeX expression. Requires
             latex2mathml Python package.
 
@@ -76,6 +76,7 @@ class Math:
                 latex: Latex string
                 size: Base font size
                 mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
+                color: Color parameter, equivalent to "mathcolor" attribute
                 font: Font file name
                 svg2: Use SVG2.0 specification. Disable for compatibility.
         '''
@@ -85,6 +86,10 @@ class Math:
         if mathstyle:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathvariant'] = mathstyle
+            mathml = ET.tostring(mathml, encoding='unicode')
+        if color:
+            mathml = ET.fromstring(mathml)
+            mathml.attrib['mathcolor'] = color
         return cls(mathml, size, font, svg2=svg2)
 
     @classmethod

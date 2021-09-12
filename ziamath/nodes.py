@@ -41,6 +41,8 @@ def getstyle(element: ET.Element) -> dict:
         styleargs['style'] = 'fraktur'
     if 'displaystyle' in element.attrib:
         styleargs['displaystyle'] = element.attrib['displaystyle']
+    if 'mathcolor' in element.attrib:
+        styleargs['mathcolor'] = element.attrib['mathcolor']
     return styleargs
 
 
@@ -136,7 +138,7 @@ class Mnode:
         self.font: MathFont = parent.font
         self.size = size
         self.parent = parent
-        self.style: MutableMapping[str, Union[str, bool]] = ChainMap(copy(parent.style), getstyle(self.element))
+        self.style: MutableMapping[str, Union[str, bool]] = ChainMap(getstyle(self.element), copy(parent.style))
         self.emscale = size / self.font.info.layout.unitsperem
         self.nodes: list[Mnode] = []
         self.nodexy: list[tuple[float, float]] = []
@@ -188,14 +190,15 @@ class Mnode:
         return x+xi, y+yi
 
 
-class MGlyph(Mnode):
+class Glyph():
     ''' A single glyph node (not <mglyph>, but used by other nodes) '''
-    def __init__(self, glyph: SimpleGlyph, char: str, size: float, emscale: float, **kwargs):
+    def __init__(self, glyph: SimpleGlyph, char: str, size: float, emscale: float, style: dict=None, **kwargs):
         self.glyph = glyph
         self.char = char
         self.size = size
         self.emscale = emscale
         self.phantom = kwargs.get('phantom', False)
+        self.style = style if style is not None else {}
         self._setup()
 
     def _setup(self, **kwargs) -> None:
@@ -232,17 +235,20 @@ class MGlyph(Mnode):
             svg.append(self.glyph.svgsymbol())
         if not self.phantom:
             svg.append(self.glyph.place(x, y, self.size))
+            if 'mathcolor' in self.style:
+                svg[-1].set('fill', self.style['mathcolor'])
         x += self.glyph.advance() * self.emscale
         return x, y
 
 
-class MHLine(Mnode):
+class MHLine():
     ''' SVG Horizontal Line. Used by mfrac and msqrt. '''
-    def __init__(self, length: float, lw: float, **kwargs):
+    def __init__(self, length: float, lw: float, style: dict=None, **kwargs):
         self.length = length
         self.lw = lw
         self.phantom = kwargs.get('phantom', False)
         self.bbox = BBox(0, lw/2, self.length, self.lw)
+        self.style = style if style is not None else {}
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
@@ -272,6 +278,8 @@ class MHLine(Mnode):
             bar.attrib['y'] = str(y)
             bar.attrib['width'] = str(self.length)
             bar.attrib['height'] = str(self.lw)
+            if 'mathcolor' in self.style:
+                bar.attrib['fill'] = self.style['mathcolor']
         return x+self.length, y
 
 
@@ -295,7 +303,7 @@ class Midentifier(Mnode):
         x = 0
         for char in self.string:
             glyph = self.font.glyph(char)
-            self.nodes.append(MGlyph(glyph, char, self.size, self.emscale, **kwargs))
+            self.nodes.append(Glyph(glyph, char, self.size, self.emscale, self.style, **kwargs))
             self.nodexy.append((x, 0))
             x += glyph.advance() * self.emscale
             ymin = min(ymin, glyph.path.bbox.ymin * self.emscale)
@@ -487,7 +495,7 @@ class Mfenced(Mnode):
         if len(mrow.nodes) == 0:
             # Opening fence with nothing in it
             openglyph = self.font.glyph(self.openchr)
-            mglyph = MGlyph(openglyph, self.openchr, self.size, self.emscale, **kwargs)
+            mglyph = Glyph(openglyph, self.openchr, self.size, self.emscale, self.style, **kwargs)
             height = mglyph.bbox.ymax - mglyph.bbox.ymin
             fencebbox = mglyph.bbox
         else:
@@ -509,7 +517,7 @@ class Mfenced(Mnode):
         if self.openchr:
             openglyph = self.font.glyph(self.openchr)
             openglyph = self.font.math.variant(openglyph.index, height/self.emscale, vert=True)
-            mglyph = MGlyph(openglyph, self.openchr, self.size, self.emscale, **kwargs)
+            mglyph = Glyph(openglyph, self.openchr, self.size, self.emscale, self.style, **kwargs)
             yofst = rowcenter + mglyph.bbox.ymin + (mglyph.bbox.ymax - mglyph.bbox.ymin)/2
 
             self.nodes.append(mglyph)
@@ -526,7 +534,7 @@ class Mfenced(Mnode):
         if self.closechr:
             closeglyph = self.font.glyph(self.closechr)
             closeglyph = self.font.math.variant(closeglyph.index, height/self.emscale, vert=True)
-            mglyph = MGlyph(closeglyph, self.closechr, self.size, self.emscale, **kwargs)
+            mglyph = Glyph(closeglyph, self.closechr, self.size, self.emscale, self.style, **kwargs)
             yofst = rowcenter + mglyph.bbox.ymin + (mglyph.bbox.ymax - mglyph.bbox.ymin)/2
 
             self.nodes.append(mglyph)
@@ -597,7 +605,7 @@ class Moperator(Mnumber):
             if self.width:
                 glyph = self.font.math.variant(glyph.index, self.width / self.emscale, vert=False)
 
-            self.nodes.append(MGlyph(glyph, char, self.size, self.emscale, **kwargs))
+            self.nodes.append(Glyph(glyph, char, self.size, self.emscale, self.style, **kwargs))
             self.nodexy.append((x, 0))
             x += glyph.advance() * self.emscale
             ymin = min(ymin, glyph.path.bbox.ymin * self.emscale)
@@ -1020,7 +1028,7 @@ class Mfrac(Mnode):
                              'thick': linethick * 2}.get(lt, linethick)
 
         bary = -self.font.math.consts.axisHeight*self.emscale
-        self.nodes.append(MHLine(width, linethick, **kwargs))
+        self.nodes.append(MHLine(width, linethick, style=self.style, **kwargs))
         self.nodexy.append((x, bary))
 
         # Calculate/cache bounding box
@@ -1046,7 +1054,7 @@ class Mroot(Mnode):
 
         # Get the right glyph to fit the contents
         rglyph = self.font.math.variant(self.font.glyphindex('√'), height/self.emscale, vert=True)
-        rootnode = MGlyph(rglyph, '√', self.size, self.emscale, **kwargs)
+        rootnode = Glyph(rglyph, '√', self.size, self.emscale, self.style, **kwargs)
 
         # Shift radical up/down to ensure minimum gap between top of text and overbar
         # Keep contents at the same height.
@@ -1085,7 +1093,7 @@ class Mroot(Mnode):
             if italicx:
                 width += italicx * self.emscale
 
-        self.nodes.append(MHLine(width, self.font.math.consts.radicalRuleThickness * self.emscale, **kwargs))
+        self.nodes.append(MHLine(width, self.font.math.consts.radicalRuleThickness * self.emscale, style=self.style, **kwargs))
         self.nodexy.append((x, yrad-rglyph.path.bbox.ymax * self.emscale))
         xmin = rglyph.path.bbox.xmin * self.emscale
         xmax = x + width

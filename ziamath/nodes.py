@@ -15,6 +15,7 @@ from ziafont.glyph import SimpleGlyph
 from .styles import styledstr
 from .zmath import MathFont
 from . import operators
+from . import drawable
 
 
 DEBUG = False       # Debug mode, draws bboxes
@@ -74,6 +75,7 @@ def makenode(element: ET.Element, size: float,
             'mtext': Mtext,
             'mspace': Mspace,
             'mfenced': Mfenced,
+            'menclose': Menclose,
             'mpadded': Mpadded,
             'mphantom': Mphantom,
             'mtable': Mtable,
@@ -127,7 +129,7 @@ def getelementtext(element: ET.Element) -> str:
     return txt
 
 
-class Mnode:
+class Mnode(drawable.Drawable):
     ''' Math Drawing Node
 
         Args:
@@ -142,14 +144,14 @@ class Mnode:
         self.parent = parent
         self.style: MutableMapping[str, Union[str, bool]] = ChainMap(getstyle(self.element), copy(parent.style))
         self.emscale = size / self.font.info.layout.unitsperem
-        self.nodes: list[Mnode|Glyph|MHLine] = []
+        self.nodes: list[drawable.Drawable] = []
         self.nodexy: list[tuple[float, float]] = []
 
     def _setup(self, **kwargs) -> None:
         ''' Calculate node position assuming this node is at 0, 0. Also set bbox. '''
         self.bbox = BBox(0, 0, 0, 0)
 
-    def leftsibling(self) -> Optional['Mnode|Glyph|MHLine']:
+    def leftsibling(self) -> Optional[drawable.Drawable]:
         ''' Left node sibling. The one that was just placed. '''
         try:
             return self.parent.nodes[-1]
@@ -200,99 +202,6 @@ class Mnode:
         return x+xi, y+yi
 
 
-class Glyph():
-    ''' A single glyph node (not <mglyph>, but used by other nodes) '''
-    def __init__(self, glyph: SimpleGlyph, char: str, size: float, emscale: float, style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
-        self.glyph = glyph
-        self.char = char
-        self.size = size
-        self.emscale = emscale
-        self.phantom = kwargs.get('phantom', False)
-        self.style = style if style is not None else {}
-        self._setup()
-
-    def _setup(self, **kwargs) -> None:
-        ''' Place the glyphs with 0, 0 positions '''
-        self.bbox = BBox(
-            self.glyph.path.bbox.xmin * self.emscale,
-            self.glyph.path.bbox.xmax * self.emscale,
-            self.glyph.path.bbox.ymin * self.emscale,
-            self.glyph.path.bbox.ymax * self.emscale)
-
-    def firstglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the first glyph in this node '''
-        return self.glyph
-
-    def lastglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the last glyph in this node '''
-        return self.glyph
-
-    def lastchar(self) -> Optional[str]:
-        ''' Get the last character in this node '''
-        return self.char
-
-    def draw(self, x: float, y: float, svg: ET.Element) -> tuple[float, float]:
-        ''' Draw the node on the SVG
-
-            Args:
-                x: Horizontal position in SVG coordinates
-                y: Vertical position in SVG coordinates
-                svg: SVG drawing as XML
-        '''
-        symbols = svg.findall('symbol')
-        symids = [sym.attrib.get('id') for sym in symbols]
-        if self.glyph.id not in symids and self.glyph.font.svg2:
-            svg.append(self.glyph.svgsymbol())
-        if not self.phantom:
-            svg.append(self.glyph.place(x, y, self.size))
-            if 'mathcolor' in self.style:
-                svg[-1].set('fill', self.style['mathcolor'])  # type: ignore
-        x += self.glyph.advance() * self.emscale
-        return x, y
-
-
-class MHLine():
-    ''' SVG Horizontal Line. Used by mfrac and msqrt. '''
-    def __init__(self, length: float, lw: float, style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
-        self.length = length
-        self.lw = lw
-        self.phantom = kwargs.get('phantom', False)
-        self.bbox = BBox(0, lw/2, self.length, self.lw)
-        self.style = style if style is not None else {}
-
-    def firstglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the first glyph in this node '''
-        return None
-
-    def lastglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the last glyph in this node '''
-        return None
-
-    def lastchar(self) -> Optional[str]:
-        ''' Get the last character in this node '''
-        return None
-
-    def draw(self, x: float, y: float, svg: ET.Element) -> tuple[float, float]:
-        ''' Draw the node on the SVG
-
-            Args:
-                x: Horizontal position in SVG coordinates
-                y: Vertical position in SVG coordinates
-                svg: SVG drawing as XML
-        '''
-        if not self.phantom:
-            # Use rectangle so it can change color with 'fill' attribute
-            # and not mess up glyphs with 'stroke' attribute
-            bar = ET.SubElement(svg, 'rect')
-            bar.attrib['x'] = str(x)
-            bar.attrib['y'] = str(y)
-            bar.attrib['width'] = str(self.length)
-            bar.attrib['height'] = str(self.lw)
-            if 'mathcolor' in self.style:
-                bar.attrib['fill'] = self.style['mathcolor']  # type: ignore
-        return x+self.length, y
-
-
 class Midentifier(Mnode):
     ''' Identifier node <mi> '''
     def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
@@ -313,7 +222,7 @@ class Midentifier(Mnode):
         x = 0
         for char in self.string:
             glyph = self.font.glyph(char)
-            self.nodes.append(Glyph(glyph, char, self.size, self.emscale, self.style, **kwargs))
+            self.nodes.append(drawable.Glyph(glyph, char, self.size, self.emscale, self.style, **kwargs))
             self.nodexy.append((x, 0))
             x += glyph.advance() * self.emscale
             ymin = min(ymin, glyph.path.bbox.ymin * self.emscale)
@@ -505,7 +414,7 @@ class Mfenced(Mnode):
         if len(mrow.nodes) == 0:
             # Opening fence with nothing in it
             openglyph = self.font.glyph(self.openchr)
-            mglyph = Glyph(openglyph, self.openchr, self.size, self.emscale, self.style, **kwargs)
+            mglyph = drawable.Glyph(openglyph, self.openchr, self.size, self.emscale, self.style, **kwargs)
             height = mglyph.bbox.ymax - mglyph.bbox.ymin
             fencebbox = mglyph.bbox
         else:
@@ -527,7 +436,7 @@ class Mfenced(Mnode):
         if self.openchr:
             openglyph = self.font.glyph(self.openchr)
             openglyph = self.font.math.variant(openglyph.index, height/self.emscale, vert=True)
-            mglyph = Glyph(openglyph, self.openchr, self.size, self.emscale, self.style, **kwargs)
+            mglyph = drawable.Glyph(openglyph, self.openchr, self.size, self.emscale, self.style, **kwargs)
             yofst = rowcenter + mglyph.bbox.ymin + (mglyph.bbox.ymax - mglyph.bbox.ymin)/2
 
             self.nodes.append(mglyph)
@@ -544,7 +453,7 @@ class Mfenced(Mnode):
         if self.closechr:
             closeglyph = self.font.glyph(self.closechr)
             closeglyph = self.font.math.variant(closeglyph.index, height/self.emscale, vert=True)
-            mglyph = Glyph(closeglyph, self.closechr, self.size, self.emscale, self.style, **kwargs)
+            mglyph = drawable.Glyph(closeglyph, self.closechr, self.size, self.emscale, self.style, **kwargs)
             yofst = rowcenter + mglyph.bbox.ymin + (mglyph.bbox.ymax - mglyph.bbox.ymin)/2
 
             self.nodes.append(mglyph)
@@ -615,7 +524,7 @@ class Moperator(Mnumber):
             if self.width:
                 glyph = self.font.math.variant(glyph.index, self.width / self.emscale, vert=False)
 
-            self.nodes.append(Glyph(glyph, char, self.size, self.emscale, self.style, **kwargs))
+            self.nodes.append(drawable.Glyph(glyph, char, self.size, self.emscale, self.style, **kwargs))
             self.nodexy.append((x, 0))
             x += glyph.advance() * self.emscale
             ymin = min(ymin, glyph.path.bbox.ymin * self.emscale)
@@ -1038,7 +947,7 @@ class Mfrac(Mnode):
                              'thick': linethick * 2}.get(lt, linethick)
 
         bary = -self.font.math.consts.axisHeight*self.emscale
-        self.nodes.append(MHLine(width, linethick, style=self.style, **kwargs))
+        self.nodes.append(drawable.HLine(width, linethick, style=self.style, **kwargs))
         self.nodexy.append((x, bary))
 
         # Calculate/cache bounding box
@@ -1064,7 +973,7 @@ class Mroot(Mnode):
 
         # Get the right glyph to fit the contents
         rglyph = self.font.math.variant(self.font.glyphindex('√'), height/self.emscale, vert=True)
-        rootnode = Glyph(rglyph, '√', self.size, self.emscale, self.style, **kwargs)
+        rootnode = drawable.Glyph(rglyph, '√', self.size, self.emscale, self.style, **kwargs)
 
         # Shift radical up/down to ensure minimum gap between top of text and overbar
         # Keep contents at the same height.
@@ -1103,7 +1012,7 @@ class Mroot(Mnode):
             if italicx:
                 width += italicx * self.emscale
 
-        self.nodes.append(MHLine(width, self.font.math.consts.radicalRuleThickness * self.emscale, style=self.style, **kwargs))
+        self.nodes.append(drawable.HLine(width, self.font.math.consts.radicalRuleThickness * self.emscale, style=self.style, **kwargs))
         self.nodexy.append((x, yrad-rglyph.path.bbox.ymax * self.emscale))
         xmin = rglyph.path.bbox.xmin * self.emscale
         xmax = x + width
@@ -1127,6 +1036,87 @@ class Msqrt(Mroot):
             self.base = makenode(self.element[0], size, parent=self, **kwargs)
         self.degree = None
         self._setup(**kwargs)
+
+
+class Menclose(Mnode):
+    ''' Enclosure '''
+    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
+        super().__init__(element, size, parent, **kwargs)
+        if len(self.element) > 1:
+            row = ET.Element('mrow')
+            row.extend(list(self.element))
+            self.base = makenode(row, size, parent=self, **kwargs)
+        else:
+            self.base = makenode(self.element[0], size, parent=self, **kwargs)
+        self.notation = element.attrib.get('notation', 'box').split()
+        self._setup(**kwargs)
+
+    def _setup(self, **kwargs) -> None:
+        pad = self.font.math.consts.radicalRuleThickness * self.emscale * 2
+        height = self.base.bbox.ymax - self.base.bbox.ymin + pad * 2
+        width = self.base.bbox.xmax - self.base.bbox.xmin + pad * 2
+        lw = self.font.math.consts.radicalRuleThickness * self.emscale
+        basex = pad
+        xarrow = 0
+        yarrow = 0
+
+        if 'box' in self.notation:
+            self.nodes.append(drawable.Box(width, height, lw, style=self.style, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymax+height-pad))
+        if 'circle' in self.notation:
+            self.nodes.append(drawable.Ellipse(width, height, lw, style=self.style, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymax+height-pad))
+        if 'roundedbox' in self.notation:
+            self.nodes.append(drawable.Box(width, height, lw, style=self.style, cornerradius=lw*4, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymax+height-pad))
+            
+        if ('top' in self.notation or
+            'longdiv' in self.notation or
+            'actuarial' in self.notation):
+            self.nodes.append(drawable.HLine(width, lw, style=self.style, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymax-pad))
+        if ('bottom' in self.notation or
+            'madruwb' in self.notation or
+            'phasorangle' in self.notation):
+            self.nodes.append(drawable.HLine(width, lw, style=self.style, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymin+pad))
+        if ('right' in self.notation or
+            'madruwb' in self.notation or
+            'actuarial' in self.notation):
+            self.nodes.append(drawable.VLine(height, lw, style=self.style, **kwargs))
+            self.nodexy.append((self.base.bbox.xmax+pad*2, -self.base.bbox.ymax-pad))
+        if ('left' in self.notation or
+            'longdiv' in self.notation):
+            self.nodes.append(drawable.VLine(height, lw, style=self.style, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymax-pad))
+        if 'verticalstrike' in self.notation:
+            self.nodes.append(drawable.VLine(height, lw, style=self.style, **kwargs))
+            self.nodexy.append((width/2, -self.base.bbox.ymax-pad))
+        if 'horizontalstrike' in self.notation:
+            self.nodes.append(drawable.HLine(width, lw, style=self.style, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymin-height/2))
+            
+        if 'updiagonalstrike' in self.notation:
+            self.nodes.append(drawable.Diagonal(width, -height, lw, style=self.style, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymin-height+pad))
+        if 'downdiagonalstrike' in self.notation:
+            self.nodes.append(drawable.Diagonal(width, height, lw, style=self.style, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymin+pad))
+        if 'phasorangle' in self.notation:
+            self.nodes.append(drawable.Diagonal(height/3, -height, lw, style=self.style, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymin-height+pad))
+            basex += height/4  # Shift base right a bit so it fits under angle
+
+        if 'updiagonalarrow' in self.notation:
+            self.nodes.append(drawable.Diagonal(width, -height, lw, style=self.style, arrow=True, **kwargs))
+            self.nodexy.append((0, -self.base.bbox.ymin-height+pad))
+            xarrow = self.nodes[-1].arroww  # type: ignore
+            yarrow = self.nodes[-1].arrowh  # type: ignore
+
+        self.nodes.append(self.base)
+        self.nodexy.append((basex, 0))
+
+        self.bbox = BBox(0, basex+width+xarrow, self.base.bbox.ymin-pad, height-pad+yarrow)
 
 
 class Mspace(Mnode):

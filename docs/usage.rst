@@ -97,6 +97,19 @@ as each glyph is included as its own <path> element rather than being reused wit
     zm.Math.fromlatextext('$x^2 + y^2$', svg2=False)
 
 
+Other image formats
+-------------------
+
+Ziamath only outputs SVG format, but other image formats may be obtained using other Python libraries.
+`Cairosvg <https://cairosvg.org/>`_ can be used to convert to PNG, for example:
+
+.. code-block:: python
+
+    import cairosvg
+    expr = zm.Math.fromlatextext('$x^2 + y^2$')
+    pngbytes = cairosvg.svg2png(expr.svg())
+
+
 Limitations
 -----------
 
@@ -107,15 +120,10 @@ Unsupported elements and attributes inculde:
 - <ms>
 - <mglyph>
 - <merror>
-- <menclose>
 - <mmultiscripts>
 - <mlabeledtr>
-- color and background attributes
 - scriptlevel attribute
 - table alignment attributes
-
-
-See some :ref:`examples` of expressions drawn with Ziamath.
 
 
 Math Class

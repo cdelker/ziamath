@@ -63,4 +63,5 @@ Ziamath depends on its sister package, `Ziafont <https://ziafont.readthedocs.io>
    :caption: Contents:
 
    usage.rst
+   examples.rst
    test.rst

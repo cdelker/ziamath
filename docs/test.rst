@@ -1,7 +1,7 @@
-.. _examples:
+.. _testexamples:
 
-Examples
-========
+MathML Torture Test
+===================
 
 
 .. jupyter-execute::
@@ -683,4 +683,3 @@ This page shows Ziamath's results with these examples.
 .. raw:: html
 
    </details>
-   

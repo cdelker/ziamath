@@ -1,0 +1,12 @@
+<math>
+<mfrac>
+    <mrow><mn>1</mn></mrow>
+    <mrow>
+        <msup><mi>a</mi><mn>2</mn></msup>
+        <mo>+</mo>
+        <menclose notation="updiagonalstrike downdiagonalstrike">
+            <msup><mi>b</mi><mn>2</mn></msup>
+        </menclose>
+    </mrow>
+</mfrac>
+</math>

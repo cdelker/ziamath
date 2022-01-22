@@ -1,0 +1,15 @@
+<math>
+<mfenced>
+    <mtable>
+       <mtr>
+          <mtd> <mn>x</mn> </mtd>
+       </mtr>
+       <mtr>
+          <mtd> <mn>y</mn> </mtd>
+       </mtr>
+       <mtr>
+          <mtd> <mn>z</mn> </mtd>
+       </mtr>
+    </mtable>
+</mfenced>
+</math>

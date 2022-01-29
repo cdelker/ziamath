@@ -615,10 +615,16 @@ class Msup(Mnode):
         supx, supy, xadv = place_super(self.base, self.superscript, self.font, self.emscale)
         self.nodes.append(self.superscript)
         self.nodexy.append((x+supx, supy))
-        xmin = self.base.bbox.xmin
-        xmax = x + xadv
-        ymin = self.base.bbox.ymin
-        ymax = max(self.base.bbox.ymax, -supy + self.superscript.bbox.ymax)
+        if self.base.string:
+            xmin = self.base.bbox.xmin
+            xmax = x + xadv
+            ymin = self.base.bbox.ymin
+            ymax = max(self.base.bbox.ymax, -supy + self.superscript.bbox.ymax)
+        else:
+            xmin = 0
+            ymin = -supy
+            xmax = x + xadv
+            ymax = -supy + self.superscript.bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
 
     def firstglyph(self) -> Optional[SimpleGlyph]:

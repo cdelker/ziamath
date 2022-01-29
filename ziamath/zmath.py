@@ -40,6 +40,7 @@ def tex2mml(tex: str) -> str:
         some issues with generated MathML that ziamath doesn't support yet.
     '''
     tex = re.sub(r'\\binom{(.+?)}{(.+?)}', r'\\left( \1 \\atop \2 \\right)', tex)
+    tex = re.sub(r'\\mathrm{(.+?)}', r'\\mathrm {\1}', tex)  # latex2mathml bug requires space after mathrm
     return convert(tex)
 
 

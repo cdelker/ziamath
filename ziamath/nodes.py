@@ -26,8 +26,10 @@ def getstyle(element: ET.Element) -> dict:
     ''' Get style arguments based on "mathvariant" in mathml '''
     variant = element.attrib.get('mathvariant', '')
     styleargs: dict[str, Union[str, bool]] = {}
-    if 'italic' in variant:
+    if 'italic' in variant and 'normal' not in variant:
         styleargs['italic'] = True
+    if 'normal' in variant:
+        styleargs['normal'] = True
     if 'bold' in variant:
         styleargs['bold'] = True
     if 'double' in variant:
@@ -209,7 +211,7 @@ class Midentifier(Mnode):
 
         # Identifiers are italic unless longer than one character
         text = getelementtext(self.element)
-        if len(text) == 1 and 'italic' not in self.style:
+        if len(text) == 1 and 'italic' not in self.style and 'normal' not in self.style:
             self.style['italic'] = True
         if len(text) > 1:
             text += ' '
@@ -316,6 +318,8 @@ class Mrow(Mnode):
         x = 0
         ymax = -9999
         ymin = 9999
+        xmax = -9999
+        y = 0
         i = 0
         node: Mnode
         while i < len(self.element):
@@ -356,12 +360,16 @@ class Mrow(Mnode):
             else:
                 node = makenode(child, self.size, parent=self, **kwargs)
                 i += 1
+            if child.tag == 'mspace' and child.attrib.get('linebreak', None) == 'newline':
+                x = 0
+                y += self.size
             self.nodes.append(node)
-            self.nodexy.append((x, 0))
+            self.nodexy.append((x, y))
             x += node.bbox.xmax
-            ymax = max(ymax, node.bbox.ymax)
-            ymin = min(ymin, node.bbox.ymin)
-        self.bbox = BBox(0, x, ymin, ymax)
+            xmax = max(xmax, x)
+            ymax = max(ymax, -y+node.bbox.ymax)
+            ymin = min(ymin, -y+node.bbox.ymin)
+        self.bbox = BBox(0, xmax, ymin, ymax)
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''

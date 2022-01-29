@@ -615,7 +615,7 @@ class Msup(Mnode):
         supx, supy, xadv = place_super(self.base, self.superscript, self.font, self.emscale)
         self.nodes.append(self.superscript)
         self.nodexy.append((x+supx, supy))
-        if self.base.string:
+        if self.base.bbox.ymax > self.base.bbox.ymin:
             xmin = self.base.bbox.xmin
             xmax = x + xadv
             ymin = self.base.bbox.ymin

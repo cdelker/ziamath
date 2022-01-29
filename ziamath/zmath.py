@@ -35,6 +35,14 @@ def denamespace(element: ET.Element) -> ET.Element:
     return element
 
 
+def tex2mml(tex: str) -> str:
+    ''' Convert Latex to MathML. Do some hacky preprocessing to work around
+        some issues with generated MathML that ziamath doesn't support yet.
+    '''
+    tex = re.sub(r'\\binom{(.+?)}{(.+?)}', r'\\left( \1 \\atop \2 \\right)', tex)
+    return convert(tex)
+
+
 class Math:
     ''' Math Renderer
 
@@ -82,7 +90,8 @@ class Math:
         '''
         if not convert:
             raise ValueError('fromlatex requires latex2mathml package.')
-        mathml = convert(latex)
+            
+        mathml = tex2mml(latex)
         if mathstyle:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathvariant'] = mathstyle
@@ -111,7 +120,7 @@ class Math:
         # into a single <math>
         parts = re.split('\$(.*?)\$', latex)
         texts = parts[::2]
-        maths = [convert(p) for p in parts[1::2]]
+        maths = [tex2mml(p) for p in parts[1::2]]
         mathels = [ET.fromstring(m)[0] for m in maths]   # Convert to xml, but drop opening <math>
         mml = ET.Element('math')
         for text, mathel in zip_longest(texts, mathels):

@@ -91,7 +91,8 @@ class Math:
         '''
         if not convert:
             raise ValueError('fromlatex requires latex2mathml package.')
-            
+
+        mathml: Union[str, ET.Element]
         mathml = tex2mml(latex)
         if mathstyle:
             mathml = ET.fromstring(mathml)

@@ -12,6 +12,7 @@ from ziafont import Font
 from ziafont.fonttypes import BBox
 from ziafont.glyph import SimpleGlyph
 
+from .drawable import Drawable
 from .styles import styledstr
 from .zmath import MathFont
 from . import operators
@@ -310,66 +311,90 @@ class Mrow(Mnode):
 
     def _setup(self, **kwargs) -> None:
         kwargs = copy(kwargs)
+        node: Mnode
+        self.nodes = []
+
+        # Break mrow into lines - to handle mspace linebreak (// in latex)
+        lines = []
+        line: list[ET.Element] = []
         for i, child in enumerate(self.element):
             if child.tag == 'mo':
                 infer_opform(i, child, self)
-
-        self.nodes = []
-        x = 0
-        ymax = -9999
-        ymin = 9999
-        xmax = -9999
-        y = 0
-        i = 0
-        node: Mnode
-        while i < len(self.element):
-            child = self.element[i]
-            text = getelementtext(child)
-            if child.tag == 'mo':
-                if (isstretchy(text, self.font) and
-                    child.attrib.get('form') == 'prefix' and
-                    child.attrib.get('stretchy') != 'false'):
-                    fencekwargs = copy(kwargs)
-                    j = 0
-                    for j in range(i+1, len(self.element)):
-                        if self.element[j].tag == 'mo' and self.element[j].attrib.get('form') == 'postfix':
-                            children = self.element[i+1: j]
-                            fencekwargs['open'] = getelementtext(child)
-                            fencekwargs['close'] = getelementtext(self.element[j])
-                            break
-                    else:  # No postfix closing fence. Enclose remainder of row.
-                        children = self.element[i+1:]
-                        fencekwargs['open'] = getelementtext(child)
-                        fencekwargs['close'] = None
-                    fencekwargs['separators'] = ''
-                    fenced = ET.Element('mfenced')
-                    fenced.attrib.update(child.attrib)
-                    fenced.attrib.update(fencekwargs)
-                    if len(children) > 0:
-                        frow = ET.SubElement(fenced, 'mrow')
-                        frow.extend(children)
-                    node = Mfenced(fenced, self.size, parent=self, **kwargs)
-                    i = j + 1
-
-                else:
-                    if text == '':
-                        i += 1
-                        continue  # InvisibleTimes, etc.
-                    node = Moperator(child, self.size, parent=self, **kwargs)
-                    i += 1
-            else:
-                node = makenode(child, self.size, parent=self, **kwargs)
-                i += 1
             if child.tag == 'mspace' and child.attrib.get('linebreak', None) == 'newline':
-                x = 0
-                y += self.size
-            self.nodes.append(node)
-            self.nodexy.append((x, y))
-            x += node.bbox.xmax
-            xmax = max(xmax, x)
-            ymax = max(ymax, -y+node.bbox.ymax)
-            ymin = min(ymin, -y+node.bbox.ymin)
-        self.bbox = BBox(0, xmax, ymin, ymax)
+                lines.append(line)
+                line = []
+            else:
+                line.append(child)
+        lines.append(line)
+
+        if len(lines) > 1:
+            # Multiline - process each line as an mrow so we can get its bounding box
+            for i, line in enumerate(lines):
+                mrowelm = ET.Element('mrow')
+                mrowelm.extend(line)
+                node = Mrow(mrowelm, self.size, parent=self)
+                self.nodes.append(node)
+
+            y = 0
+            for i, node in enumerate(self.nodes):  # type: ignore
+                if i > 0:
+                    y += (node.bbox.ymax - self.nodes[i-1].bbox.ymin + self.font.math.consts.mathLeading*self.emscale*2)  # type: ignore
+                self.nodexy.append((0, y))
+            xmax = max([n.bbox.xmax for n in self.nodes])    # type: ignore
+            ymin = -y+self.nodes[-1].bbox.ymin    # type: ignore
+            ymax = self.nodes[0].bbox.ymax    # type: ignore
+            self.bbox = BBox(0, xmax, ymin, ymax)
+        else:
+            # Single line
+            ymax = -9999
+            ymin = 9999
+            i = 0
+            x = 0
+            while i < len(line):
+                child = line[i]
+                text = getelementtext(child)
+                if child.tag == 'mo':
+                    if (isstretchy(text, self.font) and
+                        child.attrib.get('form') == 'prefix' and
+                        child.attrib.get('stretchy') != 'false'):
+                        fencekwargs = copy(kwargs)
+                        j = 0
+                        for j in range(i+1, len(self.element)):
+                            if self.element[j].tag == 'mo' and self.element[j].attrib.get('form') == 'postfix':
+                                children = self.element[i+1: j]
+                                fencekwargs['open'] = getelementtext(child)
+                                fencekwargs['close'] = getelementtext(self.element[j])
+                                break
+                        else:  # No postfix closing fence. Enclose remainder of row.
+                            children = self.element[i+1:]
+                            fencekwargs['open'] = getelementtext(child)
+                            fencekwargs['close'] = None
+                        fencekwargs['separators'] = ''
+                        fenced = ET.Element('mfenced')
+                        fenced.attrib.update(child.attrib)
+                        fenced.attrib.update(fencekwargs)
+                        if len(children) > 0:
+                            frow = ET.SubElement(fenced, 'mrow')
+                            frow.extend(children)
+                        node = Mfenced(fenced, self.size, parent=self, **kwargs)
+                        i = j + 1
+
+                    else:
+                        if text == '':
+                            i += 1
+                            continue  # InvisibleTimes, etc.
+                        node = Moperator(child, self.size, parent=self, **kwargs)
+                        i += 1
+                else:
+                    node = makenode(child, self.size, parent=self, **kwargs)
+                    i += 1
+
+                self.nodes.append(node)
+                self.nodexy.append((x, 0))
+                x += node.bbox.xmax
+                ymax = max(ymax, node.bbox.ymax)
+                ymin = min(ymin, node.bbox.ymin)
+            self.bbox = BBox(0, x, ymin, ymax)
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''

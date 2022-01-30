@@ -1,6 +1,31 @@
 Usage
 =====
 
+Installation
+------------
+
+Ziamath can be installed using pip:
+
+.. code-block:: bash
+
+    pip install ziamath
+
+
+Ziamath natively draws MathML. For Latex support, the `latex2mathml <https://pypi.org/project/latex2mathml/>`_ package is used to convert the Latex into MathML first.
+It can be installed along with ziamath:
+
+.. code-block:: bash
+
+    pip install ziamath[latex]
+
+
+Ziamath depends on its sister package, `Ziafont <https://ziafont.readthedocs.io>`_, for reading TTF font files.
+
+|
+
+Drawing Equations
+-----------------
+
 All math expressions are created and drawn using the :py:class:`ziamath.zmath.Math` class.
 The Math class has a Jupyter representation that shows the SVG
 image as the output of a cell.
@@ -36,6 +61,7 @@ To get the raw SVG, create the Math object, then use :py:meth:`ziamath.zmath.Mat
 The Math class takes optional parameters for font file name and font size.
 The font file must be math-enabled, with an embedded 'MATH' table.
 
+|
 
 Drawing Latex
 -------------
@@ -56,6 +82,7 @@ Text containing embedded math, enclosed within $..$, can also be drawn using :py
 The `textstyle` argument provides styling to the plain text, and `mathstyle` provides styling
 to the math expressions. Both arguments may be an allowable MathML "mathvariant" attribute, such as 'sans', 'serif', 'italic', 'bold', 'sans-bold', etc.
 
+|
 
 Drawing on an existing SVG
 --------------------------
@@ -84,6 +111,7 @@ Then use :py:meth:`ziamath.zmath.Math.drawon`, with the x and y position and svg
 
     SVG(ET.tostring(svg))
 
+|
 
 SVG Version Compatibility
 -------------------------
@@ -96,6 +124,7 @@ as each glyph is included as its own <path> element rather than being reused wit
 
     zm.Math.fromlatextext('$x^2 + y^2$', svg2=False)
 
+|
 
 Other image formats
 -------------------
@@ -109,6 +138,7 @@ Ziamath only outputs SVG format, but other image formats may be obtained using o
     expr = zm.Math.fromlatextext('$x^2 + y^2$')
     pngbytes = cairosvg.svg2png(expr.svg())
 
+|
 
 Limitations
 -----------
@@ -125,6 +155,8 @@ Unsupported elements and attributes inculde:
 - scriptlevel attribute
 - table alignment attributes
 
+
+|
 
 Math Class
 ----------

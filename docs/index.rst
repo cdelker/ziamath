@@ -1,7 +1,7 @@
 Ziamath
 =======
 
-Ziamath renders MathML or LaTeX Math expressions as SVG paths. Does not require a Latex installation, nor rely on any third party services, but rather uses math-enabled fonts, such as `STIXTwoMath-Regular <https://www.stixfonts.org/>`_ which comes included with Ziamath
+Ziamath renders MathML or LaTeX Math expressions as SVG paths using only the Python standard library. Does not require a Latex installation, nor rely on any third party services, but rather uses math-enabled fonts, such as `STIXTwoMath-Regular <https://www.stixfonts.org/>`_ which comes included with Ziamath
 for use by default. The resulting SVGs are drawn entirely with <path> elements, so the image does not depend on
 having the font available.
 
@@ -36,27 +36,26 @@ To render from Latex:
     zm.Math.fromlatex(r'\frac{1}{1-x^2}')
 
 
+Support
+-------
 
-Installation
-------------
+If you appreciate Ziamath, buy me a coffee to show your support!
 
-Ziamath can be installed using pip:
+.. raw:: html
 
-.. code-block:: bash
+    <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="cdelker" data-color="#FFDD00" data-emoji=""  data-font="Cookie" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>
 
-    pip install ziamath
+|
 
+----
 
-Ziamath natively draws MathML. For Latex support, the `latex2mathml <https://pypi.org/project/latex2mathml/>`_ package is used to convert the Latex into MathML first.
-It can be installed along with ziamath:
+Source code is available on `Bitbucket <https://bitbucket.org/cdelker/ziamath>`_.
 
-.. code-block:: bash
+Ziamath is also used by the `Ziaplot <https://ziaplot.readthedocs.io>`_ and `Schemdraw <https://schemdraw.readthedocs.io>`_ Python packages, and was used for rendering the SVG and PNG equations on `MathGrabber <https://mathgrabber.com>`_.
 
-    pip install ziamath[latex]
+|
 
-
-Ziamath depends on its sister package, `Ziafont <https://ziafont.readthedocs.io>`_, for reading TTF font files.
-
+----
 
 .. toctree::
    :maxdepth: 2
@@ -65,3 +64,4 @@ Ziamath depends on its sister package, `Ziafont <https://ziafont.readthedocs.io>
    usage.rst
    examples.rst
    test.rst
+   changes.rst

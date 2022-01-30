@@ -1,0 +1,28 @@
+0.4 - IN PROGRESS
+
+
+- Added <menclose> element
+- Added <mfenced> element
+- Added division sign to operators list
+- Implemented mathbackground and mathcolor attributes
+- Implemented linebreak="newline" attribute to mspace element
+- Fixed drawing superscripts with no base
+- Fixed escaping of hyphens/minus signs to allow html comments
+- Fixed height of Latex \\binomial parenthesis
+- Fixed Latex \\mathrm
+
+
+0.3 - 2021-07-05
+
+- Added an option to use SVG1.x format for compatibility since SVG2.0 is not fully supported in all browsers/renderers yet.
+
+
+0.2 - 2021-03-27
+
+- Some fixes to node spacing and text with embedded math
+- Added color parameter to drawon method
+
+
+0.1 - 2021-03-23
+
+Initial Release

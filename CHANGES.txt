@@ -1,5 +1,9 @@
-0.4 - IN PROGRESS
+0.5 - IN PROGRESS
 
+- Added Text class for mixing math and text with different fonts
+
+
+0.4 - 2022-01-30
 
 - Added <menclose> element
 - Added <mfenced> element

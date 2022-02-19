@@ -107,7 +107,7 @@ Then use :py:meth:`ziamath.zmath.Math.drawon`, with the x and y position and svg
     circ.attrib['fill'] = 'orange'
 
     myequation = zm.Math.fromlatex(r'\int_0^1 f(x) \mathrm{d}x', size=18)
-    myequation.drawon(50, 45, svg)
+    myequation.drawon(svg, 50, 45)
 
     SVG(ET.tostring(svg))
 

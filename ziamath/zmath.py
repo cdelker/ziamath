@@ -11,7 +11,6 @@ import ziafont as zf
 
 from .mathfont import MathFont
 from .nodes import makenode, getstyle
-from .mathtable import MathTable
 from .escapes import unescape
 
 try:
@@ -107,7 +106,7 @@ class Math:
     def fromlatextext(cls, latex: str, size: float=24, mathstyle: str=None,
                       textstyle: str=None, font: str=None, svg2=True):
         ''' Create Math Renderer from a sentance containing zero or more LaTeX
-            expressions delimited by $..$.
+            expressions delimited by $..$, resulting in single MathML element.
             Requires latex2mathml Python package.
 
             Args:
@@ -120,7 +119,7 @@ class Math:
         '''
         # Extract each $..$, convert to MathML, but the raw text in <mtext>, and join
         # into a single <math>
-        parts = re.split('\$(.*?)\$', latex)
+        parts = re.split(r'\$(.*?)\$', latex)
         texts = parts[::2]
         maths = [tex2mml(p) for p in parts[1::2]]
         mathels = [ET.fromstring(m)[0] for m in maths]   # Convert to xml, but drop opening <math>
@@ -136,7 +135,7 @@ class Math:
                     mathel.attrib['mathvariant'] = mathstyle
                 mml.append(mathel)
         return cls(mml, size, font, svg2=svg2)
-    
+
     def svgxml(self) -> ET.Element:
         ''' Get standalone SVG of expression as XML Element Tree '''
         svg = ET.Element('svg')
@@ -154,9 +153,10 @@ class Math:
         svg.attrib['viewBox'] = f'0 {-bbox.ymax-1} {width} {height}'
         return svg
 
-    def drawon(self, x: float, y: float, svg: ET.Element,
+    def drawon(self, svg: ET.Element, x: float=0, y: float=0,
                color: str=None,
-               halign: Halign='left', valign: Valign='baseline') -> ET.Element:
+               halign: Halign='left', valign: Valign='baseline',
+               expand_viewbox: bool=True) -> ET.Element:
         ''' Draw the math expression on an existing SVG
 
             Args:
@@ -185,7 +185,31 @@ class Math:
         if color:
             svgelm.attrib['fill'] = color
         self.node.draw(x+xshift, y+yshift, svgelm)
-        return svgelm
+        
+        if expand_viewbox:
+            try:
+                viewx, viewy, vieww, viewh = [float(f) for f in svg.attrib['viewBox'].split()]
+            except KeyError:
+                viewx = viewy = vieww = viewh = 0
+
+            x += xshift
+            y += yshift
+            ymax = y - self.node.bbox.ymin
+            ymin = y - self.node.bbox.ymax
+            xmax = x + self.node.bbox.xmax
+            xmin = x + self.node.bbox.xmin
+            viewymax = viewy+viewh
+            viewxmax = viewx+vieww
+
+            viewxmax = max(viewxmax, xmax)
+            viewymax = max(viewymax, ymax)
+            viewx = min(viewx, xmin)
+            viewy = min(viewy, ymin)
+
+            svg.attrib['width'] = str(viewxmax-xmin)
+            svg.attrib['height'] = str(viewymax-ymin)
+            svg.attrib['viewBox'] = f'{viewx} {viewy} {viewxmax-viewx} {viewymax-viewy}'
+        return svg
 
     def svg(self) -> str:
         ''' Get expression as SVG string '''
@@ -206,7 +230,117 @@ class Math:
         return (self.node.bbox.xmax - self.node.bbox.xmin,
                 self.node.bbox.ymax - self.node.bbox.ymin)
     
-    
+    def getyofst(self) -> float:
+        ''' Y-shift from bottom of bbox to 0 '''
+        return self.node.bbox.ymin
+
+
+class Text:
+    ''' Mixed text and latex math, with math delimited by $..$. Drawn to SVG.
+
+        Args:
+            s: string to write
+            textfont: font filename or family name for text
+            mathfont: font filename or family name for math
+            size: font size in points
+            linespacing: spacing between lines
+            halign: horizontal alignment
+            valign: vertical alignment
+            svg2: Use SVG version 2.0. Disable for better
+                browser compatibility.
+    '''
+    def __init__(self, s, textfont: str=None, mathfont: str=None,
+                 size: float=24, linespacing: float=1,
+                 svg2=True):
+        self.str = s
+        self.textfont = zf.Font(textfont, svg2=svg2)
+        self.mathfont = mathfont
+        self.size = size
+        self.linespacing = linespacing
+        self._svg2 = svg2
+
+    def svg(self) -> str:
+        ''' Get expression as SVG string '''
+        return ET.tostring(self.svgxml(), encoding='unicode')
+
+    def _repr_svg_(self):
+        ''' Jupyter SVG representation '''
+        return self.svg()
+
+    def svgxml(self) -> ET.Element:
+        ''' Get standalone SVG of expression as XML Element Tree '''
+        svg = ET.Element('svg')
+        self.drawon(svg)
+        return svg
+
+    def drawon(self, svg: ET.Element, x: float=0, y: float=0,
+               halign: str='left', valign: str='bottom') -> ET.Element:
+        ''' Draw text on existing SVG element
+
+            Args:
+                svg: Element to draw on
+                x: x-position
+                y: y-position
+                halign: Horizontal alignment
+                valign: Vertical alignment
+        '''
+        lines = self.str.splitlines()
+        svglines = []
+
+        # Split into lines and "parts"
+        for line in lines:
+            svgparts = []
+            parts = re.split(r'(\$.*?\$)', line)
+            for part in parts:
+                if not part:
+                    continue
+                if part.startswith('$') and part.endswith('$'):  # Math
+                    math = Math.fromlatex(part.replace('$', ''), font=self.mathfont,
+                                          size=self.size, svg2=self._svg2)
+                    svgparts.append(math)
+                else:  # Text
+                    txt = zf.Text(part, font=self.textfont, size=self.size, svg2=self._svg2)
+                    svgparts.append(txt)
+            if len(svgparts):
+                svglines.append(svgparts)
+
+        linesizes = [[p.getsize() for p in line] for line in svglines]
+        lineheights = [max(p[1] for p in line) for line in linesizes]
+        linewidths = [sum(p[0] for p in line) for line in linesizes]
+        lineofsts = [min(p.getyofst() for p in line) for line in svglines]
+
+        if valign == 'bottom':
+            yloc = y + sum(lineofsts) - sum(lineheights[1:])
+        elif valign == 'top':
+            yloc = y + lineheights[0] + lineofsts[0]
+        elif valign == 'center':
+            yloc = y - sum(lineheights)/2 + (lineheights[0] - lineofsts[0])/2
+        else:  # 'base'
+            yloc = y
+
+        for i, line in enumerate(svglines):
+            xloc = x
+            sizes = [p.getsize() for p in line]
+
+            xloc += {'left': 0,
+                     'right': -linewidths[i],
+                     'center': -linewidths[i]/2}.get(halign, 0)
+
+            try:
+                drop = min(p.node.bbox.ymin for p in line if isinstance(p, Math))
+            except ValueError:
+                drop = 0
+            if i > 0 and lineheights[i] > self.linespacing * self.size:
+                yloc += (lineheights[i] - self.linespacing * self.size)
+            for part, size in zip(line, sizes):
+                part.drawon(svg, xloc, yloc)
+                xloc += size[0]
+            yloc += self.linespacing * self.size
+            yloc -= drop
+
+        return svg
+
+
 # Cache the loaded fonts to prevent reloading all the time
 with pkg_resources.path('ziamath.fonts', 'STIXTwoMath-Regular.ttf') as p:
     fontname = p

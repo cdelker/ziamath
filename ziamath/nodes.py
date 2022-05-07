@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 
 from ziafont import Font
 from ziafont.fonttypes import BBox
-from ziafont.glyph import SimpleGlyph
+from ziafont.glyph import SimpleGlyph, fmt
 
 from .drawable import Drawable
 from .styles import styledstr
@@ -183,20 +183,20 @@ class Mnode(drawable.Drawable):
         '''
         if DEBUG:
             rect = ET.SubElement(svg, 'rect')
-            rect.attrib['x'] = str(x)
-            rect.attrib['y'] = str(y - self.bbox.ymax)
-            rect.attrib['width'] = str((self.bbox.xmax - self.bbox.xmin))
-            rect.attrib['height'] = str((self.bbox.ymax - self.bbox.ymin))
+            rect.attrib['x'] = fmt(x)
+            rect.attrib['y'] = fmt(y - self.bbox.ymax)
+            rect.attrib['width'] = fmt((self.bbox.xmax - self.bbox.xmin))
+            rect.attrib['height'] = fmt((self.bbox.ymax - self.bbox.ymin))
             rect.attrib['fill'] = 'none'
             rect.attrib['stroke'] = 'blue'
             rect.attrib['stroke-width'] = '0.2'
 
         if 'mathbackground' in self.style:
             rect = ET.SubElement(svg, 'rect')
-            rect.set('x', str(x))
-            rect.set('y', str(y - self.bbox.ymax))
-            rect.set('width', str((self.bbox.xmax - self.bbox.xmin)))
-            rect.set('height', str((self.bbox.ymax - self.bbox.ymin)))
+            rect.set('x', fmt(x))
+            rect.set('y', fmt(y - self.bbox.ymax))
+            rect.set('width', fmt((self.bbox.xmax - self.bbox.xmin)))
+            rect.set('height', fmt((self.bbox.ymax - self.bbox.ymin)))
             rect.set('fill', self.style['mathbackground'])  # type: ignore
             
         xi = yi = 0.

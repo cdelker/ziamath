@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 from ziafont import Font
 from ziafont.fonttypes import BBox
-from ziafont.glyph import SimpleGlyph
+from ziafont.glyph import SimpleGlyph, fmt
 
 
 class Drawable:
@@ -101,10 +101,10 @@ class HLine(Drawable):
             # Use rectangle so it can change color with 'fill' attribute
             # and not mess up glyphs with 'stroke' attribute
             bar = ET.SubElement(svg, 'rect')
-            bar.attrib['x'] = str(x)
-            bar.attrib['y'] = str(y)
-            bar.attrib['width'] = str(self.length)
-            bar.attrib['height'] = str(self.lw)
+            bar.attrib['x'] = fmt(x)
+            bar.attrib['y'] = fmt(y)
+            bar.attrib['width'] = fmt(self.length)
+            bar.attrib['height'] = fmt(self.lw)
             if 'mathcolor' in self.style:
                 bar.attrib['fill'] = self.style['mathcolor']  # type: ignore
         return x+self.length, y
@@ -131,10 +131,10 @@ class VLine(Drawable):
             # Use rectangle so it can change color with 'fill' attribute
             # and not mess up glyphs with 'stroke' attribute
             bar = ET.SubElement(svg, 'rect')
-            bar.attrib['x'] = str(x-self.lw/2)
-            bar.attrib['y'] = str(y)
-            bar.attrib['width'] = str(self.lw)
-            bar.attrib['height'] = str(self.height)
+            bar.attrib['x'] = fmt(x-self.lw/2)
+            bar.attrib['y'] = fmt(y)
+            bar.attrib['width'] = fmt(self.lw)
+            bar.attrib['height'] = fmt(self.height)
             if 'mathcolor' in self.style:
                 bar.attrib['fill'] = self.style['mathcolor']  # type: ignore
         return x, y
@@ -163,15 +163,15 @@ class Box(Drawable):
         '''
         if not self.phantom:
             bar = ET.SubElement(svg, 'rect')
-            bar.set('x', str(x))
-            bar.set('y', str(y-self.height))
-            bar.set('width', str(self.width))
-            bar.set('height', str(self.height))
-            bar.set('stroke-width', str(self.lw))
+            bar.set('x', fmt(x))
+            bar.set('y', fmt(y-self.height))
+            bar.set('width', fmt(self.width))
+            bar.set('height', fmt(self.height))
+            bar.set('stroke-width', fmt(self.lw))
             bar.set('stroke', self.style.get('mathcolor', 'black'))  # type: ignore
             bar.set('fill', self.style.get('mathbackground', 'none'))  # type: ignore
             if self.cornerradius:
-                bar.set('rx', str(self.cornerradius))
+                bar.set('rx', fmt(self.cornerradius))
                 
         return x+self.width, y
 
@@ -219,8 +219,8 @@ class Diagonal(Drawable):
                 poly = ET.SubElement(marker, 'polygon')
                 poly.set('points', '0 0 10 3.5 0 7')
 
-            bar.set('d', f'M {x} {y-self.height} L {x+self.width} {y}')
-            bar.set('stroke-width', str(self.lw))
+            bar.set('d', f'M {fmt(x)} {fmt(y-self.height)} L {fmt(x+self.width)} {fmt(y)}')
+            bar.set('stroke-width', fmt(self.lw))
             bar.set('stroke', self.style.get('mathcolor', 'black'))  # type: ignore
             if self.arrow:
                 bar.set('marker-end', 'url(#arrowhead)')
@@ -251,11 +251,11 @@ class Ellipse(Drawable):
             bar = ET.SubElement(svg, 'ellipse')
 #  <ellipse cx="100" cy="50" rx="100" ry="50" />
 
-            bar.set('cx', str(x+self.width/2))
-            bar.set('cy', str(y-self.height/2))
-            bar.set('rx', str(self.width/2))
-            bar.set('ry', str(self.height/2))
-            bar.set('stroke-width', str(self.lw))
+            bar.set('cx', fmt(x+self.width/2))
+            bar.set('cy', fmt(y-self.height/2))
+            bar.set('rx', fmt(self.width/2))
+            bar.set('ry', fmt(self.height/2))
+            bar.set('stroke-width', fmt(self.lw))
             bar.set('stroke', self.style.get('mathcolor', 'black'))  # type: ignore
             bar.set('fill', self.style.get('mathbackground', 'none'))  # type: ignore
         return x+self.width, y

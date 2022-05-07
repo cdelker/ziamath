@@ -8,6 +8,7 @@ import importlib.resources as pkg_resources
 import xml.etree.ElementTree as ET
 
 import ziafont as zf
+from ziafont.glyph import fmt
 
 from .mathfont import MathFont
 from .nodes import makenode, getstyle
@@ -21,6 +22,11 @@ except ImportError:
 
 Halign = Literal['left', 'center', 'right']
 Valign = Literal['top', 'center', 'baseline', 'axis', 'bottom']
+
+
+def set_precision(p: int) -> None:
+    ''' Set decimal precision for SVG coordinates '''
+    zf.set_precision(p)
 
 
 def denamespace(element: ET.Element) -> ET.Element:
@@ -145,12 +151,12 @@ class Math:
         height = bbox.ymax - bbox.ymin + 2
 
         # Note: viewbox goes negative.
-        svg.attrib['width'] = str(width)
-        svg.attrib['height'] = str(height)
+        svg.attrib['width'] = fmt(width)
+        svg.attrib['height'] = fmt(height)
         svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
         if not self.font.svg2:  # type: ignore
             svg.attrib['xmlns:xlink'] = 'http://www.w3.org/1999/xlink'
-        svg.attrib['viewBox'] = f'0 {-bbox.ymax-1} {width} {height}'
+        svg.attrib['viewBox'] = f'0 {fmt(-bbox.ymax-1)} {fmt(width)} {fmt(height)}'
         return svg
 
     def drawon(self, svg: ET.Element, x: float=0, y: float=0,
@@ -162,10 +168,11 @@ class Math:
             Args:
                 x: Horizontal position in SVG coordinates
                 y: Vertical position in SVG coordinates
-                svg: The image (XML object) to draw on
+                svg: The image (top-level svg XML object) to draw on
                 color: Color name or #000000 hex code
                 halign: Horizontal alignment
                 valign: Vertical alignment
+                expand_viewbox: Update the viewbox of the svg element
 
             Note: Horizontal alignment can be the typical 'left', 'center', or 'right'.
             Vertical alignment can be 'top', 'bottom', or 'center' to align with the
@@ -206,14 +213,19 @@ class Math:
             viewx = min(viewx, xmin)
             viewy = min(viewy, ymin)
 
-            svg.attrib['width'] = str(viewxmax-xmin)
-            svg.attrib['height'] = str(viewymax-ymin)
-            svg.attrib['viewBox'] = f'{viewx} {viewy} {viewxmax-viewx} {viewymax-viewy}'
-        return svg
+            svg.attrib['width'] = fmt(viewxmax-xmin)
+            svg.attrib['height'] = fmt(viewymax-ymin)
+            svg.attrib['viewBox'] = f'{fmt(viewx)} {fmt(viewy)} {fmt(viewxmax-viewx)} {fmt(viewymax-viewy)}'
+        return svgelm
 
     def svg(self) -> str:
         ''' Get expression as SVG string '''
         return ET.tostring(self.svgxml(), encoding='unicode')
+
+    def save(self, fname):
+        ''' Save expression to SVG file '''
+        with open(fname, 'w') as f:
+            f.write(self.svg())
 
     def _repr_svg_(self):
         ''' Jupyter SVG representation '''
@@ -272,6 +284,11 @@ class Text:
         svg = ET.Element('svg')
         self.drawon(svg)
         return svg
+
+    def save(self, fname):
+        ''' Save expression to SVG file '''
+        with open(fname, 'w') as f:
+            f.write(self.svg())
 
     def drawon(self, svg: ET.Element, x: float=0, y: float=0,
                halign: str='left', valign: str='bottom') -> ET.Element:

@@ -1,8 +1,9 @@
 ''' Main math rendering class '''
 
 from __future__ import annotations
-from typing import Union, Literal
+from typing import Union, Literal, Tuple
 import re
+from math import inf
 from itertools import zip_longest
 import importlib.resources as pkg_resources
 import xml.etree.ElementTree as ET
@@ -161,8 +162,7 @@ class Math:
 
     def drawon(self, svg: ET.Element, x: float=0, y: float=0,
                color: str=None,
-               halign: Halign='left', valign: Valign='baseline',
-               expand_viewbox: bool=True) -> ET.Element:
+               halign: Halign='left', valign: Valign='baseline') -> ET.Element:
         ''' Draw the math expression on an existing SVG
 
             Args:
@@ -172,7 +172,6 @@ class Math:
                 color: Color name or #000000 hex code
                 halign: Horizontal alignment
                 valign: Vertical alignment
-                expand_viewbox: Update the viewbox of the svg element
 
             Note: Horizontal alignment can be the typical 'left', 'center', or 'right'.
             Vertical alignment can be 'top', 'bottom', or 'center' to align with the
@@ -192,30 +191,6 @@ class Math:
         if color:
             svgelm.attrib['fill'] = color
         self.node.draw(x+xshift, y+yshift, svgelm)
-        
-        if expand_viewbox:
-            try:
-                viewx, viewy, vieww, viewh = [float(f) for f in svg.attrib['viewBox'].split()]
-            except KeyError:
-                viewx = viewy = vieww = viewh = 0
-
-            x += xshift
-            y += yshift
-            ymax = y - self.node.bbox.ymin
-            ymin = y - self.node.bbox.ymax
-            xmax = x + self.node.bbox.xmax
-            xmin = x + self.node.bbox.xmin
-            viewymax = viewy+viewh
-            viewxmax = viewx+vieww
-
-            viewxmax = max(viewxmax, xmax)
-            viewymax = max(viewymax, ymax)
-            viewx = min(viewx, xmin)
-            viewy = min(viewy, ymin)
-
-            svg.attrib['width'] = fmt(viewxmax-xmin)
-            svg.attrib['height'] = fmt(viewymax-ymin)
-            svg.attrib['viewBox'] = f'{fmt(viewx)} {fmt(viewy)} {fmt(viewxmax-viewx)} {fmt(viewymax-viewy)}'
         return svgelm
 
     def svg(self) -> str:
@@ -254,6 +229,7 @@ class Text:
             s: string to write
             textfont: font filename or family name for text
             mathfont: font filename or family name for math
+            mathstyle: Style parameter for math
             size: font size in points
             linespacing: spacing between lines
             halign: horizontal alignment
@@ -262,11 +238,12 @@ class Text:
                 browser compatibility.
     '''
     def __init__(self, s, textfont: str=None, mathfont: str=None,
-                 size: float=24, linespacing: float=1,
+                 mathstyle: str=None, size: float=24, linespacing: float=1,
                  svg2=True):
         self.str = s
         self.textfont = zf.Font(textfont, svg2=svg2)
         self.mathfont = mathfont
+        self.mathstyle = mathstyle
         self.size = size
         self.linespacing = linespacing
         self._svg2 = svg2
@@ -282,7 +259,13 @@ class Text:
     def svgxml(self) -> ET.Element:
         ''' Get standalone SVG of expression as XML Element Tree '''
         svg = ET.Element('svg')
-        self.drawon(svg)
+        svgelm, (x1, x2, y1, y2) = self._drawon(svg)
+        svg.attrib['width'] = fmt(x2-x1)
+        svg.attrib['height'] = fmt(y2-y1)
+        svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
+        if not self._svg2:  # type: ignore
+            svg.attrib['xmlns:xlink'] = 'http://www.w3.org/1999/xlink'
+        svg.attrib['viewBox'] = f'0 {fmt(y1)} {fmt(x2-x1)} {fmt(y2-y1)}'
         return svg
 
     def save(self, fname):
@@ -290,7 +273,7 @@ class Text:
         with open(fname, 'w') as f:
             f.write(self.svg())
 
-    def drawon(self, svg: ET.Element, x: float=0, y: float=0,
+    def drawon(self, svg: ET.Element, x: float=0, y: float=0, color: str='black',
                halign: str='left', valign: str='bottom') -> ET.Element:
         ''' Draw text on existing SVG element
 
@@ -298,11 +281,29 @@ class Text:
                 svg: Element to draw on
                 x: x-position
                 y: y-position
+                color: color of text
+                halign: Horizontal alignment
+                valign: Vertical alignment
+        '''
+        svgelm, _ = self._drawon(svg, x, y, color, halign, valign)
+        return svgelm
+        
+    def _drawon(self, svg: ET.Element, x: float=0, y: float=0,
+                color: str='black', halign: str='left',
+                valign: str='bottom') -> Tuple[ET.Element, Tuple[float, float, float, float]]:
+        ''' Draw text on existing SVG element
+
+            Args:
+                svg: Element to draw on
+                x: x-position
+                y: y-position
+                color: color of text
                 halign: Horizontal alignment
                 valign: Vertical alignment
         '''
         lines = self.str.splitlines()
         svglines = []
+        svgelm = ET.SubElement(svg, 'g')
 
         # Split into lines and "parts"
         for line in lines:
@@ -313,6 +314,7 @@ class Text:
                     continue
                 if part.startswith('$') and part.endswith('$'):  # Math
                     math = Math.fromlatex(part.replace('$', ''), font=self.mathfont,
+                                          mathstyle=self.mathstyle,
                                           size=self.size, svg2=self._svg2)
                     svgparts.append(math)
                 else:  # Text
@@ -334,7 +336,9 @@ class Text:
             yloc = y - sum(lineheights)/2 + (lineheights[0] - lineofsts[0])/2
         else:  # 'base'
             yloc = y
-
+            
+        xmin = ymin = inf
+        xmax = ymax = -inf
         for i, line in enumerate(svglines):
             xloc = x
             sizes = [p.getsize() for p in line]
@@ -343,6 +347,11 @@ class Text:
                      'right': -linewidths[i],
                      'center': -linewidths[i]/2}.get(halign, 0)
 
+            xmin = min(xmin, xloc)
+            xmax = max(xmax, xloc+linewidths[i])
+            ymin = min(ymin, yloc-lineheights[i])
+            ymax = max(ymax, yloc+lineheights[i])
+            
             try:
                 drop = min(p.node.bbox.ymin for p in line if isinstance(p, Math))
             except ValueError:
@@ -350,12 +359,15 @@ class Text:
             if i > 0 and lineheights[i] > self.linespacing * self.size:
                 yloc += (lineheights[i] - self.linespacing * self.size)
             for part, size in zip(line, sizes):
-                part.drawon(svg, xloc, yloc)
+                part.drawon(svgelm, xloc, yloc)
                 xloc += size[0]
             yloc += self.linespacing * self.size
             yloc -= drop
 
-        return svg
+        if color:
+            svgelm.attrib['fill'] = color
+
+        return svgelm, (xmin, xmax, ymin, ymax)
 
 
 # Cache the loaded fonts to prevent reloading all the time

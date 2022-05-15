@@ -333,7 +333,7 @@ class Text:
         elif valign == 'top':
             yloc = y + lineheights[0] + lineofsts[0]
         elif valign == 'center':
-            yloc = y - sum(lineheights)/2 + (lineheights[0] - lineofsts[0])/2
+            yloc = y + lineheights[0] + lineofsts[0] - sum(lineheights)/2
         else:  # 'base'
             yloc = y
             

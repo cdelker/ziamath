@@ -157,7 +157,7 @@ class Math:
         svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
         if not self.font.svg2:  # type: ignore
             svg.attrib['xmlns:xlink'] = 'http://www.w3.org/1999/xlink'
-        svg.attrib['viewBox'] = f'0 {fmt(-bbox.ymax-1)} {fmt(width)} {fmt(height)}'
+        svg.attrib['viewBox'] = f'{fmt(bbox.xmin-1)} {fmt(-bbox.ymax-1)} {fmt(width)} {fmt(height)}'
         return svg
 
     def drawon(self, svg: ET.Element, x: float=0, y: float=0,
@@ -239,6 +239,7 @@ class Text:
     '''
     def __init__(self, s, textfont: str=None, mathfont: str=None,
                  mathstyle: str=None, size: float=24, linespacing: float=1,
+                 halign: str='left', valign: str='base',
                  svg2=True):
         self.str = s
         self.textfont = zf.Font(textfont, svg2=svg2)
@@ -247,6 +248,8 @@ class Text:
         self.size = size
         self.linespacing = linespacing
         self._svg2 = svg2
+        self._halign = halign
+        self._valign = valign
 
     def svg(self) -> str:
         ''' Get expression as SVG string '''
@@ -265,7 +268,7 @@ class Text:
         svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
         if not self._svg2:  # type: ignore
             svg.attrib['xmlns:xlink'] = 'http://www.w3.org/1999/xlink'
-        svg.attrib['viewBox'] = f'0 {fmt(y1)} {fmt(x2-x1)} {fmt(y2-y1)}'
+        svg.attrib['viewBox'] = f'{fmt(x1)} {fmt(y1)} {fmt(x2-x1)} {fmt(y2-y1)}'
         return svg
 
     def save(self, fname):
@@ -289,8 +292,8 @@ class Text:
         return svgelm
         
     def _drawon(self, svg: ET.Element, x: float=0, y: float=0,
-                color: str='black', halign: str='left',
-                valign: str='bottom') -> Tuple[ET.Element, Tuple[float, float, float, float]]:
+                color: str='black', halign: str=None,
+                valign: str=None) -> Tuple[ET.Element, Tuple[float, float, float, float]]:
         ''' Draw text on existing SVG element
 
             Args:
@@ -301,6 +304,9 @@ class Text:
                 halign: Horizontal alignment
                 valign: Vertical alignment
         '''
+        halign = self._halign if halign is None else halign
+        valign = self._valign if valign is None else valign
+        
         lines = self.str.splitlines()
         svglines = []
         svgelm = ET.SubElement(svg, 'g')

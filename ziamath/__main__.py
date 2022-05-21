@@ -2,7 +2,9 @@ import argparse
 
 parser = argparse.ArgumentParser(description="Process some integers.")
 
-parser.add_argument("src", metavar="INPUT", default=None, help="source file")
+parser.add_argument(
+    "src", metavar="INPUT", nargs='?', default=None, help="source file"
+)
 
 parser.add_argument(
     "-o", dest="dest", metavar="OUTPUT", default=None, help="destination file"

@@ -72,8 +72,16 @@ To render a math expression in Latex format, create the Math object using :py:me
 
     zm.Math.fromlatex(r'c = \pm \sqrt{a^2 + b^2}')
 
+|
 
-Text containing embedded math, enclosed within $..$, can also be drawn using :py:meth:`ziamath.zmath.Math.fromlatextext`.
+Mixed Math and Text
+-------------------
+
+To combine math and regular text, two options are available.
+:py:meth:`ziamath.zmath.Math.fromlatextext` converts a string expression with one or more
+embedded math expressions enclosed within $..$. It creates a single MathML <math> element
+with the plain text placed within <mtext> elements. This method works for single line
+math and text expressions.
 
 .. jupyter-execute::
 
@@ -81,6 +89,21 @@ Text containing embedded math, enclosed within $..$, can also be drawn using :py
 
 The `textstyle` argument provides styling to the plain text, and `mathstyle` provides styling
 to the math expressions. Both arguments may be an allowable MathML "mathvariant" attribute, such as 'sans', 'serif', 'italic', 'bold', 'sans-bold', etc.
+
+The other option for mixed math and text is the :py:class:`ziamath.zmath.Text` class.
+It takes a string, which may contain multiple lines and math expressions enclosed in $..$,
+and draws directly to SVG. The text is drawn directly; no <mtext> elements are used and the MathML is not available.
+Different fonts may be used for the plain text and math portions.
+
+.. jupyter-execute::
+
+    zm.Text(
+        r'''The volume of a sphere is
+    $V = \frac{4}{3}\pi r^3$
+    or in terms of diameter,
+    $ V = \frac{\pi d^3}{6}$.
+    ''', halign='center')
+
 
 |
 
@@ -140,6 +163,26 @@ Ziamath only outputs SVG format, but other image formats may be obtained using o
 
 |
 
+Command Line
+------------
+
+Ziamath may be accessed from the command line, reading input from a file with
+
+.. code-block:: bash
+
+    python -m ziamath inputfile.txt
+
+Or reading stdin (with LaTeX input):
+
+.. code-block:: bash
+
+    echo "x^2 + y^2" | python -m ziamath --latex
+
+Run `python -m ziamath --help` to show all the options.
+
+
+|
+
 Limitations
 -----------
 
@@ -162,4 +205,7 @@ Math Class
 ----------
 
 .. autoclass:: ziamath.zmath.Math
+    :members:
+    
+.. autoclass:: ziamath.zmath.Text
     :members:

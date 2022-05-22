@@ -277,7 +277,7 @@ class Text:
             f.write(self.svg())
 
     def drawon(self, svg: ET.Element, x: float=0, y: float=0, color: str='black',
-               halign: str='left', valign: str='bottom') -> ET.Element:
+               halign: str=None, valign: str=None) -> ET.Element:
         ''' Draw text on existing SVG element
 
             Args:
@@ -330,10 +330,10 @@ class Text:
                 svglines.append(svgparts)
 
         linesizes = [[p.getsize() for p in line] for line in svglines]
+        lineofsts = [min([p.getyofst() for p in line]) for line in svglines]
         lineheights = [max(p[1] for p in line) for line in linesizes]
         linewidths = [sum(p[0] for p in line) for line in linesizes]
-        lineofsts = [min(p.getyofst() for p in line) for line in svglines]
-
+        
         if valign == 'bottom':
             yloc = y + sum(lineofsts) - sum(lineheights[1:])
         elif valign == 'top':
@@ -342,39 +342,43 @@ class Text:
             yloc = y + lineheights[0] + lineofsts[0] - sum(lineheights)/2
         else:  # 'base'
             yloc = y
-            
+        
         xmin = ymin = inf
         xmax = ymax = -inf
         for i, line in enumerate(svglines):
             xloc = x
-            sizes = [p.getsize() for p in line]
-
             xloc += {'left': 0,
                      'right': -linewidths[i],
                      'center': -linewidths[i]/2}.get(halign, 0)
 
             xmin = min(xmin, xloc)
             xmax = max(xmax, xloc+linewidths[i])
-            ymin = min(ymin, yloc-lineheights[i])
-            ymax = max(ymax, yloc+lineheights[i])
+
+            # Include extra height of tall math expressions
+            drop = 0
+            if i > 0:
+                try:
+                    drop = min(p.node.bbox.ymin for p in line if isinstance(p, Math))
+                except ValueError:
+                    drop = 0
             
-            try:
-                drop = min(p.node.bbox.ymin for p in line if isinstance(p, Math))
-            except ValueError:
-                drop = 0
-            if i > 0 and lineheights[i] > self.linespacing * self.size:
-                yloc += (lineheights[i] - self.linespacing * self.size)
-            for part, size in zip(line, sizes):
+            yloc -= drop
+            ymin = min(ymin, yloc-lineheights[i])
+            ymax = max(ymax, yloc-lineofsts[i])
+            for part, size in zip(line, linesizes[i]):
                 part.drawon(svgelm, xloc, yloc)
                 xloc += size[0]
-            yloc += self.linespacing * self.size
-            yloc -= drop
-
+            yloc += lineheights[i]
         if color:
             svgelm.attrib['fill'] = color
 
         return svgelm, (xmin, xmax, ymin, ymax)
 
+    def getsize(self):
+        svg = ET.Element('svg')        
+        _, (xmin, xmax, ymin, ymax) = self._drawon(svg)
+        return (xmax-xmin, ymax-ymin)
+    
 
 # Cache the loaded fonts to prevent reloading all the time
 with pkg_resources.path('ziamath.fonts', 'STIXTwoMath-Regular.ttf') as p:

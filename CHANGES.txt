@@ -1,6 +1,8 @@
-0.5 - IN PROGRESS
+0.5 - 2022-05-28
 
 - Added Text class for mixing math and text with different fonts
+- Add configuration for SVG decimal precision
+- Added command line interface
 
 
 0.4 - 2022-01-30

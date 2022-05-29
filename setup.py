@@ -5,7 +5,7 @@ with open('README.md', 'r') as f:
 
 setuptools.setup(
     name = 'ziamath',
-    version = '0.4',
+    version = '0.5',
     description = 'Render MathML and LaTeX Math to SVG without Latex installation',
     author = 'Collin J. Delker',
     author_email = 'ziaplot@collindelker.com',
@@ -21,7 +21,7 @@ setuptools.setup(
                     'ziamath.fonts': ['STIXTwoMath-Regular.ttf']},
     zip_safe=False,
     keywords = ['MathML', 'LaTeX', 'math', 'font', 'truetype', 'opentype', 'svg'],
-    install_requires=['ziafont>=0.2'],
+    install_requires=['ziafont>=0.3'],
     extras_require={
         'latex':  ['latex2mathml'],
     },

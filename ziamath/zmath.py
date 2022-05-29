@@ -1,7 +1,7 @@
 ''' Main math rendering class '''
 
 from __future__ import annotations
-from typing import Union, Literal, Tuple
+from typing import Union, Literal, Tuple, Optional, Dict
 import re
 from math import inf
 from itertools import zip_longest
@@ -216,7 +216,7 @@ class Math:
         ''' Get size of rendered text '''
         return (self.node.bbox.xmax - self.node.bbox.xmin,
                 self.node.bbox.ymax - self.node.bbox.ymin)
-    
+
     def getyofst(self) -> float:
         ''' Y-shift from bottom of bbox to 0 '''
         return self.node.bbox.ymin
@@ -242,7 +242,6 @@ class Text:
                  halign: str='left', valign: str='base',
                  svg2=True):
         self.str = s
-        self.textfont = zf.Font(textfont, svg2=svg2)
         self.mathfont = mathfont
         self.mathstyle = mathstyle
         self.size = size
@@ -250,6 +249,18 @@ class Text:
         self._svg2 = svg2
         self._halign = halign
         self._valign = valign
+        self.textfont: Optional[Union[MathFont, zf.Font]]
+
+        if textfont is None:
+            self.textfont = loadedfonts.get('textfont')
+            if self.textfont is None:
+                self.textfont = zf.Font(svg2=svg2)
+                loadedfonts['textfont'] = self.textfont
+        elif textfont in loadedfonts:
+            self.textfont = loadedfonts.get(textfont)
+        else:
+            self.textfont = zf.Font(textfont, svg2=svg2)
+            loadedfonts[textfont] = self.textfont
 
     def svg(self) -> str:
         ''' Get expression as SVG string '''
@@ -290,7 +301,7 @@ class Text:
         '''
         svgelm, _ = self._drawon(svg, x, y, color, halign, valign)
         return svgelm
-        
+
     def _drawon(self, svg: ET.Element, x: float=0, y: float=0,
                 color: str='black', halign: str=None,
                 valign: str=None) -> Tuple[ET.Element, Tuple[float, float, float, float]]:
@@ -306,7 +317,7 @@ class Text:
         '''
         halign = self._halign if halign is None else halign
         valign = self._valign if valign is None else valign
-        
+
         lines = self.str.splitlines()
         svglines = []
         svgelm = ET.SubElement(svg, 'g')
@@ -326,14 +337,14 @@ class Text:
                 else:  # Text
                     txt = zf.Text(part, font=self.textfont, size=self.size, svg2=self._svg2)
                     svgparts.append(txt)
-            if len(svgparts):
+            if len(svgparts) > 0:
                 svglines.append(svgparts)
 
         linesizes = [[p.getsize() for p in line] for line in svglines]
         lineofsts = [min([p.getyofst() for p in line]) for line in svglines]
         lineheights = [max(p[1] for p in line) for line in linesizes]
         linewidths = [sum(p[0] for p in line) for line in linesizes]
-        
+
         if valign == 'bottom':
             yloc = y + sum(lineofsts) - sum(lineheights[1:])
         elif valign == 'top':
@@ -342,7 +353,7 @@ class Text:
             yloc = y + lineheights[0] + lineofsts[0] - sum(lineheights)/2
         else:  # 'base'
             yloc = y
-        
+
         xmin = ymin = inf
         xmax = ymax = -inf
         for i, line in enumerate(svglines):
@@ -361,7 +372,7 @@ class Text:
                     drop = min(p.node.bbox.ymin for p in line if isinstance(p, Math))
                 except ValueError:
                     drop = 0
-            
+
             yloc -= drop
             ymin = min(ymin, yloc-lineheights[i])
             ymax = max(ymax, yloc-lineofsts[i])
@@ -375,12 +386,13 @@ class Text:
         return svgelm, (xmin, xmax, ymin, ymax)
 
     def getsize(self):
-        svg = ET.Element('svg')        
+        ''' Get pixel width and height of Text. '''
+        svg = ET.Element('svg')
         _, (xmin, xmax, ymin, ymax) = self._drawon(svg)
         return (xmax-xmin, ymax-ymin)
-    
+
 
 # Cache the loaded fonts to prevent reloading all the time
 with pkg_resources.path('ziamath.fonts', 'STIXTwoMath-Regular.ttf') as p:
     fontname = p
-loadedfonts = {'default': MathFont(fontname)}
+loadedfonts: Dict[str, Union[zf.Font, MathFont]] = {'default': MathFont(fontname)}

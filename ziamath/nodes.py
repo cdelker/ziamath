@@ -12,15 +12,12 @@ from ziafont import Font
 from ziafont.fonttypes import BBox
 from ziafont.glyph import SimpleGlyph, fmt
 
+from .config import config
 from .drawable import Drawable
 from .styles import styledstr
 from .zmath import MathFont
 from . import operators
 from . import drawable
-
-
-DEBUG = False       # Debug mode, draws bboxes
-MINFONTSIZE = 0.3   # Minimum font size as fraction of base font size
 
 
 def getstyle(element: ET.Element) -> dict:
@@ -181,7 +178,7 @@ class Mnode(drawable.Drawable):
                 y: Vertical position in SVG coordinates
                 svg: SVG drawing as XML
         '''
-        if DEBUG:
+        if config.debug:
             rect = ET.SubElement(svg, 'rect')
             rect.attrib['x'] = fmt(x)
             rect.attrib['y'] = fmt(y - self.bbox.ymax)
@@ -636,7 +633,7 @@ class Msup(Mnode):
         self.base = makenode(self.element[0], size, parent=self, **kwargs)
         kwargs['sup'] = True
         supfontsize = max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                          self.font.basesize*MINFONTSIZE)
+                          self.font.basesize*config.minsizefraction)
         self.superscript = makenode(self.element[1], supfontsize, parent=self, **kwargs)
         self._setup(**kwargs)
 
@@ -690,7 +687,7 @@ class Msub(Mnode):
         self.base = makenode(self.element[0], size, parent=self, **kwargs)
         kwargs['sub'] = True
         subfontsize = max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                          self.font.basesize*MINFONTSIZE)
+                          self.font.basesize*config.minsizefraction)
         self.subscript = makenode(self.element[1], subfontsize, parent=self, **kwargs)
         self._setup(**kwargs)
 
@@ -737,7 +734,7 @@ class Msubsup(Mnode):
         assert len(self.element) == 3
         self.base = makenode(self.element[0], size, parent=self, **kwargs)
         subfontsize =  max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                           self.font.basesize*MINFONTSIZE)
+                           self.font.basesize*config.minsizefraction)
         kwargs['sup'] = True
         self.subscript = makenode(self.element[1], subfontsize, parent=self, **kwargs)
         kwargs['sub'] = True
@@ -818,7 +815,7 @@ class Mover(Mnode):
         self.base = makenode(self.element[0], size, parent=self, **kwargs)
         kwargs['sup'] = True
         fsize = max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                          self.font.basesize*MINFONTSIZE)
+                          self.font.basesize*config.minsizefraction)
 
         kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
         self.over = makenode(self.element[1], fsize, parent=self, **kwargs)
@@ -870,7 +867,7 @@ class Munder(Mnode):
         self.base = makenode(self.element[0], size, parent=self, **kwargs)
         kwargs['sub'] = True
         fsize = max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                    self.font.basesize*MINFONTSIZE)
+                    self.font.basesize*config.minsizefraction)
 
         kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
         self.under = makenode(self.element[1], fsize, parent=self, **kwargs)
@@ -905,7 +902,7 @@ class Munderover(Mnode):
         self.base = makenode(self.element[0], size, parent=self, **kwargs)
         kwargs['sub'] = True
         fsize = max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                    self.font.basesize*MINFONTSIZE)
+                    self.font.basesize*config.minsizefraction)
 
         kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
         self.under = makenode(self.element[1], fsize, parent=self, **kwargs)

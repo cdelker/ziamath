@@ -96,12 +96,13 @@ if args.size is not None:
     kwopt["size"] = args.size
 
 if args.cache is not None:
-    kwopt["svg2"] = args.cache
+    from .zmath import config
+    config.svg2 = args.cache
 
 if args.precision is not None:
-    from .zmath import set_precision
+    from .zmath import config
+    config.precision = args.precision
 
-    set_precision(args.precision)
 
 if args.font_file is not None:
     kwopt["font"] = args.font_file

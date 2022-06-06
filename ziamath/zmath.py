@@ -14,6 +14,7 @@ from ziafont.glyph import fmt
 from .mathfont import MathFont
 from .nodes import makenode, getstyle
 from .escapes import unescape
+from .config import config
 
 try:
     from latex2mathml.converter import convert  # type: ignore
@@ -23,11 +24,6 @@ except ImportError:
 
 Halign = Literal['left', 'center', 'right']
 Valign = Literal['top', 'center', 'baseline', 'axis', 'bottom']
-
-
-def set_precision(p: int) -> None:
-    ''' Set decimal precision for SVG coordinates '''
-    zf.set_precision(p)
 
 
 def denamespace(element: ET.Element) -> ET.Element:
@@ -51,16 +47,15 @@ def tex2mml(tex: str) -> str:
 
 
 class Math:
-    ''' Math Renderer
+    ''' MathML Element Renderer
 
         Args:
             mathml: MathML expression, in string or XML Element
             size: Base font size, pixels
             font: Filename of font file. Must contain MATH typesetting table.
-            svg2: Use SVG2.0 specification. Disable for compatibility.
     '''
     def __init__(self, mathml: Union[str, ET.Element],
-                 size: float=24, font: str=None, svg2: bool=True):
+                 size: float=24, font: str=None):
         self.mathml = mathml
         self.size = size
 
@@ -72,7 +67,6 @@ class Math:
             self.font = MathFont(font, size)
             loadedfonts[font] = self.font
 
-        self.font.svg2 = svg2  # type:ignore
         if isinstance(mathml, str):
             mathml = unescape(mathml)
             mathml = ET.fromstring(mathml)
@@ -83,7 +77,8 @@ class Math:
         self.node = makenode(mathml, parent=self, size=size)  # type: ignore
 
     @classmethod
-    def fromlatex(cls, latex: str, size: float=24, mathstyle: str=None, color: str=None, font: str=None, svg2: bool=True):
+    def fromlatex(cls, latex: str, size: float=24, mathstyle: str=None,
+                  color: str=None, font: str=None):
         ''' Create Math Renderer from a single LaTeX expression. Requires
             latex2mathml Python package.
 
@@ -93,7 +88,6 @@ class Math:
                 mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
                 color: Color parameter, equivalent to "mathcolor" attribute
                 font: Font file name
-                svg2: Use SVG2.0 specification. Disable for compatibility.
         '''
         if not convert:
             raise ValueError('fromlatex requires latex2mathml package.')
@@ -107,12 +101,12 @@ class Math:
         if color:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathcolor'] = color
-        return cls(mathml, size, font, svg2=svg2)
+        return cls(mathml, size, font)
 
     @classmethod
     def fromlatextext(cls, latex: str, size: float=24, mathstyle: str=None,
-                      textstyle: str=None, font: str=None, svg2=True):
-        ''' Create Math Renderer from a sentance containing zero or more LaTeX
+                      textstyle: str=None, font: str=None):
+        ''' Create Math Renderer from a sentence containing zero or more LaTeX
             expressions delimited by $..$, resulting in single MathML element.
             Requires latex2mathml Python package.
 
@@ -122,7 +116,6 @@ class Math:
                 mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
                 textstyle: Style parameter for text, equivalent to "mathvariant" MathML attribute
                 font: Font file name
-                svg2: Use SVG2.0 specification. Disable for compatibility.
         '''
         # Extract each $..$, convert to MathML, but the raw text in <mtext>, and join
         # into a single <math>
@@ -141,7 +134,7 @@ class Math:
                 if mathstyle:
                     mathel.attrib['mathvariant'] = mathstyle
                 mml.append(mathel)
-        return cls(mml, size, font, svg2=svg2)
+        return cls(mml, size, font)
 
     def svgxml(self) -> ET.Element:
         ''' Get standalone SVG of expression as XML Element Tree '''
@@ -155,7 +148,7 @@ class Math:
         svg.attrib['width'] = fmt(width)
         svg.attrib['height'] = fmt(height)
         svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
-        if not self.font.svg2:  # type: ignore
+        if not config.svg2:
             svg.attrib['xmlns:xlink'] = 'http://www.w3.org/1999/xlink'
         svg.attrib['viewBox'] = f'{fmt(bbox.xmin-1)} {fmt(-bbox.ymax-1)} {fmt(width)} {fmt(height)}'
         return svg
@@ -228,40 +221,41 @@ class Text:
         Args:
             s: string to write
             textfont: font filename or family name for text
-            mathfont: font filename or family name for math
+            mathfont: font filename for math
             mathstyle: Style parameter for math
             size: font size in points
             linespacing: spacing between lines
             halign: horizontal alignment
             valign: vertical alignment
-            svg2: Use SVG version 2.0. Disable for better
-                browser compatibility.
     '''
     def __init__(self, s, textfont: str=None, mathfont: str=None,
                  mathstyle: str=None, size: float=24, linespacing: float=1,
-                 halign: str='left', valign: str='base',
-                 svg2=True):
+                 halign: str='left', valign: str='base'):
         self.str = s
         self.mathfont = mathfont
         self.mathstyle = mathstyle
         self.size = size
         self.linespacing = linespacing
-        self._svg2 = svg2
         self._halign = halign
         self._valign = valign
         self.textfont: Optional[Union[MathFont, zf.Font]]
 
+        # textfont can be a path to font, or style type like "serif".
+        # If style type, use Stix font variation
         if textfont is None:
-            self.textfont = loadedfonts.get('textfont')
-            if self.textfont is None:
-                self.textfont = zf.Font(svg2=svg2)
-                loadedfonts['textfont'] = self.textfont
-        elif textfont in loadedfonts:
-            self.textfont = loadedfonts.get(textfont)
+            textfont = 'sans'
+        if textfont in ['sans', 'sans-serif', 'serif']:
+            self.textfont = None
+            self.textstyle = textfont
         else:
-            self.textfont = zf.Font(textfont, svg2=svg2)
-            loadedfonts[textfont] = self.textfont
-
+            fontfile = zf.findfont(textfont)
+            if fontfile:
+                self.textfont = zf.Font(fontfile)
+                self.textstyle = 'sans'
+            else:
+                self.textfont = None
+                self.textstyle = textfont
+                
     def svg(self) -> str:
         ''' Get expression as SVG string '''
         return ET.tostring(self.svgxml(), encoding='unicode')
@@ -277,7 +271,7 @@ class Text:
         svg.attrib['width'] = fmt(x2-x1)
         svg.attrib['height'] = fmt(y2-y1)
         svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
-        if not self._svg2:  # type: ignore
+        if not config.svg2:
             svg.attrib['xmlns:xlink'] = 'http://www.w3.org/1999/xlink'
         svg.attrib['viewBox'] = f'{fmt(x1)} {fmt(y1)} {fmt(x2-x1)} {fmt(y2-y1)}'
         return svg
@@ -332,10 +326,14 @@ class Text:
                 if part.startswith('$') and part.endswith('$'):  # Math
                     math = Math.fromlatex(part.replace('$', ''), font=self.mathfont,
                                           mathstyle=self.mathstyle,
-                                          size=self.size, svg2=self._svg2)
+                                          size=self.size)
                     svgparts.append(math)
                 else:  # Text
-                    txt = zf.Text(part, font=self.textfont, size=self.size, svg2=self._svg2)
+                    if self.textfont:
+                        txt = zf.Text(part, font=self.textfont, size=self.size)
+                    else:
+                        txt = Math.fromlatextext(part, textstyle=self.textstyle,
+                                                 size=self.size)
                     svgparts.append(txt)
             if len(svgparts) > 0:
                 svglines.append(svgparts)

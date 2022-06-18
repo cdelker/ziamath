@@ -317,9 +317,11 @@ class Text:
         svgelm = ET.SubElement(svg, 'g')
 
         # Split into lines and "parts"
+        linesizes = []
         for line in lines:
             svgparts = []
             parts = re.split(r'(\$.*?\$)', line)
+            partsizes = []
             for part in parts:
                 if not part:
                     continue
@@ -328,17 +330,21 @@ class Text:
                                           mathstyle=self.mathstyle,
                                           size=self.size)
                     svgparts.append(math)
+                    partsizes.append(math.getsize())
                 else:  # Text
                     if self.textfont:
                         txt = zf.Text(part, font=self.textfont, size=self.size)
+                        partsizes.append(txt.getsize())
                     else:
                         txt = Math.fromlatextext(part, textstyle=self.textstyle,
                                                  size=self.size)
+                        partsizes.append((txt.node.bbox.xmax - txt.node.bbox.xmin,
+                                          txt.node.size))
                     svgparts.append(txt)
             if len(svgparts) > 0:
                 svglines.append(svgparts)
+                linesizes.append(partsizes)
 
-        linesizes = [[p.getsize() for p in line] for line in svglines]
         lineofsts = [min([p.getyofst() for p in line]) for line in svglines]
         lineheights = [max(p[1] for p in line) for line in linesizes]
         linewidths = [sum(p[0] for p in line) for line in linesizes]
@@ -377,7 +383,7 @@ class Text:
             for part, size in zip(line, linesizes[i]):
                 part.drawon(svgelm, xloc, yloc)
                 xloc += size[0]
-            yloc += lineheights[i]
+            yloc += lineheights[i] * self.linespacing
         if color:
             svgelm.attrib['fill'] = color
 

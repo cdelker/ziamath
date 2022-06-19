@@ -23,7 +23,7 @@ except ImportError:
 
 
 Halign = Literal['left', 'center', 'right']
-Valign = Literal['top', 'center', 'baseline', 'axis', 'bottom']
+Valign = Literal['top', 'center', 'base', 'axis', 'bottom']
 
 
 def denamespace(element: ET.Element) -> ET.Element:
@@ -54,6 +54,9 @@ class Math:
             size: Base font size, pixels
             font: Filename of font file. Must contain MATH typesetting table.
     '''
+    # Math class doesn't have a color parameter since color is set
+    # by the <mathcolor> tags in MML. Since Math is a single line,
+    # alignment is done at the drawon function rather than the class level.
     def __init__(self, mathml: Union[str, ET.Element],
                  size: float=24, font: str=None):
         self.mathml = mathml
@@ -78,7 +81,7 @@ class Math:
 
     @classmethod
     def fromlatex(cls, latex: str, size: float=24, mathstyle: str=None,
-                  color: str=None, font: str=None):
+                  font: str=None, color: str=None):
         ''' Create Math Renderer from a single LaTeX expression. Requires
             latex2mathml Python package.
 
@@ -86,8 +89,8 @@ class Math:
                 latex: Latex string
                 size: Base font size
                 mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
-                color: Color parameter, equivalent to "mathcolor" attribute
                 font: Font file name
+                color: Color parameter, equivalent to "mathcolor" attribute
         '''
         if not convert:
             raise ValueError('fromlatex requires latex2mathml package.')
@@ -105,7 +108,8 @@ class Math:
 
     @classmethod
     def fromlatextext(cls, latex: str, size: float=24, mathstyle: str=None,
-                      textstyle: str=None, font: str=None):
+                      textstyle: str=None, font: str=None,
+                      color: str=None):
         ''' Create Math Renderer from a sentence containing zero or more LaTeX
             expressions delimited by $..$, resulting in single MathML element.
             Requires latex2mathml Python package.
@@ -116,6 +120,7 @@ class Math:
                 mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
                 textstyle: Style parameter for text, equivalent to "mathvariant" MathML attribute
                 font: Font file name
+                color: Color parameter, equivalent to "mathcolor" attribute
         '''
         # Extract each $..$, convert to MathML, but the raw text in <mtext>, and join
         # into a single <math>
@@ -134,6 +139,8 @@ class Math:
                 if mathstyle:
                     mathel.attrib['mathvariant'] = mathstyle
                 mml.append(mathel)
+        if color:
+            mml.attrib['mathcolor'] = color
         return cls(mml, size, font)
 
     def svgxml(self) -> ET.Element:
@@ -154,21 +161,19 @@ class Math:
         return svg
 
     def drawon(self, svg: ET.Element, x: float=0, y: float=0,
-               color: str=None,
-               halign: Halign='left', valign: Valign='baseline') -> ET.Element:
+               halign: Halign='left', valign: Valign='base') -> ET.Element:
         ''' Draw the math expression on an existing SVG
 
             Args:
                 x: Horizontal position in SVG coordinates
                 y: Vertical position in SVG coordinates
                 svg: The image (top-level svg XML object) to draw on
-                color: Color name or #000000 hex code
                 halign: Horizontal alignment
                 valign: Vertical alignment
 
             Note: Horizontal alignment can be the typical 'left', 'center', or 'right'.
             Vertical alignment can be 'top', 'bottom', or 'center' to align with the
-            expression's bounding box, or 'baseline' to align with the bottom
+            expression's bounding box, or 'base' to align with the bottom
             of the first text element, or 'axis', aligning with the height of a minus
             sign above the baseline.
         '''
@@ -181,8 +186,6 @@ class Math:
                   'right': -width}.get(halign, 0)
 
         svgelm = ET.SubElement(svg, 'g')  # Put it in a group
-        if color:
-            svgelm.attrib['fill'] = color
         self.node.draw(x+xshift, y+yshift, svgelm)
         return svgelm
 
@@ -217,6 +220,7 @@ class Math:
 
 class Text:
     ''' Mixed text and latex math, with math delimited by $..$. Drawn to SVG.
+        Can contain multiple lines.
 
         Args:
             s: string to write
@@ -225,6 +229,7 @@ class Text:
             mathstyle: Style parameter for math
             size: font size in points
             linespacing: spacing between lines
+            color: color of text
             halign: horizontal alignment
             valign: vertical alignment
             rotation: Rotation angle in degrees
@@ -235,6 +240,7 @@ class Text:
     '''
     def __init__(self, s, textfont: str=None, mathfont: str=None,
                  mathstyle: str=None, size: float=24, linespacing: float=1,
+                 color: str=None,
                  halign: str='left', valign: str='base',
                  rotation: float=0, rotation_mode: str='anchor'):
         self.str = s
@@ -242,6 +248,7 @@ class Text:
         self.mathstyle = mathstyle
         self.size = size
         self.linespacing = linespacing
+        self.color = color
         self._halign = halign
         self._valign = valign
         self.rotation = rotation
@@ -289,7 +296,7 @@ class Text:
         with open(fname, 'w') as f:
             f.write(self.svg())
 
-    def drawon(self, svg: ET.Element, x: float=0, y: float=0, color: str='black',
+    def drawon(self, svg: ET.Element, x: float=0, y: float=0,
                halign: str=None, valign: str=None) -> ET.Element:
         ''' Draw text on existing SVG element
 
@@ -297,23 +304,20 @@ class Text:
                 svg: Element to draw on
                 x: x-position
                 y: y-position
-                color: color of text
                 halign: Horizontal alignment
                 valign: Vertical alignment
         '''
-        svgelm, _ = self._drawon(svg, x, y, color, halign, valign)
+        svgelm, _ = self._drawon(svg, x, y, halign, valign)
         return svgelm
 
     def _drawon(self, svg: ET.Element, x: float=0, y: float=0,
-                color: str='black', halign: str=None,
-                valign: str=None) -> Tuple[ET.Element, Tuple[float, float, float, float]]:
+                halign: str=None, valign: str=None) -> Tuple[ET.Element, Tuple[float, float, float, float]]:
         ''' Draw text on existing SVG element
 
             Args:
                 svg: Element to draw on
                 x: x-position
                 y: y-position
-                color: color of text
                 halign: Horizontal alignment
                 valign: Vertical alignment
         '''
@@ -336,16 +340,16 @@ class Text:
                 if part.startswith('$') and part.endswith('$'):  # Math
                     math = Math.fromlatex(part.replace('$', ''), font=self.mathfont,
                                           mathstyle=self.mathstyle,
-                                          size=self.size)
+                                          size=self.size, color=self.color)
                     svgparts.append(math)
                     partsizes.append(math.getsize())
                 else:  # Text
                     if self.textfont:
-                        txt = zf.Text(part, font=self.textfont, size=self.size)
+                        txt = zf.Text(part, font=self.textfont, size=self.size, color=self.color)
                         partsizes.append(txt.getsize())
                     else:
                         txt = Math.fromlatextext(part, textstyle=self.textstyle,
-                                                 size=self.size)
+                                                 size=self.size, color=self.color)
                         partsizes.append((txt.node.bbox.xmax - txt.node.bbox.xmin,  # type: ignore
                                           txt.node.size))  # type: ignore
                     svgparts.append(txt)
@@ -393,8 +397,6 @@ class Text:
                 part.drawon(svgelm, xloc, yloc)
                 xloc += size[0]
             yloc += lineheights[i] * self.linespacing
-        if color:
-            svgelm.attrib['fill'] = color
 
         if self.rotation:
             costh = cos(radians(self.rotation))

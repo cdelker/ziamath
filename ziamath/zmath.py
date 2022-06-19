@@ -3,7 +3,7 @@
 from __future__ import annotations
 from typing import Union, Literal, Tuple, Optional, Dict
 import re
-from math import inf
+from math import inf, cos, sin, radians
 from itertools import zip_longest
 import importlib.resources as pkg_resources
 import xml.etree.ElementTree as ET
@@ -227,10 +227,16 @@ class Text:
             linespacing: spacing between lines
             halign: horizontal alignment
             valign: vertical alignment
+            rotation: Rotation angle in degrees
+            rotation_mode: Either 'default' or 'anchor', to
+                mimic Matplotlib behavoir. See:
+                https://matplotlib.org/stable/gallery/text_labels_and_annotations/demo_text_rotation_mode.html
+
     '''
     def __init__(self, s, textfont: str=None, mathfont: str=None,
                  mathstyle: str=None, size: float=24, linespacing: float=1,
-                 halign: str='left', valign: str='base'):
+                 halign: str='left', valign: str='base',
+                 rotation: float=0, rotation_mode: str='anchor'):
         self.str = s
         self.mathfont = mathfont
         self.mathstyle = mathstyle
@@ -238,6 +244,8 @@ class Text:
         self.linespacing = linespacing
         self._halign = halign
         self._valign = valign
+        self.rotation = rotation
+        self.rotation_mode = rotation_mode
         self.textfont: Optional[Union[MathFont, zf.Font]]
 
         # textfont can be a path to font, or style type like "serif".
@@ -255,7 +263,7 @@ class Text:
             else:
                 self.textfont = None
                 self.textstyle = textfont
-                
+
     def svg(self) -> str:
         ''' Get expression as SVG string '''
         return ET.tostring(self.svgxml(), encoding='unicode')
@@ -338,8 +346,8 @@ class Text:
                     else:
                         txt = Math.fromlatextext(part, textstyle=self.textstyle,
                                                  size=self.size)
-                        partsizes.append((txt.node.bbox.xmax - txt.node.bbox.xmin,
-                                          txt.node.size))
+                        partsizes.append((txt.node.bbox.xmax - txt.node.bbox.xmin,  # type: ignore
+                                          txt.node.size))  # type: ignore
                     svgparts.append(txt)
             if len(svgparts) > 0:
                 svglines.append(svgparts)
@@ -350,16 +358,17 @@ class Text:
         linewidths = [sum(p[0] for p in line) for line in linesizes]
 
         if valign == 'bottom':
-            yloc = y + sum(lineofsts) - sum(lineheights[1:])
+            ystart = y + sum(lineofsts) - sum(lineheights[1:])
         elif valign == 'top':
-            yloc = y + lineheights[0] + lineofsts[0]
+            ystart = y + lineheights[0] + lineofsts[0]
         elif valign == 'center':
-            yloc = y + lineheights[0] + lineofsts[0] - sum(lineheights)/2
+            ystart = y + lineheights[0] + lineofsts[0] - sum(lineheights)/2
         else:  # 'base'
-            yloc = y
+            ystart = y
 
         xmin = ymin = inf
         xmax = ymax = -inf
+        yloc = ystart
         for i, line in enumerate(svglines):
             xloc = x
             xloc += {'left': 0,
@@ -387,6 +396,50 @@ class Text:
         if color:
             svgelm.attrib['fill'] = color
 
+        if self.rotation:
+            costh = cos(radians(self.rotation))
+            sinth = sin(radians(self.rotation))
+            p1 = (xmin-x, ymin-y)  # Corners relative to rotation point
+            p2 = (xmax-x, ymin-y)
+            p3 = (xmax-x, ymax-y)
+            p4 = (xmin-x, ymax-y)
+            x1 = x + (p1[0]*costh + p1[1]*sinth)
+            x2 = x + (p2[0]*costh + p2[1]*sinth)
+            x3 = x + (p3[0]*costh + p3[1]*sinth)
+            x4 = x + (p4[0]*costh + p4[1]*sinth)
+            y1 = y - (p1[0]*sinth - p1[1]*costh)
+            y2 = y - (p2[0]*sinth - p2[1]*costh)
+            y3 = y - (p3[0]*sinth - p3[1]*costh)
+            y4 = y - (p4[0]*sinth - p4[1]*costh)
+            bbox = (min(x1, x2, x3, x4), max(x1, x2, x3, x4),
+                    min(y1, y2, y3, y4), max(y1, y2, y3, y4))
+
+            xform = ''
+            if self.rotation_mode == 'default':
+                dx = {'left': x - bbox[0],
+                      'right': x - bbox[1],
+                      'center': x - (bbox[1]+bbox[0])/2}.get(halign, 0)
+                dy = {'top': y - bbox[2],
+                      'bottom': y - bbox[3],
+                      'base': -sinth*dx,
+                      'center': y - (bbox[3]+bbox[2])/2}.get(valign, 0)
+                xform = f'translate({dx} {dy})'
+                bbox = (bbox[0]+dx, bbox[1]+dx,
+                        bbox[2]+dy, bbox[3]+dy)
+
+            xform += f' rotate({-self.rotation} {x} {y})'
+            if config.debug:
+                rect = ET.SubElement(svg, 'rect')
+                rect.attrib['x'] = fmt(bbox[0])
+                rect.attrib['y'] = fmt(bbox[2])
+                rect.attrib['width'] = fmt(bbox[1]-bbox[0])
+                rect.attrib['height'] = fmt(bbox[3]-bbox[2])
+                rect.attrib['fill'] = 'none'
+                rect.attrib['stroke'] = 'red'
+
+            svgelm.set('transform', xform)
+            xmin, xmax, ymin, ymax = bbox
+
         return svgelm, (xmin, xmax, ymin, ymax)
 
     def getsize(self):
@@ -394,6 +447,12 @@ class Text:
         svg = ET.Element('svg')
         _, (xmin, xmax, ymin, ymax) = self._drawon(svg)
         return (xmax-xmin, ymax-ymin)
+
+    def bbox(self):
+        ''' Get bounding box (xmin, xmax, ymin, ymax) of Text. '''
+        svg = ET.Element('svg')
+        _, (xmin, xmax, ymin, ymax) = self._drawon(svg)
+        return (xmin, xmax, ymin, ymax)
 
 
 # Cache the loaded fonts to prevent reloading all the time

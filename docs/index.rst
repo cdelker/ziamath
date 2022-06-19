@@ -65,3 +65,4 @@ Ziamath is also used by the `Ziaplot <https://ziaplot.readthedocs.io>`_ and `Sch
    examples.rst
    test.rst
    changes.rst
+   api.rst

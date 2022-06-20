@@ -1,3 +1,10 @@
+0.6 - 2022-06-22
+
+- Added rotation parameter to Text class
+- Improve linespacing of Text objects
+- Added global configuration object
+
+
 0.5 - 2022-05-28
 
 - Added Text class for mixing math and text with different fonts

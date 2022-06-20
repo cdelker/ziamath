@@ -77,10 +77,9 @@ To render a math expression in Latex format, create the Math object using :py:me
 Mixed Math and Text
 -------------------
 
-:py:meth:`ziamath.zmath.Math.fromlatextext` converts a string expression with one or more
-embedded math expressions enclosed within $..$. into a single MathML <math> element
-with the plain text placed within <mtext> elements. This method works for single line
-math and text expressions.
+:py:meth:`ziamath.zmath.Math.fromlatextext` creates a MathML <math> element with text embedded in <mtext> elements.
+It takes a string input with math expressions enclosed between dollar signs $..$.
+This method works for single line math and text expressions.
 
 .. jupyter-execute::
 
@@ -94,7 +93,7 @@ Text Objects
 
 Another option for mixed math and text is the :py:class:`ziamath.zmath.Text` class.
 It takes a string, which may contain multiple lines and math expressions enclosed in $..$,
-and draws directly to SVG. The text is drawn directly; no <mtext> elements are used and the MathML is not available.
+and draws directly to SVG. The text is drawn directly; no <math> or <mtext> elements are accessible.
 Different fonts may be used for the plain text and math portions.
 
 .. jupyter-execute::
@@ -106,11 +105,11 @@ Different fonts may be used for the plain text and math portions.
     $ V = \frac{\pi d^3}{6}$.
     ''', halign='center')
 
-Text objects support rotation:
+Text objects support rotation (in degrees) and color (CSS named color or hex color value):
 
 .. jupyter-execute::
 
-    zm.Text('$\\sqrt{a}$', rotation=30)
+    zm.Text('$\\sqrt{a}$', rotation=30, color='mediumslateblue')
 
 
 |

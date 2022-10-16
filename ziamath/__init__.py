@@ -3,4 +3,4 @@ from .styles import styledchr, styledstr
 from .zmath import Math, Text
 from .config import config
 
-__version__ = '0.6'
+__version__ = '0.7-alpha'

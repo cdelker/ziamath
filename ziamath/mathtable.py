@@ -205,10 +205,10 @@ class MathTable:
         accentcoverage = Coverage(self.ofst+ofst+topaccent+covofst, self.fontfile)
 
         # Extended Shape Coverage
-        extshapes = Coverage(self.ofst+ofst+extendshape, self.fontfile)
+        extshapes = Coverage(self.ofst+ofst+extendshape, self.fontfile, nulltable=(extendshape==0))
 
         # Kern Info
-        kerninfo = MathKernInfoTable(self.ofst+ofst+kernofst, self.fontfile)
+        kerninfo = MathKernInfoTable(self.ofst+ofst+kernofst, self.fontfile, nulltable=(kernofst==0))
 
         self.italicsCorrection = MathSubTable(italicscorrections, italicscoverage)
         self.topAccentAttachment = MathSubTable(accents, accentcoverage)
@@ -522,25 +522,32 @@ class MathKernInfoTable:
             ofst: Byte offset into font file
             fontfile: Font File
     '''
-    def __init__(self, ofst: int, fontfile: FontReader):
-        fontfile.seek(ofst)
-        covofst = fontfile.readuint16()
-        cnt = fontfile.readuint16()
-        self.kerninfo = []
-        for i in range(cnt):
-            tr = fontfile.readuint16()
-            tl = fontfile.readuint16()
-            br = fontfile.readuint16()
-            bl = fontfile.readuint16()
-            self.kerninfo.append(MathKernInfoRecord(
-                MathKernTable(tr+ofst, fontfile) if tr else ZeroKern(),
-                MathKernTable(tl+ofst, fontfile) if tl else ZeroKern(),
-                MathKernTable(br+ofst, fontfile) if br else ZeroKern(),
-                MathKernTable(bl+ofst, fontfile) if bl else ZeroKern()))
-        self.coverage = Coverage(ofst+covofst, fontfile)
+    def __init__(self, ofst: int, fontfile: FontReader, nulltable: bool = False):
+        if nulltable:
+            self.kerninfo = None
+            self.coverage = None
+        else:
+            fontfile.seek(ofst)
+            covofst = fontfile.readuint16()
+            cnt = fontfile.readuint16()
+            self.kerninfo = []
+            for i in range(cnt):
+                tr = fontfile.readuint16()
+                tl = fontfile.readuint16()
+                br = fontfile.readuint16()
+                bl = fontfile.readuint16()
+                self.kerninfo.append(MathKernInfoRecord(
+                    MathKernTable(tr+ofst, fontfile) if tr else ZeroKern(),
+                    MathKernTable(tl+ofst, fontfile) if tl else ZeroKern(),
+                    MathKernTable(br+ofst, fontfile) if br else ZeroKern(),
+                    MathKernTable(bl+ofst, fontfile) if bl else ZeroKern()))
+            self.coverage = Coverage(ofst+covofst, fontfile)
 
     def glyph(self, glyphid: int) -> Optional[MathKernInfoRecord]:
         ''' Get kerning info record for this glyph '''
+        if self.coverage is None:
+            return None
+
         idx = self.coverage.covidx(glyphid)
         if idx is not None:
             return self.kerninfo[idx]

@@ -263,13 +263,8 @@ class Text:
             self.textfont = None
             self.textstyle = textfont
         else:
-            fontfile = zf.findfont(textfont)
-            if fontfile:
-                self.textfont = zf.Font(fontfile)
-                self.textstyle = 'sans'
-            else:
-                self.textfont = None
-                self.textstyle = textfont
+            self.textfont = zf.Font(textfont)
+            self.textstyle = 'sans'
 
     def svg(self) -> str:
         ''' Get expression as SVG string '''

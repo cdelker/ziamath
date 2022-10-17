@@ -76,6 +76,6 @@ def styledchr(c: str, italic: bool=False, bold: bool=False,
     return chr(base + ofst)
 
 
-def styledstr(st: str, italic: bool=False, bold: bool=False, style: StyleType='serif', **kwargs):
+def styledstr(st, italic=False, bold=False, style='serif', **kwargs):
     ''' Apply unicode styling conversion to a string '''
     return ''.join([styledchr(s, italic, bold, style) for s in st])

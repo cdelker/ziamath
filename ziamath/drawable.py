@@ -73,7 +73,9 @@ class Glyph(Drawable):
         if self.glyph.id not in symids and config.svg2:
             svg.append(self.glyph.svgsymbol())
         if not self.phantom:
-            svg.append(self.glyph.place(x, y, self.size))
+            path = self.glyph.place(x, y, self.size)
+            if path is not None:
+                svg.append(path)
             if 'mathcolor' in self.style:
                 svg[-1].set('fill', self.style['mathcolor'])  # type: ignore
         x += self.glyph.advance() * self.emscale

@@ -8,7 +8,7 @@ from typing import Union, Sequence, Optional, TYPE_CHECKING
 from collections import namedtuple
 from dataclasses import dataclass
 
-from ziafont.gpos import Coverage
+from ziafont.gpos import Coverage, NoCoverage
 from ziafont.fontread import FontReader
 from ziafont import glyph
 from ziafont.fonttypes import Xform, BBox, GlyphComp
@@ -193,7 +193,10 @@ class MathTable:
         italicscorrections = []
         for i in range(cnt):
             italicscorrections.append(read_valuerecord(self.fontfile))
-        italicscoverage = Coverage(self.ofst+ofst+italics+covofst, self.fontfile)
+        if italics:
+            italicscoverage = Coverage(self.ofst+ofst+italics+covofst, self.fontfile)
+        else:
+            italicscoverage = NoCoverage()
 
         # Top Accent Attachment Table
         self.fontfile.seek(self.ofst + ofst + topaccent)
@@ -202,13 +205,22 @@ class MathTable:
         accents = []
         for i in range(cnt):
             accents.append(read_valuerecord(self.fontfile))
-        accentcoverage = Coverage(self.ofst+ofst+topaccent+covofst, self.fontfile)
+        if topaccent:
+            accentcoverage = Coverage(self.ofst+ofst+topaccent+covofst, self.fontfile)
+        else:
+            accentcoverage = NoCoverage()
 
         # Extended Shape Coverage
-        extshapes = Coverage(self.ofst+ofst+extendshape, self.fontfile, nulltable=(extendshape==0))
+        if extendshape:
+            extshapes = Coverage(self.ofst+ofst+extendshape, self.fontfile, nulltable=(extendshape==0))
+        else:
+            extshapes = NoCoverage()
 
         # Kern Info
-        kerninfo = MathKernInfoTable(self.ofst+ofst+kernofst, self.fontfile, nulltable=(kernofst==0))
+        if kernofst:
+            kerninfo = MathKernInfoTable(self.ofst+ofst+kernofst, self.fontfile, nulltable=(kernofst==0))
+        else:
+            kerninfo = None
 
         self.italicsCorrection = MathSubTable(italicscorrections, italicscoverage)
         self.topAccentAttachment = MathSubTable(accents, accentcoverage)
@@ -249,6 +261,10 @@ class MathTable:
                 kern: Kerning shift to apply in x direction
                 shift: Upward shift of superscript with respect to baseline
         '''
+        if self.kernInfo is None:
+            return 0, max(self.consts.superscriptShiftUp,
+                          self.consts.superscriptBottomMin)
+
         g1 = self.kernInfo.glyph(glyph1.index)
         g2 = self.kernInfo.glyph(glyph2.index)
 
@@ -281,6 +297,10 @@ class MathTable:
                 kern: Kerning shift to apply in x direction
                 shift: Downward shift of subscript with respect to baseline
         '''
+        if self.kernInfo is None:
+            return 0, max(self.consts.subscriptTopMax,
+                           self.consts.subscriptShiftDown)
+
         g1 = self.kernInfo.glyph(glyph1.index)
         g2 = self.kernInfo.glyph(glyph2.index)
 

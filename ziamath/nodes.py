@@ -588,10 +588,14 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float)
                 x += italicx * emscale
             firstg = superscript.firstglyph()
             if firstg:
-                kern, shiftup = font.math.kernsuper(lastg, firstg)
-                x += kern * emscale
-            else:
-                shiftup -= superscript.bbox.ymin / emscale
+                if font.math.kernInfo:
+                    kern, shiftup = font.math.kernsuper(lastg, firstg)
+                    x += kern * emscale
+                else:
+                    shiftup = lastg.bbox.ymax - \
+                        (superscript.bbox.ymax - superscript.bbox.ymin)/2/emscale
+            else:  # eg ^/frac
+                shiftup = lastg.bbox.ymax
         supy = -shiftup * emscale
         xadvance = x + superscript.bbox.xmax
     return x, supy, xadvance
@@ -616,10 +620,14 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont, emscale: float):
                 x -= italicx * emscale  # Shift back on integrals
             firstg = subscript.firstglyph()
             if firstg:
-                kern, shiftdn = font.math.kernsub(lastg, firstg)
-                x += kern * emscale
+                if font.math.kernInfo:
+                    kern, shiftdn = font.math.kernsub(lastg, firstg)
+                    x += kern * emscale
+                else:
+                    shiftdn = -lastg.bbox.ymin + \
+                        (subscript.bbox.ymax - subscript.bbox.ymin)/2/emscale
             else:
-                shiftdn -= subscript.bbox.ymin / emscale
+                shiftdn = -lastg.bbox.ymin# / emscale
         suby = shiftdn * emscale
         xadvance = x + subscript.bbox.xmax
     return x, suby, xadvance

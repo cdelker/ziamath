@@ -35,6 +35,14 @@ To render from Latex:
 
     zm.Math.fromlatex(r'\frac{1}{1-x^2}')
 
+|
+
+Demo
+----
+
+See Ziamath in action as it runs in your browser through PyScript `here <https://cdelker.bitbucket.io/pyscript/ziamath.html>`_!
+
+|
 
 Support
 -------

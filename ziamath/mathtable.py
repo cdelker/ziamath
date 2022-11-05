@@ -8,7 +8,7 @@ from typing import Union, Sequence, Optional, TYPE_CHECKING
 from collections import namedtuple
 from dataclasses import dataclass
 
-from ziafont.gpos import Coverage, NoCoverage
+from ziafont.gpos import Coverage
 from ziafont.fontread import FontReader
 from ziafont import glyph
 from ziafont.fonttypes import Xform, BBox, GlyphComp
@@ -193,10 +193,7 @@ class MathTable:
         italicscorrections = []
         for i in range(cnt):
             italicscorrections.append(read_valuerecord(self.fontfile))
-        if italics:
-            italicscoverage = Coverage(self.ofst+ofst+italics+covofst, self.fontfile)
-        else:
-            italicscoverage = NoCoverage()
+        italicscoverage = Coverage(self.ofst+ofst+italics+covofst, self.fontfile, nulltable=(italics==0))
 
         # Top Accent Attachment Table
         self.fontfile.seek(self.ofst + ofst + topaccent)
@@ -205,16 +202,10 @@ class MathTable:
         accents = []
         for i in range(cnt):
             accents.append(read_valuerecord(self.fontfile))
-        if topaccent:
-            accentcoverage = Coverage(self.ofst+ofst+topaccent+covofst, self.fontfile)
-        else:
-            accentcoverage = NoCoverage()
+        accentcoverage = Coverage(self.ofst+ofst+topaccent+covofst, self.fontfile, nulltable=(topaccent==0))
 
         # Extended Shape Coverage
-        if extendshape:
-            extshapes = Coverage(self.ofst+ofst+extendshape, self.fontfile, nulltable=(extendshape==0))
-        else:
-            extshapes = NoCoverage()
+        extshapes = Coverage(self.ofst+ofst+extendshape, self.fontfile, nulltable=(extendshape==0))
 
         # Kern Info
         if kernofst:

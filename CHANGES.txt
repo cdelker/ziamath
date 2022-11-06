@@ -1,3 +1,10 @@
+0.7 - 2022-11-05
+
+- Update for Ziafont 0.5, which implements fonts using CFF glyph tables (usually .otf font files)
+- Fix superscripts and subscripts on fonts with no Math Kerning table
+- Handle fonts with missing math subtables
+
+
 0.6 - 2022-06-22
 
 - Added rotation parameter to Text class

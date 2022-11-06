@@ -3,7 +3,7 @@
 Render MathML or LaTeX Math expressions as SVG. Does not require a Latex installation.
 
 Ziamath comes with the STIXTwoMath-Regular font installed for use by default.
-Other Math-enabled fonts may also be used.
+Other Math-enabled Open Type fonts (TTF or OTF files) may also be used.
 
 ![Example](example.png)
 

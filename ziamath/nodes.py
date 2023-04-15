@@ -212,7 +212,7 @@ class Midentifier(Mnode):
         if len(text) == 1 and 'italic' not in self.style and 'normal' not in self.style:
             self.style['italic'] = True
         if len(text) > 1:
-            text += ' '
+            text = '\U00002009' + text + '\U00002009'
         self.string = styledstr(text, **self.style)
         self._setup(**kwargs)
 
@@ -227,9 +227,10 @@ class Midentifier(Mnode):
             x += glyph.advance() * self.emscale
             ymin = min(ymin, glyph.path.bbox.ymin * self.emscale)
             ymax = max(ymax, glyph.path.bbox.ymax * self.emscale)
+
         try:
             xmin = self.nodes[0].bbox.xmin
-            xmax = self.nodexy[-1][0] + self.nodes[-1].bbox.xmax
+            xmax = self.nodexy[-1][0] + max(self.nodes[-1].bbox.xmax, glyph.advance()*self.emscale)
         except IndexError:
             xmin = 0
             xmax = x

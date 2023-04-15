@@ -102,7 +102,15 @@ def getspaceems(space: str) -> float:
              "mediummathspace": 4/18,
              "thickmathspace": 5/18,
              "verythickmathspace": 6/18,
-             "veryverythickmathspace": 7/18}.get(space, 0)
+             "veryverythickmathspace": 7/18,
+             "negativeveryverythinmathspace": -1/18,
+             "negativeverythinmathspace": -2/18,
+             "negativethinmathspace": -3/18,
+             "negativemediummathspace": -4/18,
+             "negativethickmathspace": -5/18,
+             "negativeverythickmathspace": -6/18,
+             "negativeveryverythickmathspace": -7/18,
+            }.get(space, 0)
     return f
 
 

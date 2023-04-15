@@ -227,7 +227,13 @@ class Midentifier(Mnode):
             x += glyph.advance() * self.emscale
             ymin = min(ymin, glyph.path.bbox.ymin * self.emscale)
             ymax = max(ymax, glyph.path.bbox.ymax * self.emscale)
-        self.bbox = BBox(0, x, ymin, ymax)
+        try:
+            xmin = self.nodes[0].bbox.xmin
+            xmax = self.nodexy[-1][0] + self.nodes[-1].bbox.xmax
+        except IndexError:
+            xmin = 0
+            xmax = x
+        self.bbox = BBox(xmin, xmax, ymin, ymax) 
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''

@@ -823,7 +823,7 @@ def place_over(base: Mnode, over: Mnode, font: MathFont, emscale: float) -> tupl
             x, y: position for over node
     '''
     # TODO accent parameter used to raise/lower
-    x = ((base.bbox.xmax - base.bbox.xmin) - (over.bbox.xmax-over.bbox.xmin)) / 2
+    x = ((base.bbox.xmax - base.bbox.xmin) - (over.bbox.xmax-over.bbox.xmin)) / 2 - over.bbox.xmin
     y = -base.bbox.ymax-font.math.consts.overbarVerticalGap*emscale
     y += over.bbox.ymin
     return x, y
@@ -875,7 +875,7 @@ def place_under(base: Mnode, under: Mnode, font: MathFont, emscale: float) -> tu
             x, y: position for under node
     '''
     # TODO accent parameter used to raise/lower
-    x = ((base.bbox.xmax - base.bbox.xmin) - (under.bbox.xmax-under.bbox.xmin)) / 2
+    x = ((base.bbox.xmax - base.bbox.xmin) - (under.bbox.xmax-under.bbox.xmin)) / 2 - under.bbox.xmin
     y = -base.bbox.ymin + font.math.consts.underbarVerticalGap*emscale
     y += (under.bbox.ymax)
     return x, y

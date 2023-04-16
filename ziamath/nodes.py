@@ -58,6 +58,10 @@ def makenode(element: ET.Element, size: float,
             size: Font size for element
             parent: Parent node
     '''
+    if element.tag == 'mi' and element.text in operators.names:
+        # Workaround for some latex2mathml operators coming back as identifiers
+        element.tag = 'mo'
+
     node = {'math': Mrow,
             'mrow': Mrow,
             'mi': Midentifier,
@@ -81,6 +85,7 @@ def makenode(element: ET.Element, size: float,
             'mtable': Mtable,
             'mtd': Mrow,
             }.get(element.tag, None)
+
     if element.tag == 'mo':
         infer_opform(0, element, parent)
 
@@ -296,7 +301,7 @@ def infer_opform(i: int, child: ET.Element, mrow: Mnode) -> None:
     '''
     # Infer form for operators
     if 'form' not in child.attrib:
-        if isinstance(mrow, (Msub, Msub, Msubsup)):
+        if isinstance(mrow, (Msub, Msup, Msubsup)):
             form = 'prefix'
         elif i == 0:
             form = 'prefix'
@@ -330,6 +335,10 @@ class Mrow(Mnode):
         lines = []
         line: list[ET.Element] = []
         for i, child in enumerate(self.element):
+            if child.tag == 'mi' and child.text in operators.names:
+                # Workaround for some latex2mathml operators coming back as identifiers
+                child.tag = 'mo'
+
             if child.tag == 'mo':
                 infer_opform(i, child, self)
             if child.tag == 'mspace' and child.attrib.get('linebreak', None) == 'newline':
@@ -982,11 +991,10 @@ class Mfrac(Mnode):
             ydenom -= ydenom - denombox.ymax + self.font.math.consts.fractionDenominatorGapMin * self.emscale
 
         x = 0.
-        if isinstance(self.leftsibling(), Mfrac):
-            # Shift a bit so adjacent fracs don't run together
-            x += self.size/4
-            # COULD DO: adjust denominator ydenom to match the sibling
-            # and/or adjust sibling's denominator
+        if self.leftsibling() and not isinstance(self.leftsibling(), Mfrac):
+            x = getspaceems('thinmathspace')* self.emscale * self.font.info.layout.unitsperem
+        # COULD DO: adjust denominator ydenom to match the sibling
+        # and/or adjust sibling's denominator
 
         width = max(numbox.xmax, denombox.xmax)
         xnum = x + (width - (numbox.xmax - numbox.xmin))/2
@@ -1012,6 +1020,7 @@ class Mfrac(Mnode):
         # Calculate/cache bounding box
         xmin = 0
         xmax = x + max(numbox.xmax, denombox.xmax)
+        xmax += getspaceems('thinmathspace')* self.emscale * self.font.info.layout.unitsperem
         ymin = (-ydenom) + denombox.ymin
         ymax = (-ynum) + numbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)

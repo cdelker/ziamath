@@ -350,3 +350,4 @@ operators = {
 
 
 integrals = ['∫', '∬', '∭', '∲', '∮', '∳', '∯', '∰', ]
+names = set(op[0] for op in operators.keys())

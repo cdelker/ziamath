@@ -37,13 +37,45 @@ def denamespace(element: ET.Element) -> ET.Element:
     return element
 
 
-def tex2mml(tex: str) -> str:
+def tex2mml(tex: str, bigprime: bool = False) -> str:
     ''' Convert Latex to MathML. Do some hacky preprocessing to work around
         some issues with generated MathML that ziamath doesn't support yet.
     '''
     tex = re.sub(r'\\binom{(.+?)}{(.+?)}', r'\\left( \1 \\atop \2 \\right)', tex)
     tex = re.sub(r'\\mathrm{(.+?)}', r'\\mathrm {\1}', tex)  # latex2mathml bug requires space after mathrm
+    
+    if not bigprime:
+        # font's prime glyph is already superscripted
+        tex = re.sub(r"'", r'\\prime', tex)
+        tex = re.sub(r'\^\\prime', r'\\prime', tex)
+        tex = re.sub(r'\^\\dprime', r'\\dprime', tex)
+        tex = re.sub(r'\^″', r'″', tex)  # double prime
+        tex = re.sub(r'\^\\trprime', r'\\trprime', tex)
+        tex = re.sub(r'\^‴', r'‴', tex)  # triple prime
+        tex = re.sub(r'\^\\qprime', r'\\qprime', tex)
+        tex = re.sub(r'\^⁗', r'⁗', tex)  # quadruple prime
+        tex = re.sub(r'\^\\backprime', r'\\backprime', tex)
+        tex = re.sub(r'\^‵', r'‵', tex)  # back prime
+        tex = re.sub(r'\^\\backdprime', r'\\backdprime', tex)
+        tex = re.sub(r'\^‶', r'‶', tex)  # back prime
+        tex = re.sub(r'\^\\backtrprime', r'\\backtrprime', tex)
+        tex = re.sub(r'\^‷', r'‷', tex)  # back prime
+
     return convert(tex)
+
+
+def font_has_bigprime(font: str = None) -> bool:
+    ''' Determine whether font uses a large prime glyph, or
+        a prime glyph already in the superscript position
+    '''
+    if font is None:
+        loadedfont = loadedfonts.get('default')
+    elif font in loadedfonts:
+        loadedfont = loadedfonts.get(font)
+    else:
+        loadedfont = MathFont(font)
+        loadedfonts[font] = loadedfont
+    return loadedfont.math.bigprime  # type:ignore
 
 
 class Math:
@@ -96,7 +128,7 @@ class Math:
             raise ValueError('fromlatex requires latex2mathml package.')
 
         mathml: Union[str, ET.Element]
-        mathml = tex2mml(latex)
+        mathml = tex2mml(latex, bigprime=font_has_bigprime(font))
         if mathstyle:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathvariant'] = mathstyle
@@ -126,7 +158,8 @@ class Math:
         # into a single <math>
         parts = re.split(r'\$(.*?)\$', latex)
         texts = parts[::2]
-        maths = [tex2mml(p) for p in parts[1::2]]
+        bigprime = font_has_bigprime(font)
+        maths = [tex2mml(p, bigprime=bigprime) for p in parts[1::2]]
         mathels = [ET.fromstring(m)[0] for m in maths]   # Convert to xml, but drop opening <math>
         mml = ET.Element('math')
         for text, mathel in zip_longest(texts, mathels):
@@ -230,8 +263,10 @@ class Latex(Math):
         '''
     def __init__(self, latex: str, size: float=24, mathstyle: str=None,
                  font: str=None, color: str=None):
+        self.latex = latex
+        
         mathml: Union[str, ET.Element]
-        mathml = tex2mml(latex)
+        mathml = tex2mml(latex, bigprime=font_has_bigprime(font))
         if mathstyle:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathvariant'] = mathstyle

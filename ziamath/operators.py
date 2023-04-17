@@ -54,8 +54,8 @@ operators = {
     ('⊣', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &LeftTee;
     ('⊢', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &RightTee;
     ('⥰', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &RoundImplies;
-    ('|', 'infix'): {'stretchy': 'true',  'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},
-    ('||', 'infix'): {'lspace': 'mediummathspace', 'rspace': 'mediummathspace'},
+    ('|', 'infix'): {'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},
+    ('||', 'infix'): {'lspace': '0em', 'rspace': '0em'},
     ('⩔', 'infix'): {'stretchy': 'true',  'lspace': 'mediummathspace', 'rspace': 'mediummathspace'},  # &Or;
     ('&&', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},
     ('⩓', 'infix'): {'stretchy': 'true',  'lspace': 'mediummathspace', 'rspace': 'mediummathspace'},  # &And;
@@ -204,6 +204,8 @@ operators = {
     ('≈', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &TildeTilde;
     ('⊥', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &UpTee;
     ('∣', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &VerticalBar;
+    ('∣', 'prefix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &VerticalBar;
+    ('∣', 'postfix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &VerticalBar;
     ('⊔', 'infix'): {'stretchy': 'true',  'lspace': 'mediummathspace', 'rspace': 'mediummathspace'},  # &SquareUnion;
     ('⋃', 'infix'): {'stretchy': 'true',  'lspace': 'mediummathspace', 'rspace': 'mediummathspace'},  # &Union;
     ('⊎', 'infix'): {'stretchy': 'true',  'lspace': 'mediummathspace', 'rspace': 'mediummathspace'},  # &UnionPlus;

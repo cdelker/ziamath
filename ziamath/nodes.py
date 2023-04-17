@@ -624,6 +624,9 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float)
                 shiftup = lastg.bbox.ymax
         supy = -shiftup * emscale
         xadvance = x + superscript.bbox.xmax
+        
+        if isinstance(base, Midentifier) and base.element and len(base.element.text) > 1:
+            xadvance += getspaceems('thinmathspace') * emscale * font.info.layout.unitsperem
     return x, supy, xadvance
 
 

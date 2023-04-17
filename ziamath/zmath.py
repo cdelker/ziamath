@@ -218,6 +218,30 @@ class Math:
         return self.node.bbox.ymin
 
 
+class Latex(Math):
+    ''' Render Math from LaTeX
+
+        Args:
+            latex: Latex string
+            size: Base font size
+            mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
+            font: Font file name
+            color: Color parameter, equivalent to "mathcolor" attribute
+        '''
+    def __init__(self, latex: str, size: float=24, mathstyle: str=None,
+                 font: str=None, color: str=None):
+        mathml: Union[str, ET.Element]
+        mathml = tex2mml(latex)
+        if mathstyle:
+            mathml = ET.fromstring(mathml)
+            mathml.attrib['mathvariant'] = mathstyle
+            mathml = ET.tostring(mathml, encoding='unicode')
+        if color:
+            mathml = ET.fromstring(mathml)
+            mathml.attrib['mathcolor'] = color
+        super().__init__(mathml, size, font)
+
+
 class Text:
     ''' Mixed text and latex math, with math delimited by $..$. Drawn to SVG.
         Can contain multiple lines.

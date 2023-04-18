@@ -44,6 +44,7 @@ def tex2mml(tex: str, bigprime: bool = False) -> str:
     tex = re.sub(r'\\binom{(.+?)}{(.+?)}', r'\\left( \1 \\atop \2 \\right)', tex)
     tex = re.sub(r'\\mathrm{(.+?)}', r'\\mathrm {\1}', tex)  # latex2mathml bug requires space after mathrm
     
+    
     if not bigprime:
         # font's prime glyph is already superscripted
         tex = re.sub(r"'", r'\\prime', tex)
@@ -61,8 +62,13 @@ def tex2mml(tex: str, bigprime: bool = False) -> str:
         tex = re.sub(r'\^\\backtrprime', r'\\backtrprime', tex)
         tex = re.sub(r'\^‷', r'‷', tex)  # back prime
 
-    return convert(tex)
+    mml = convert(tex)
 
+    # Replace some operators with "stretchy" variants
+    mml = re.sub(r'<mo>&#x0005E;', r'<mo>&#x00302;', mml)  # widehat
+    mml = re.sub(r'<mo>&#x0007E;', r'<mo>&#x00303;', mml)  # widetilde
+    return mml
+    
 
 def font_has_bigprime(font: str = None) -> bool:
     ''' Determine whether font uses a large prime glyph, or

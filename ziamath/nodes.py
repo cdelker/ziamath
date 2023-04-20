@@ -603,7 +603,7 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float)
     else:
         x = 0
         lastg = base.lastglyph()
-        shiftup = font.math.consts.superscriptShiftUp * emscale
+        shiftup = font.math.consts.superscriptShiftUp
 
         if hasattr(base, 'params'):
             x -= getspaceems(base.params.get('rspace', '0')) / emscale  # type: ignore
@@ -656,7 +656,7 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont, emscale: float):
                     shiftdn = -lastg.bbox.ymin + \
                         (subscript.bbox.ymax - subscript.bbox.ymin)/2/emscale
             else:
-                shiftdn = -lastg.bbox.ymin# / emscale
+                shiftdn = -lastg.bbox.ymin
         suby = shiftdn * emscale
         xadvance = x + subscript.bbox.xmax
     return x, suby, xadvance
@@ -687,7 +687,7 @@ class Msup(Mnode):
             xmax = x + xadv
             ymin = self.base.bbox.ymin
             ymax = max(self.base.bbox.ymax, -supy + self.superscript.bbox.ymax)
-        else:
+        else:  # Empty base
             xmin = 0
             ymin = -supy
             xmax = x + xadv
@@ -796,10 +796,17 @@ class Msubsup(Mnode):
         self.nodes.append(self.superscript)
         self.nodexy.append((x + supx, supy))
 
-        xmin = self.base.bbox.xmin
-        xmax = max(x + xadvsup, x + xadvsub)
-        ymin = min(-self.base.bbox.ymin, -suby+self.subscript.bbox.ymin)
-        ymax = max(self.base.bbox.ymax, -supy + self.superscript.bbox.ymax)
+        if self.base.bbox.ymax > self.base.bbox.ymin:
+            xmin = self.base.bbox.xmin
+            xmax = max(x + xadvsup, x + xadvsub)
+            ymin = min(-self.base.bbox.ymin, -suby + self.subscript.bbox.ymin)
+            ymax = max(self.base.bbox.ymax, -supy + self.superscript.bbox.ymax)
+        else:  # Empty base
+            xmin = 0
+            ymin = -suby
+            xmax = x + max(xadvsub, xadvsup)
+            ymax = -supy + self.superscript.bbox.ymax
+        
         self.bbox = BBox(xmin, xmax, ymin, ymax)
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
@@ -860,7 +867,6 @@ class Mover(Mnode):
 
     def _setup(self, **kwargs) -> None:
         overx, overy = place_over(self.base, self.over, self.font, self.emscale)
-
         basex = 0.
         if overx < 0:
             basex = -overx

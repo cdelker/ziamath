@@ -421,10 +421,17 @@ class Mrow(Mnode):
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
+        i = 0
+        while (i < len(self.nodes) and 
+               isinstance(self.nodes[i], Mspace) and 
+               self.nodes[i].width <= 0):  # type:ignore
+            i += 1  # Negative space shouldn't count as first glyph
+
         try:
-            return self.nodes[0].firstglyph()
+            glyph = self.nodes[i].firstglyph()
         except IndexError:
             return None
+        return glyph
 
     def lastglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the last glyph in this node '''
@@ -625,8 +632,10 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float)
         supy = -shiftup * emscale
         xadvance = x + superscript.bbox.xmax
         
-        if isinstance(base, Midentifier) and base.element and len(base.element.text) > 1:
-            xadvance += getspaceems('thinmathspace') * emscale * font.info.layout.unitsperem
+        if (isinstance(base, Midentifier) and 
+            base.element and base.element.text and 
+            len(base.element.text) > 1):
+                xadvance += getspaceems('thinmathspace') * emscale * font.info.layout.unitsperem
     return x, supy, xadvance
 
 

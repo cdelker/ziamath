@@ -1317,7 +1317,8 @@ class Mtable(Mnode):
             x = colspace/2
             for c, cell in enumerate(row):
                 self.nodes.append(cell)
-                self.nodexy.append((x, baselines[r]))
+                cellw = cell.bbox.xmax - cell.bbox.xmin
+                self.nodexy.append((x+colwidths[c]/2-cellw/2, baselines[r]))
                 x += colwidths[c] + colspace
 
         ymin = min([cell.bbox.ymin-baselines[-1] for cell in rows[-1]])

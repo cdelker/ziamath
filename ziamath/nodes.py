@@ -200,6 +200,9 @@ class Mnode(drawable.Drawable):
             rect.attrib['fill'] = 'none'
             rect.attrib['stroke'] = 'blue'
             rect.attrib['stroke-width'] = '0.2'
+            base = ET.SubElement(svg, 'path')
+            base.attrib['d'] = f'M {x} 0 L {x+self.bbox.xmax} 0'
+            base.attrib['stroke'] = 'red'
 
         if 'mathbackground' in self.style:
             rect = ET.SubElement(svg, 'rect')
@@ -474,58 +477,56 @@ class Mfenced(Mnode):
         mrowelm = ET.Element('mrow')
         mrowelm.extend(fencedelms)
         mrow = Mrow(mrowelm, self.size, parent=self)
+        # standard size fence glyph
+        openglyph = self.font.glyph(self.openchr)
+        mglyph = drawable.Glyph(openglyph, self.openchr, self.size, self.emscale, self.style, **kwargs)
+
         if len(mrow.nodes) == 0:
             # Opening fence with nothing in it
-            openglyph = self.font.glyph(self.openchr)
-            mglyph = drawable.Glyph(openglyph, self.openchr, self.size, self.emscale, self.style, **kwargs)
             height = mglyph.bbox.ymax - mglyph.bbox.ymin
             fencebbox = mglyph.bbox
         else:
-            height = mrow.bbox.ymax - mrow.bbox.ymin
-            fencebbox = mrow.bbox
-        self.nodes = []
-        x = 0
-        if len(mrow.nodes) and isinstance(mrow.nodes[0], Mtable):
-            # Tables should be centered vertically
-            rowbaseline = -self.font.math.consts.axisHeight * self.emscale
-        else:
-            rowbaseline = 0
-
-        rowcenter = rowbaseline - fencebbox.ymin - (fencebbox.ymax - fencebbox.ymin)/2
-
-        yglyphmin = 0
-        yglyphmax = 0
-
-        if self.openchr:
-            openglyph = self.font.glyph(self.openchr)
+            height = max(mrow.bbox.ymax, mglyph.bbox.ymax) - min(mrow.bbox.ymin, mglyph.bbox.ymin)
+            # height-adjusted fence glyph variant
             openglyph = self.font.math.variant(openglyph.index, height/self.emscale, vert=True)
-            mglyph = drawable.Glyph(openglyph, self.openchr, self.size, self.emscale, self.style, **kwargs)
-            yofst = rowcenter + mglyph.bbox.ymin + (mglyph.bbox.ymax - mglyph.bbox.ymin)/2
+            mglyph = drawable.Glyph(openglyph, self.openchr, self.size,
+                                    self.emscale, self.style, **kwargs)
 
+            if mrow.bbox.ymax > mglyph.bbox.ymax or mrow.bbox.ymin < mglyph.bbox.ymin:
+                height = max(mrow.bbox.ymax, -mrow.bbox.ymin)*2
+                openglyph = self.font.math.variant(self.font.glyph(self.openchr).index, height/self.emscale, vert=True)
+                mglyph = drawable.Glyph(openglyph, self.openchr, self.size,
+                                        self.emscale, self.style, **kwargs)
+                
+            fencebbox = mrow.bbox
+
+        self.nodes = []
+        x = yofst = base = 0
+        yglyphmin = yglyphmax = 0
+        if self.openchr:
             self.nodes.append(mglyph)
             self.nodexy.append((x, yofst))
             x += openglyph.advance() * self.emscale
-            yglyphmin = min(yofst+mglyph.bbox.ymin, yglyphmin)
-            yglyphmax = max(yofst+mglyph.bbox.ymax, yglyphmax)
+            yglyphmin = min(-yofst+mglyph.bbox.ymin, yglyphmin)
+            yglyphmax = max(-yofst+mglyph.bbox.ymax, yglyphmax)
 
         if len(fencedelms) > 0:
             self.nodes.append(mrow)
-            self.nodexy.append((x, rowbaseline))
+            self.nodexy.append((x, base))
             x += fencebbox.xmax
 
         if self.closechr:
             closeglyph = self.font.glyph(self.closechr)
             closeglyph = self.font.math.variant(closeglyph.index, height/self.emscale, vert=True)
-            mglyph = drawable.Glyph(closeglyph, self.closechr, self.size, self.emscale, self.style, **kwargs)
-            yofst = rowcenter + mglyph.bbox.ymin + (mglyph.bbox.ymax - mglyph.bbox.ymin)/2
-
+            mglyph = drawable.Glyph(closeglyph, self.closechr, self.size,
+                                    self.emscale, self.style, **kwargs)
             self.nodes.append(mglyph)
             self.nodexy.append((x, yofst))
             x += closeglyph.advance() * self.emscale
-            yglyphmin = min(yofst+mglyph.bbox.ymin, yglyphmin)
-            yglyphmax = max(yofst+mglyph.bbox.ymax, yglyphmax)
-
-        self.bbox = BBox(0, x, min(yglyphmin, -rowbaseline+fencebbox.ymin), max(yglyphmax, -rowbaseline+fencebbox.ymax))
+            yglyphmin = min(-yofst+mglyph.bbox.ymin, yglyphmin)
+            yglyphmax = max(-yofst+mglyph.bbox.ymax, yglyphmax)
+            
+        self.bbox = BBox(0, x, min(yglyphmin, fencebbox.ymin), max(yglyphmax, fencebbox.ymax))
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
@@ -1305,7 +1306,7 @@ class Mtable(Mnode):
         # Compute baselines to each row
         totheight = sum(rowheights) - sum(rowdepths) + rowspace*(len(rows)-1)
         width = sum(colwidths) + colspace*len(colwidths)
-        ytop = -totheight/2
+        ytop = -totheight/2 - self.font.math.consts.axisHeight*self.emscale
         baselines = []
         y = ytop
         for h, d in zip(rowheights, rowdepths):

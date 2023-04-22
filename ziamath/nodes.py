@@ -519,6 +519,7 @@ class Mfenced(Mnode):
         self.nodes = []
         x = yofst = base = 0
         yglyphmin = yglyphmax = 0
+
         if self.openchr:
             self.nodes.append(mglyph)
             self.nodexy.append((x, yofst))
@@ -532,6 +533,13 @@ class Mfenced(Mnode):
             x += fencebbox.xmax
 
         if self.closechr:
+            try:
+                if isinstance(mrow.nodes[-1].nodes[-1], Mfrac):
+                    # Mfrac adds space to right, remove it for fence
+                    x -= getspaceems('thinmathspace') * self.emscale * self.font.info.layout.unitsperem
+            except (IndexError, AttributeError):
+                pass
+
             closeglyph = self.font.glyph(self.closechr)
             closeglyph = self.font.math.variant(closeglyph.index, height/self.emscale, vert=True)
             mglyph = drawable.Glyph(closeglyph, self.closechr, self.glyphsize,
@@ -1019,8 +1027,11 @@ class Mfrac(Mnode):
             ydenom -= ydenom - denombox.ymax + self.font.math.consts.fractionDenominatorGapMin * self.emscale
 
         x = 0.
-        if self.leftsibling() and not isinstance(self.leftsibling(), Mfrac):
-            x = getspaceems('thinmathspace') * self.emscale * self.font.info.layout.unitsperem
+        if self.leftsibling():
+            if isinstance(self.leftsibling(), Mfrac):
+                x = getspaceems('verythinmathspace') * self.emscale * self.font.info.layout.unitsperem
+            else:
+                x = getspaceems('thinmathspace') * self.emscale * self.font.info.layout.unitsperem
         # COULD DO: adjust denominator ydenom to match the sibling
         # and/or adjust sibling's denominator
 

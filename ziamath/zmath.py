@@ -16,10 +16,8 @@ from .nodes import makenode, getstyle
 from .escapes import unescape
 from .config import config
 
-try:
-    from latex2mathml.converter import convert  # type: ignore
-except ImportError:
-    convert = False
+from latex2mathml.converter import convert  # type: ignore
+import latex2mathml.commands  # type: ignore
 
 
 Halign = Literal['left', 'center', 'right']
@@ -35,6 +33,21 @@ def denamespace(element: ET.Element) -> ET.Element:
     for elm in element:
         denamespace(elm)
     return element
+
+
+def declareoperator(name: str) -> None:
+    ''' Declare a new operator name, similar to Latex \DeclareMathOperator command.
+        Should start with \.
+
+        Example: declareoperator(r'\myfunc')
+    '''
+    latex2mathml.commands.FUNCTIONS = latex2mathml.commands.FUNCTIONS + (name,)
+
+
+declareoperator(r'\tg')
+declareoperator(r'\ctg')
+declareoperator(r'\arcctg')
+declareoperator(r'\arctg')
 
 
 def tex2mml(tex: str, inline: bool = False, bigprime: bool = False) -> str:
@@ -131,9 +144,6 @@ class Math:
                 color: Color parameter, equivalent to "mathcolor" attribute
                 inline: Use inline math mode (default is block mode)
         '''
-        if not convert:
-            raise ValueError('fromlatex requires latex2mathml package.')
-
         mathml: Union[str, ET.Element]
         mathml = tex2mml(latex, inline=inline, bigprime=font_has_bigprime(font))
         if mathstyle:

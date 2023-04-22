@@ -156,7 +156,7 @@ class Mnode(drawable.Drawable):
         self.element = element
         self.font: MathFont = parent.font
         self.parent = parent
-        self.size = parent.size
+        self.size: float = parent.size
         self.scriptlevel = int(self.element.attrib.get('scriptlevel', scriptlevel))
         self.style: MutableMapping[str, Union[str, bool]] = ChainMap(getstyle(self.element), copy(parent.style))
         self.nodes: list[drawable.Drawable] = []
@@ -171,6 +171,7 @@ class Mnode(drawable.Drawable):
         self.bbox = BBox(0, 0, 0, 0)
 
     def displaystyle(self):
+        ''' Determine whether the node should be drawn in display style '''
         return self.style.get('displaystyle', self.style.get('display', True))
 
     def leftsibling(self) -> Optional[drawable.Drawable]:

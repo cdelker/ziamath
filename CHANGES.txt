@@ -1,3 +1,11 @@
+0.8 - in development
+
+- Implement display/block mode versus inline/text mode.
+- Added `Latex` class for creating expressions from Latex directly
+- Added `declareoperator` method for adding operator names
+- Various spacing and alignment adjustmnets
+
+
 0.7 - 2022-11-05
 
 - Update for Ziafont 0.5, which implements fonts using CFF glyph tables (usually .otf font files)

@@ -84,6 +84,7 @@ def makenode(element: ET.Element, size: float,
             'mphantom': Mphantom,
             'mtable': Mtable,
             'mtd': Mrow,
+            'mstyle': Mstyle,
             }.get(element.tag, None)
 
     if element.tag == 'mo':
@@ -166,11 +167,17 @@ class Mnode(drawable.Drawable):
 
     def leftsibling(self) -> Optional[drawable.Drawable]:
         ''' Left node sibling. The one that was just placed. '''
-        try:
-            return self.parent.nodes[-1]
-        except (IndexError, AttributeError):
-            return None
+        parent = self.parent
+        while isinstance(parent, Mstyle):
+            parent = parent.parent
 
+        try:
+            node = parent.nodes[-1]
+        except (IndexError, AttributeError):
+            node = None
+
+        return node
+                
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
         return None
@@ -1013,7 +1020,7 @@ class Mfrac(Mnode):
 
         x = 0.
         if self.leftsibling() and not isinstance(self.leftsibling(), Mfrac):
-            x = getspaceems('thinmathspace')* self.emscale * self.font.info.layout.unitsperem
+            x = getspaceems('thinmathspace') * self.emscale * self.font.info.layout.unitsperem
         # COULD DO: adjust denominator ydenom to match the sibling
         # and/or adjust sibling's denominator
 
@@ -1324,3 +1331,7 @@ class Mtable(Mnode):
         ymin = min([cell.bbox.ymin-baselines[-1] for cell in rows[-1]])
         ymax = max([-baselines[0]+cell.bbox.ymax for cell in rows[0]])
         self.bbox = BBox(0, width, ymin, ymax)
+
+
+class Mstyle(Mrow):
+    pass

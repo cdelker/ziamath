@@ -5,7 +5,7 @@ Render MathML or LaTeX Math expressions as SVG using pure Python. Does not requi
 Ziamath comes with the STIXTwoMath-Regular font installed for use by default.
 Other Math-enabled Open Type fonts (TTF or OTF files) may also be used.
 
-![Example](https://github.com/cdelker/ziamath/blob/53508c21bf5916a3e0d709a149a91e6750308204/example.png)
+![Example](https://github.com/cdelker/ziamath/blob/05e25b1789acc8ee816971d384aa851ffb197f7a/example.png)
 
 Documentation is available at [readthedocs](https://ziamath.readthedocs.io).
 

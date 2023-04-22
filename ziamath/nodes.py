@@ -41,16 +41,17 @@ def getstyle(element: ET.Element) -> dict:
     if 'fraktur' in variant:
         styleargs['style'] = 'fraktur'
     if 'displaystyle' in element.attrib:
-        styleargs['displaystyle'] = element.attrib['displaystyle']
+        styleargs['displaystyle'] = element.attrib['displaystyle'].lower() == 'true'
     if 'mathcolor' in element.attrib:
         styleargs['mathcolor'] = element.attrib['mathcolor']
     if 'mathbackground' in element.attrib:
         styleargs['mathbackground'] = element.attrib['mathbackground']
+    if 'display' in element.attrib:
+        styleargs['display'] = element.attrib['display'] != 'inline'
     return styleargs
 
 
-def makenode(element: ET.Element, size: float,
-             parent: 'Mnode', **kwargs) -> 'Mnode':
+def makenode(element: ET.Element, parent: 'Mnode', **kwargs) -> 'Mnode':
     ''' Create node from the MathML element
 
         Args:
@@ -91,10 +92,10 @@ def makenode(element: ET.Element, size: float,
         infer_opform(0, element, parent)
 
     if node:
-        return node(element, size, parent, **kwargs)
+        return node(element, parent, **kwargs)
     else:
         print('Undefined Element', element)
-        return Mrow(element, size, parent)
+        return Mrow(element, parent)
 
 
 def getspaceems(space: str) -> float:
@@ -151,19 +152,26 @@ class Mnode(drawable.Drawable):
             size: font size
             parent: Mnode of parent
     '''
-    def __init__(self, element: ET.Element, size: float, parent: 'Mnode', **kwargs):
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
         self.element = element
         self.font: MathFont = parent.font
-        self.size = size
         self.parent = parent
+        self.size = parent.size
+        self.scriptlevel = int(self.element.attrib.get('scriptlevel', scriptlevel))
         self.style: MutableMapping[str, Union[str, bool]] = ChainMap(getstyle(self.element), copy(parent.style))
-        self.emscale = size / self.font.info.layout.unitsperem
         self.nodes: list[drawable.Drawable] = []
         self.nodexy: list[tuple[float, float]] = []
+
+        self.glyphsize = max(self.size * (self.font.math.consts.scriptPercentScaleDown / 100)**self.scriptlevel,
+                            self.font.basesize*config.minsizefraction)
+        self.emscale = self.glyphsize / self.font.info.layout.unitsperem
 
     def _setup(self, **kwargs) -> None:
         ''' Calculate node position assuming this node is at 0, 0. Also set bbox. '''
         self.bbox = BBox(0, 0, 0, 0)
+
+    def displaystyle(self):
+        return self.style.get('displaystyle', self.style.get('display', True))
 
     def leftsibling(self) -> Optional[drawable.Drawable]:
         ''' Left node sibling. The one that was just placed. '''
@@ -227,8 +235,8 @@ class Mnode(drawable.Drawable):
 
 class Midentifier(Mnode):
     ''' Identifier node <mi> '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
 
         # Identifiers are italic unless longer than one character
         text = getelementtext(self.element)
@@ -247,7 +255,7 @@ class Midentifier(Mnode):
         x = 0
         for char in self.string:
             glyph = self.font.glyph(char)
-            self.nodes.append(drawable.Glyph(glyph, char, self.size, self.emscale, self.style, **kwargs))
+            self.nodes.append(drawable.Glyph(glyph, char, self.glyphsize, self.emscale, self.style, **kwargs))
             self.nodexy.append((x, 0))
             x += glyph.advance() * self.emscale
             ymin = min(ymin, glyph.path.bbox.ymin * self.emscale)
@@ -285,16 +293,16 @@ class Midentifier(Mnode):
 
 class Mnumber(Midentifier):
     ''' Number node <mn> '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        Mnode.__init__(self, element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        Mnode.__init__(self, element, parent, scriptlevel, **kwargs)
         self.string = styledstr(getelementtext(self.element), **self.style)
         self._setup(**kwargs)
 
 
 class Mtext(Midentifier):
     ''' Text Node <mtext> '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        Mnode.__init__(self, element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        Mnode.__init__(self, element, parent, scriptlevel, **kwargs)
         # Don't use getelementtext since it strips whitespace
         self.string = ''
         if self.element.text:
@@ -334,8 +342,8 @@ def isstretchy(text: str, font: MathFont) -> bool:
 
 class Mrow(Mnode):
     ''' Math row, list of vertically aligned Mnodes '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -365,7 +373,7 @@ class Mrow(Mnode):
             for i, line in enumerate(lines):
                 mrowelm = ET.Element('mrow')
                 mrowelm.extend(line)
-                node = Mrow(mrowelm, self.size, parent=self)
+                node = Mrow(mrowelm, parent=self, scriptlevel=self.scriptlevel)
                 self.nodes.append(node)
 
             y = 0
@@ -409,17 +417,17 @@ class Mrow(Mnode):
                         if len(children) > 0:
                             frow = ET.SubElement(fenced, 'mrow')
                             frow.extend(children)
-                        node = Mfenced(fenced, self.size, parent=self, **kwargs)
+                        node = Mfenced(fenced, parent=self, scriptlevel=self.scriptlevel, **kwargs)
                         i = j + 1
 
                     else:
                         if text == '':
                             i += 1
                             continue  # InvisibleTimes, etc.
-                        node = Moperator(child, self.size, parent=self, **kwargs)
+                        node = Moperator(child, parent=self, scriptlevel=self.scriptlevel, **kwargs)
                         i += 1
                 else:
-                    node = makenode(child, self.size, parent=self, **kwargs)
+                    node = makenode(child, parent=self, scriptlevel=self.scriptlevel, **kwargs)
                     i += 1
 
                 self.nodes.append(node)
@@ -462,8 +470,8 @@ class Mfenced(Mnode):
     ''' Mfence element. Puts contents in parenthesis or other fence glyphs, with
         optional separators between components.
     '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        Mnode.__init__(self, element, parent, scriptlevel, **kwargs)
         self.openchr = element.attrib.get('open', '(')
         self.closechr = element.attrib.get('close', ')')
         self.separators = element.attrib.get('separators', ',').replace(' ', '')
@@ -483,10 +491,10 @@ class Mfenced(Mnode):
 
         mrowelm = ET.Element('mrow')
         mrowelm.extend(fencedelms)
-        mrow = Mrow(mrowelm, self.size, parent=self)
+        mrow = Mrow(mrowelm, parent=self, scriptlevel=self.scriptlevel)
         # standard size fence glyph
         openglyph = self.font.glyph(self.openchr)
-        mglyph = drawable.Glyph(openglyph, self.openchr, self.size, self.emscale, self.style, **kwargs)
+        mglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize, self.emscale, self.style, **kwargs)
 
         if len(mrow.nodes) == 0:
             # Opening fence with nothing in it
@@ -496,13 +504,13 @@ class Mfenced(Mnode):
             height = max(mrow.bbox.ymax, mglyph.bbox.ymax) - min(mrow.bbox.ymin, mglyph.bbox.ymin)
             # height-adjusted fence glyph variant
             openglyph = self.font.math.variant(openglyph.index, height/self.emscale, vert=True)
-            mglyph = drawable.Glyph(openglyph, self.openchr, self.size,
+            mglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize,
                                     self.emscale, self.style, **kwargs)
 
             if mrow.bbox.ymax > mglyph.bbox.ymax or mrow.bbox.ymin < mglyph.bbox.ymin:
                 height = max(mrow.bbox.ymax, -mrow.bbox.ymin)*2
                 openglyph = self.font.math.variant(self.font.glyph(self.openchr).index, height/self.emscale, vert=True)
-                mglyph = drawable.Glyph(openglyph, self.openchr, self.size,
+                mglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize,
                                         self.emscale, self.style, **kwargs)
                 
             fencebbox = mrow.bbox
@@ -525,7 +533,7 @@ class Mfenced(Mnode):
         if self.closechr:
             closeglyph = self.font.glyph(self.closechr)
             closeglyph = self.font.math.variant(closeglyph.index, height/self.emscale, vert=True)
-            mglyph = drawable.Glyph(closeglyph, self.closechr, self.size,
+            mglyph = drawable.Glyph(closeglyph, self.closechr, self.glyphsize,
                                     self.emscale, self.style, **kwargs)
             self.nodes.append(mglyph)
             self.nodexy.append((x, yofst))
@@ -559,8 +567,8 @@ class Mfenced(Mnode):
 
 class Moperator(Mnumber):
     ''' Operator math element '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        Mnode.__init__(self, element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        Mnode.__init__(self, element, parent, scriptlevel, **kwargs)
         self.string = styledstr(getelementtext(self.element), **self.style)
         self.form = element.attrib.get('form', 'infix')
 
@@ -588,14 +596,14 @@ class Moperator(Mnumber):
         ymin = 999
         ymax = -999
         for glyph, char in zip(glyphs, self.string):
-            if self.params.get('largeop') == 'true' and self.style.get('displaystyle', 'true') != 'false':
+            if self.params.get('largeop') == 'true' and self.displaystyle():
                 minh = self.font.math.consts.displayOperatorMinHeight
                 glyph = self.font.math.variant(glyph.index, minh, vert=True)
 
             if self.width:
                 glyph = self.font.math.variant(glyph.index, self.width / self.emscale, vert=False)
 
-            self.nodes.append(drawable.Glyph(glyph, char, self.size, self.emscale, self.style, **kwargs))
+            self.nodes.append(drawable.Glyph(glyph, char, self.glyphsize, self.emscale, self.style, **kwargs))
             self.nodexy.append((x, 0))
             x += glyph.advance() * self.emscale
             ymin = min(ymin, glyph.path.bbox.ymin * self.emscale)
@@ -611,7 +619,7 @@ class Moperator(Mnumber):
 def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float) -> tuple[float, float, float]:
     ''' Superscript. Can be above the operator (like sum) or regular super '''
     if (hasattr(base, 'params') and base.params.get('movablelimits') == 'true'  # type: ignore
-        and base.style.get('displaystyle', 'true') == 'true'):
+        and base.displaystyle()):
         x = -(base.bbox.xmax - base.bbox.xmin) / 2 - (superscript.bbox.xmax - superscript.bbox.xmin) / 2
         supy = -base.bbox.ymax - font.math.consts.upperLimitGapMin * emscale + superscript.bbox.ymin
         xadvance = 0
@@ -649,7 +657,7 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float)
 
 def place_sub(base: Mnode, subscript: Mnode, font: MathFont, emscale: float):
     ''' Calculate subscript. Can be below the operator (like sum) or regular sub '''
-    if hasattr(base, 'params') and base.params.get('movablelimits') == 'true' and base.style.get('displaystyle', 'true') == 'true':  # type: ignore
+    if hasattr(base, 'params') and base.params.get('movablelimits') == 'true' and base.displaystyle():  # type: ignore
         x = -(base.bbox.xmax - base.bbox.xmin) / 2 - (subscript.bbox.xmax - subscript.bbox.xmin) / 2
         suby = -base.bbox.ymin + font.math.consts.lowerLimitGapMin * emscale + subscript.bbox.ymax
         xadvance = 0
@@ -681,14 +689,13 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont, emscale: float):
 
 class Msup(Mnode):
     ''' Superscript Node '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
         assert len(self.element) == 2
-        self.base = makenode(self.element[0], size, parent=self, **kwargs)
+        self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['sup'] = True
-        supfontsize = max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                          self.font.basesize*config.minsizefraction)
-        self.superscript = makenode(self.element[1], supfontsize, parent=self, **kwargs)
+        self.superscript = makenode(self.element[1], parent=self,
+                                    scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -735,14 +742,13 @@ class Msup(Mnode):
 
 class Msub(Mnode):
     ''' Subscript Node '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
         assert len(self.element) == 2
-        self.base = makenode(self.element[0], size, parent=self, **kwargs)
+        self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['sub'] = True
-        subfontsize = max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                          self.font.basesize*config.minsizefraction)
-        self.subscript = makenode(self.element[1], subfontsize, parent=self, **kwargs)
+        self.subscript = makenode(self.element[1], parent=self,
+                                  scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -783,16 +789,14 @@ class Msub(Mnode):
 
 class Msubsup(Mnode):
     ''' Subscript and Superscript together '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
         assert len(self.element) == 3
-        self.base = makenode(self.element[0], size, parent=self, **kwargs)
-        subfontsize =  max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                           self.font.basesize*config.minsizefraction)
+        self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['sup'] = True
-        self.subscript = makenode(self.element[1], subfontsize, parent=self, **kwargs)
         kwargs['sub'] = True
-        self.superscript = makenode(self.element[2], subfontsize, parent=self, **kwargs)
+        self.subscript = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
+        self.superscript = makenode(self.element[2], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -869,17 +873,14 @@ def place_over(base: Mnode, over: Mnode, font: MathFont, emscale: float) -> tupl
 
 class Mover(Mnode):
     ''' Over bar node '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
         kwargs = copy(kwargs)
         assert len(self.element) == 2
-        self.base = makenode(self.element[0], size, parent=self, **kwargs)
+        self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['sup'] = True
-        fsize = max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                          self.font.basesize*config.minsizefraction)
-
         kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
-        self.over = makenode(self.element[1], fsize, parent=self, **kwargs)
+        self.over = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -920,17 +921,14 @@ def place_under(base: Mnode, under: Mnode, font: MathFont, emscale: float) -> tu
 
 class Munder(Mnode):
     ''' Under bar '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
         kwargs = copy(kwargs)
         assert len(self.element) == 2
-        self.base = makenode(self.element[0], size, parent=self, **kwargs)
+        self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['sub'] = True
-        fsize = max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                    self.font.basesize*config.minsizefraction)
-
         kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
-        self.under = makenode(self.element[1], fsize, parent=self, **kwargs)
+        self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -955,18 +953,14 @@ class Munder(Mnode):
 
 class Munderover(Mnode):
     ''' Under bar and over bar '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
         kwargs = copy(kwargs)
         assert len(self.element) == 3
-        self.base = makenode(self.element[0], size, parent=self, **kwargs)
-        kwargs['sub'] = True
-        fsize = max(self.size * self.font.math.consts.scriptPercentScaleDown / 100,
-                    self.font.basesize*config.minsizefraction)
-
+        self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
-        self.under = makenode(self.element[1], fsize, parent=self, **kwargs)
-        self.over = makenode(self.element[2], fsize, parent=self, **kwargs)
+        self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
+        self.over = makenode(self.element[2], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -994,16 +988,21 @@ class Munderover(Mnode):
 
 class Mfrac(Mnode):
     ''' Fraction node '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        if kwargs.get('sup') or kwargs.get('sub'):
-            # Shrink font another step when frac is in super/subscript
-            size *= parent.font.math.consts.scriptPercentScaleDown/100
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        self.style = ChainMap(getstyle(element), copy(parent.style))
+        if (kwargs.get('frac') or kwargs.get('sup')
+            or kwargs.get('sub') or not self.displaystyle()):
+            if 'scriptlevel' in element.attrib:
+                element.attrib['scriptlevel'] = str(int(element.attrib['scriptlevel']) + 1)
+            scriptlevel += 1
 
-        super().__init__(element, size, parent, **kwargs)
+        super().__init__(element, parent, scriptlevel, **kwargs)
         assert len(self.element) == 2
-        self.size = size
-        self.numerator = makenode(self.element[0], size, parent=self, **kwargs)
-        self.denominator = makenode(self.element[1], size, parent=self, **kwargs)
+        kwargs['frac'] = True
+        self.numerator = makenode(self.element[0], parent=self,
+                                  scriptlevel=self.scriptlevel, **kwargs)
+        self.denominator = makenode(self.element[1], parent=self,
+                                    scriptlevel=self.scriptlevel, **kwargs)
         self._setup(**kwargs)
         # TODO: bevelled attribute for x/y fractions with slanty bar
 
@@ -1056,12 +1055,11 @@ class Mfrac(Mnode):
 
 class Mroot(Mnode):
     ''' Nth root '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
-        self.base = makenode(element[0], size, parent=self, **kwargs)
-        dsize = self.size * self.font.math.consts.scriptPercentScaleDown/100
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
+        self.base = makenode(element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         self.degree: Optional[Mnode]
-        self.degree = makenode(element[1], dsize, parent=self, **kwargs)
+        self.degree = makenode(element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -1069,7 +1067,7 @@ class Mroot(Mnode):
 
         # Get the right glyph to fit the contents
         rglyph = self.font.math.variant(self.font.glyphindex('√'), height/self.emscale, vert=True)
-        rootnode = drawable.Glyph(rglyph, '√', self.size, self.emscale, self.style, **kwargs)
+        rootnode = drawable.Glyph(rglyph, '√', self.glyphsize, self.emscale, self.style, **kwargs)
 
         # Shift radical up/down to ensure minimum gap between top of text and overbar
         # Keep contents at the same height.
@@ -1122,28 +1120,28 @@ class Mroot(Mnode):
 
 class Msqrt(Mroot):
     ''' Square root '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        Mnode.__init__(self, element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        Mnode.__init__(self, element, parent, scriptlevel, **kwargs)
         if len(self.element) > 1:
             row = ET.Element('mrow')
             row.extend(list(self.element))
-            self.base = makenode(row, size, parent=self, **kwargs)
+            self.base = makenode(row, parent=self, scriptlevel=self.scriptlevel, **kwargs)
         else:
-            self.base = makenode(self.element[0], size, parent=self, **kwargs)
+            self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         self.degree = None
         self._setup(**kwargs)
 
 
 class Menclose(Mnode):
     ''' Enclosure '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
         if len(self.element) > 1:
             row = ET.Element('mrow')
             row.extend(list(self.element))
-            self.base = makenode(row, size, parent=self, **kwargs)
+            self.base = makenode(row, parent=self, scriptlevel=self.scriptlevel, **kwargs)
         else:
-            self.base = makenode(self.element[0], size, parent=self, **kwargs)
+            self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         self.notation = element.attrib.get('notation', 'box').split()
         self._setup(**kwargs)
 
@@ -1217,8 +1215,8 @@ class Menclose(Mnode):
 
 class Mspace(Mnode):
     ''' Blank space '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
         self.width = getspaceems(element.attrib.get('width', '0'))  * self.emscale * self.font.info.layout.unitsperem
         self.height = getspaceems(element.attrib.get('height', '0'))  * self.emscale * self.font.info.layout.unitsperem
         self.depth = getspaceems(element.attrib.get('depth', '0'))  * self.emscale * self.font.info.layout.unitsperem
@@ -1273,8 +1271,8 @@ class Mphantom(Mrow):
 
 class Mtable(Mnode):
     ''' Table node '''
-    def __init__(self, element: ET.Element, size: float, parent: Mnode, **kwargs):
-        super().__init__(element, size, parent, **kwargs)
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        super().__init__(element, parent, scriptlevel, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -1289,7 +1287,7 @@ class Mtable(Mnode):
             cells = []
             for cellelm in rowelm:
                 assert cellelm.tag == 'mtd'
-                cells.append(makenode(cellelm, self.size, parent=self, **kwargs))
+                cells.append(makenode(cellelm, parent=self, scriptlevel=self.scriptlevel, **kwargs))
             rows.append(cells)
 
         # Compute size of each cell to size rows and columns
@@ -1334,4 +1332,8 @@ class Mtable(Mnode):
 
 
 class Mstyle(Mrow):
-    pass
+    ''' Mstyle element - just an mrow with parameters '''
+    def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
+        for elm in element:
+            elm.attrib.update(element.attrib)
+        super().__init__(element, parent, scriptlevel, **kwargs)

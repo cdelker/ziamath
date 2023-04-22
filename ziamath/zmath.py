@@ -37,7 +37,7 @@ def denamespace(element: ET.Element) -> ET.Element:
     return element
 
 
-def tex2mml(tex: str, bigprime: bool = False) -> str:
+def tex2mml(tex: str, inline: bool = False, bigprime: bool = False) -> str:
     ''' Convert Latex to MathML. Do some hacky preprocessing to work around
         some issues with generated MathML that ziamath doesn't support yet.
     '''
@@ -62,7 +62,7 @@ def tex2mml(tex: str, bigprime: bool = False) -> str:
         tex = re.sub(r'\^\\backtrprime', r'\\backtrprime', tex)
         tex = re.sub(r'\^‷', r'‷', tex)  # back prime
 
-    mml = convert(tex)
+    mml = convert(tex, display='inline' if inline else 'block')
 
     # Replace some operators with "stretchy" variants
     mml = re.sub(r'<mo>&#x0005E;', r'<mo>&#x00302;', mml)  # widehat
@@ -115,11 +115,11 @@ class Math:
 
         self.style = getstyle(mathml)
         self.element = mathml
-        self.node = makenode(mathml, parent=self, size=size)  # type: ignore
+        self.node = makenode(mathml, parent=self)  # type: ignore
 
     @classmethod
     def fromlatex(cls, latex: str, size: float=24, mathstyle: str=None,
-                  font: str=None, color: str=None):
+                  font: str=None, color: str=None, inline: bool = False):
         ''' Create Math Renderer from a single LaTeX expression. Requires
             latex2mathml Python package.
 
@@ -129,12 +129,13 @@ class Math:
                 mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
                 font: Font file name
                 color: Color parameter, equivalent to "mathcolor" attribute
+                inline: Use inline math mode (default is block mode)
         '''
         if not convert:
             raise ValueError('fromlatex requires latex2mathml package.')
 
         mathml: Union[str, ET.Element]
-        mathml = tex2mml(latex, bigprime=font_has_bigprime(font))
+        mathml = tex2mml(latex, inline=inline, bigprime=font_has_bigprime(font))
         if mathstyle:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathvariant'] = mathstyle
@@ -165,7 +166,7 @@ class Math:
         parts = re.split(r'\$(.*?)\$', latex)
         texts = parts[::2]
         bigprime = font_has_bigprime(font)
-        maths = [tex2mml(p, bigprime=bigprime) for p in parts[1::2]]
+        maths = [tex2mml(p, inline=True, bigprime=bigprime) for p in parts[1::2]]
         mathels = [ET.fromstring(m)[0] for m in maths]   # Convert to xml, but drop opening <math>
         mml = ET.Element('math')
         for text, mathel in zip_longest(texts, mathels):
@@ -266,13 +267,14 @@ class Latex(Math):
             mathstyle: Style parameter for math, equivalent to "mathvariant" MathML attribute
             font: Font file name
             color: Color parameter, equivalent to "mathcolor" attribute
+            inline: Use inline math mode (default is block mode)
         '''
     def __init__(self, latex: str, size: float=24, mathstyle: str=None,
-                 font: str=None, color: str=None):
+                 font: str=None, color: str=None, inline: bool = False):
         self.latex = latex
         
         mathml: Union[str, ET.Element]
-        mathml = tex2mml(latex, bigprime=font_has_bigprime(font))
+        mathml = tex2mml(latex, inline=inline, bigprime=font_has_bigprime(font))
         if mathstyle:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathvariant'] = mathstyle
@@ -284,8 +286,9 @@ class Latex(Math):
 
 
 class Text:
-    ''' Mixed text and latex math, with math delimited by $..$. Drawn to SVG.
-        Can contain multiple lines.
+    ''' Mixed text and latex math. Inline math delimited by single $..$, and
+        display-mode math delimited by double $$...$$. Can contain multiple
+        lines. Drawn to SVG.
 
         Args:
             s: string to write
@@ -392,14 +395,25 @@ class Text:
         linesizes = []
         for line in lines:
             svgparts = []
-            parts = re.split(r'(\$.*?\$)', line)
+            parts = re.split(r'(\$+.*?\$+)', line)
             partsizes = []
             for part in parts:
                 if not part:
                     continue
-                if part.startswith('$') and part.endswith('$'):  # Math
-                    math = Math.fromlatex(part.replace('$', ''), font=self.mathfont,
+                if part.startswith('$$') and part.endswith('$$'):  # Display-mode math
+                    math = Math.fromlatex(part.replace('$', ''),
+                                          font=self.mathfont,
                                           mathstyle=self.mathstyle,
+                                          inline=False,
+                                          size=self.size, color=self.color)
+                    svgparts.append(math)
+                    partsizes.append(math.getsize())
+                    
+                elif part.startswith('$') and part.endswith('$'):  # Text-mode Math
+                    math = Math.fromlatex(part.replace('$', ''),
+                                          font=self.mathfont,
+                                          mathstyle=self.mathstyle,
+                                          inline=True,
                                           size=self.size, color=self.color)
                     svgparts.append(math)
                     partsizes.append(math.getsize())

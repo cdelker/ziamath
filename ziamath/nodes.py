@@ -584,6 +584,7 @@ class Moperator(Mnumber):
         # Load parameters from operators table for deciding how much space
         # to add on either side of the operator
         self.params = operators.operators.get((self.string, self.form), {})
+        self.params.update(element.attrib)
         self.width = kwargs.get('width', None)
         self._setup(**kwargs)
 
@@ -718,7 +719,7 @@ class Msup(Mnode):
         if self.base.bbox.ymax > self.base.bbox.ymin:
             xmin = self.base.bbox.xmin
             xmax = x + xadv
-            ymin = self.base.bbox.ymin
+            ymin = min(self.base.bbox.ymin, -supy + self.superscript.bbox.ymin)
             ymax = max(self.base.bbox.ymax, -supy + self.superscript.bbox.ymax)
         else:  # Empty base
             xmin = 0
@@ -999,8 +1000,9 @@ class Mfrac(Mnode):
     ''' Fraction node '''
     def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
         self.style = ChainMap(getstyle(element), copy(parent.style))
-        if (kwargs.get('frac') or kwargs.get('sup')
-            or kwargs.get('sub') or not self.displaystyle()):
+        if not element.attrib.get('displaystyle') == 'true' and (
+            (kwargs.get('frac') or kwargs.get('sup')
+            or kwargs.get('sub') or not self.displaystyle())):
             if 'scriptlevel' in element.attrib:
                 element.attrib['scriptlevel'] = str(int(element.attrib['scriptlevel']) + 1)
             scriptlevel += 1

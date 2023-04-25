@@ -325,6 +325,10 @@ class MathTable:
         ''' Determine if glyph is an extended shape (has stretchy variants) '''
         return self._extendedShapeCoverage.covidx(glyphid) is not None
 
+    def topattachment(self, glyphid: int) -> float:
+        ''' Get x-position to align an accent over the given base glyph ''' 
+        return self.topAccentAttachment.getvalue(glyphid)
+
 
 class MathConstructionTable:
     ''' Math Construction Table, listing size variants for a glyph

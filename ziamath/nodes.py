@@ -892,8 +892,16 @@ def place_over(base: Mnode, over: Mnode, font: MathFont, emscale: float) -> tupl
         Returns:
             x, y: position for over node
     '''
-    # TODO accent parameter used to raise/lower
+    # Center the accent by default
     x = ((base.bbox.xmax - base.bbox.xmin) - (over.bbox.xmax-over.bbox.xmin)) / 2 - over.bbox.xmin
+
+    # Use font-specific accent attachment if defined
+    if len(base.nodes) == 1 and isinstance(base.nodes[0], drawable.Glyph):
+        gid = base.nodes[0].glyph.index
+        basex = font.math.topattachment(gid)
+        if basex is not None:
+            x = basex*emscale - (over.bbox.xmax-over.bbox.xmin)/2
+
     y = -base.bbox.ymax-font.math.consts.overbarVerticalGap*emscale
     y += over.bbox.ymin
     return x, y

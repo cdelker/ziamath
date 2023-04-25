@@ -116,9 +116,6 @@ class MathTable:
         self._readglyphinfo(glyphofst)
         self._readvariants(variantsofst)
 
-        primeglyph = self.font.glyph('\U00002032')
-        self.bigprime = primeglyph.bbox.ymin < self.consts.superscriptShiftUp
-
     def _readconsts(self, ofst: int) -> None:
         ''' Read math constants table '''
         self.fontfile.seek(self.ofst + ofst)

@@ -50,30 +50,12 @@ declareoperator(r'\arcctg')
 declareoperator(r'\arctg')
 
 
-def tex2mml(tex: str, inline: bool = False, bigprime: bool = False) -> str:
+def tex2mml(tex: str, inline: bool = False) -> str:
     ''' Convert Latex to MathML. Do some hacky preprocessing to work around
         some issues with generated MathML that ziamath doesn't support yet.
     '''
     tex = re.sub(r'\\binom{(.+?)}{(.+?)}', r'\\left( \1 \\atop \2 \\right)', tex)
     tex = re.sub(r'\\mathrm{(.+?)}', r'\\mathrm {\1}', tex)  # latex2mathml bug requires space after mathrm
-    
-    
-    if not bigprime:
-        # font's prime glyph is already superscripted
-        tex = re.sub(r"'", r'\\prime', tex)
-        tex = re.sub(r'\^\\prime', r'\\prime', tex)
-        tex = re.sub(r'\^\\dprime', r'\\dprime', tex)
-        tex = re.sub(r'\^″', r'″', tex)  # double prime
-        tex = re.sub(r'\^\\trprime', r'\\trprime', tex)
-        tex = re.sub(r'\^‴', r'‴', tex)  # triple prime
-        tex = re.sub(r'\^\\qprime', r'\\qprime', tex)
-        tex = re.sub(r'\^⁗', r'⁗', tex)  # quadruple prime
-        tex = re.sub(r'\^\\backprime', r'\\backprime', tex)
-        tex = re.sub(r'\^‵', r'‵', tex)  # back prime
-        tex = re.sub(r'\^\\backdprime', r'\\backdprime', tex)
-        tex = re.sub(r'\^‶', r'‶', tex)  # back prime
-        tex = re.sub(r'\^\\backtrprime', r'\\backtrprime', tex)
-        tex = re.sub(r'\^‷', r'‷', tex)  # back prime
 
     mml = convert(tex, display='inline' if inline else 'block')
 
@@ -82,20 +64,6 @@ def tex2mml(tex: str, inline: bool = False, bigprime: bool = False) -> str:
     mml = re.sub(r'<mo>&#x0007E;', r'<mo>&#x00303;', mml)  # widetilde
     return mml
     
-
-def font_has_bigprime(font: str = None) -> bool:
-    ''' Determine whether font uses a large prime glyph, or
-        a prime glyph already in the superscript position
-    '''
-    if font is None:
-        loadedfont = loadedfonts.get('default')
-    elif font in loadedfonts:
-        loadedfont = loadedfonts.get(font)
-    else:
-        loadedfont = MathFont(font)
-        loadedfonts[font] = loadedfont
-    return loadedfont.math.bigprime  # type:ignore
-
 
 class Math:
     ''' MathML Element Renderer
@@ -145,7 +113,7 @@ class Math:
                 inline: Use inline math mode (default is block mode)
         '''
         mathml: Union[str, ET.Element]
-        mathml = tex2mml(latex, inline=inline, bigprime=font_has_bigprime(font))
+        mathml = tex2mml(latex, inline=inline)
         if mathstyle:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathvariant'] = mathstyle
@@ -175,8 +143,7 @@ class Math:
         # into a single <math>
         parts = re.split(r'\$(.*?)\$', latex)
         texts = parts[::2]
-        bigprime = font_has_bigprime(font)
-        maths = [tex2mml(p, inline=True, bigprime=bigprime) for p in parts[1::2]]
+        maths = [tex2mml(p, inline=True) for p in parts[1::2]]
         mathels = [ET.fromstring(m)[0] for m in maths]   # Convert to xml, but drop opening <math>
         mml = ET.Element('math')
         for text, mathel in zip_longest(texts, mathels):
@@ -284,7 +251,7 @@ class Latex(Math):
         self.latex = latex
         
         mathml: Union[str, ET.Element]
-        mathml = tex2mml(latex, inline=inline, bigprime=font_has_bigprime(font))
+        mathml = tex2mml(latex, inline=inline)
         if mathstyle:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathvariant'] = mathstyle

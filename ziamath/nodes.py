@@ -144,6 +144,17 @@ def getelementtext(element: ET.Element) -> str:
     return txt
 
 
+def subglyph(glyph: SimpleGlyph, font: MathFont) -> SimpleGlyph:
+    ''' Substitute glyphs using font GSUB ssty feature. This 
+        substitutes glyphs like \prime for use in sub/superscripts.
+    '''
+    if font.gsub:
+        glyphids = font.gsub.sub([glyph.index], font.features)
+        if glyphids[0] != glyph.index:
+            glyph = font.glyph_fromid(glyphids[0])
+    return glyph
+
+
 class Mnode(drawable.Drawable):
     ''' Math Drawing Node
 
@@ -186,7 +197,7 @@ class Mnode(drawable.Drawable):
             node = None
 
         return node
-                
+
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
         return None
@@ -256,6 +267,9 @@ class Midentifier(Mnode):
         x = 0
         for char in self.string:
             glyph = self.font.glyph(char)
+            if kwargs.get('sup') or kwargs.get('sub'):
+                glyph = subglyph(glyph, self.font)
+
             self.nodes.append(drawable.Glyph(glyph, char, self.glyphsize, self.emscale, self.style, **kwargs))
             self.nodexy.append((x, 0))
             x += glyph.advance() * self.emscale
@@ -589,8 +603,11 @@ class Moperator(Mnumber):
         self._setup(**kwargs)
 
     def _setup(self, **kwargs):
+        glyphs = [self.font.glyph(char) for char in self.string]
+
         if kwargs.get('sup') or kwargs.get('sub'):
             addspace = False  # Dont add lspace/rspace when in super/subscripts
+            glyphs = [subglyph(g, self.font) for g in glyphs]
         else:
             addspace = True
 
@@ -602,7 +619,6 @@ class Moperator(Mnumber):
             lspace = getspaceems(self.params.get('lspace', '0')) * self.emscale * self.font.info.layout.unitsperem
             x += lspace
 
-        glyphs = [self.font.glyph(char) for char in self.string]
         ymin = 999
         ymax = -999
         for glyph, char in zip(glyphs, self.string):
@@ -613,7 +629,8 @@ class Moperator(Mnumber):
             if self.width:
                 glyph = self.font.math.variant(glyph.index, self.width / self.emscale, vert=False)
 
-            self.nodes.append(drawable.Glyph(glyph, char, self.glyphsize, self.emscale, self.style, **kwargs))
+            self.nodes.append(drawable.Glyph(
+                glyph, char, self.glyphsize, self.emscale, self.style, **kwargs))
             self.nodexy.append((x, 0))
             x += glyph.advance() * self.emscale
             ymin = min(ymin, glyph.path.bbox.ymin * self.emscale)
@@ -713,7 +730,8 @@ class Msup(Mnode):
         self.nodexy.append((0, 0))
         x = self.base.bbox.xmax
 
-        supx, supy, xadv = place_super(self.base, self.superscript, self.font, self.emscale)
+        supx, supy, xadv = place_super(
+            self.base, self.superscript, self.font, self.emscale)
         self.nodes.append(self.superscript)
         self.nodexy.append((x+supx, supy))
         if self.base.bbox.ymax > self.base.bbox.ymin:

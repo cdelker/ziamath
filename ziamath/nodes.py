@@ -907,16 +907,39 @@ def place_over(base: Mnode, over: Mnode, font: MathFont, emscale: float) -> tupl
     return x, y
 
 
+
 class Mover(Mnode):
-    ''' Over bar node '''
+    ''' Over node '''
+
+    # Accents are drawn same scriptlevel as base
+    ACCENTS = [
+        0x005E, # \hat, \widehat
+        0x02D9, # \dot
+        0x02C7, # \check
+        0x007E, # \tilde, \widetilde
+        0x00B4, # \acute
+        0x0060, # \grave
+        0x00A8, # \ddot
+        0x20DB, # \dddot
+        0x20DC, # \ddddot
+        0x02D8, # \breve
+        0x00AF, # \bar
+        0x02DA, # \mathring
+        ]
+
     def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
         super().__init__(element, parent, scriptlevel, **kwargs)
         kwargs = copy(kwargs)
         assert len(self.element) == 2
         self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
-        kwargs['sup'] = True
         kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
-        self.over = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
+
+        if self.element[1].text and len(self.element[1].text) == 1 and ord(self.element[1].text) in self.ACCENTS:
+            overscriptlevel = self.scriptlevel
+        else:
+            overscriptlevel = self.scriptlevel + 1
+
+        self.over = makenode(self.element[1], parent=self, scriptlevel=overscriptlevel, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -956,7 +979,7 @@ def place_under(base: Mnode, under: Mnode, font: MathFont, emscale: float) -> tu
 
 
 class Munder(Mnode):
-    ''' Under bar '''
+    ''' Under node '''
     def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
         super().__init__(element, parent, scriptlevel, **kwargs)
         kwargs = copy(kwargs)
@@ -996,7 +1019,15 @@ class Munderover(Mnode):
         self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
         self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
-        self.over = makenode(self.element[2], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
+
+        if self.element[1].text and len(self.element[1].text) == 1 and ord(self.element[1].text) in Mover.ACCENTS:
+            overscriptlevel = self.scriptlevel
+        else:
+            kwargs['sup'] = True
+            overscriptlevel = self.scriptlevel + 1
+
+        self.over = makenode(self.element[1], parent=self, scriptlevel=overscriptlevel, **kwargs)
+
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:

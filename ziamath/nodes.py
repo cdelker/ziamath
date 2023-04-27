@@ -1350,15 +1350,27 @@ class Mtable(Mnode):
         kwargs = copy(kwargs)
         rowspace = getdimension('0.2em', self.emscale)
         colspace = getdimension('0.2em', self.emscale)
-
+        column_align_table = self.element.attrib.get('columnalign', 'center')
+        
         # Build node objects from table cells
         rows = []
         for rowelm in self.element:
             assert rowelm.tag == 'mtr'
+            column_align_row = rowelm.attrib.get('columnalign', column_align_table).split()
+
             cells = []
-            for cellelm in rowelm:
+            for i, cellelm in enumerate(rowelm):
                 assert cellelm.tag == 'mtd'
+                
+                if 'columnalign' in cellelm.attrib:
+                    column_align = cellelm.attrib.get('columnalign')
+                elif i < len(column_align_row):
+                    column_align = column_align_row[i]
+                else:  # repeat last entry of columnalign
+                    column_align = column_align_row[-1]
+
                 cells.append(makenode(cellelm, parent=self, scriptlevel=self.scriptlevel, **kwargs))
+                cells[-1].columnalign = column_align
             rows.append(cells)
 
         # Compute size of each cell to size rows and columns
@@ -1394,7 +1406,14 @@ class Mtable(Mnode):
             for c, cell in enumerate(row):
                 self.nodes.append(cell)
                 cellw = cell.bbox.xmax - cell.bbox.xmin
-                self.nodexy.append((x+colwidths[c]/2-cellw/2, baselines[r]))
+                if cell.columnalign == 'center':
+                    xcell = x + colwidths[c]/2-cellw/2
+                elif cell.columnalign == 'right':
+                    xcell = x + colwidths[c]-cellw
+                else:
+                    xcell = x
+
+                self.nodexy.append((xcell, baselines[r]))
                 x += colwidths[c] + colspace
 
         ymin = min([cell.bbox.ymin-baselines[-1] for cell in rows[-1]])

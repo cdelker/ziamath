@@ -204,8 +204,6 @@ operators = {
     ('≈', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &TildeTilde;
     ('⊥', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &UpTee;
     ('∣', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &VerticalBar;
-    ('∣', 'prefix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &VerticalBar;
-    ('∣', 'postfix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &VerticalBar;
     ('⊔', 'infix'): {'stretchy': 'true',  'lspace': 'mediummathspace', 'rspace': 'mediummathspace'},  # &SquareUnion;
     ('⋃', 'infix'): {'stretchy': 'true',  'lspace': 'mediummathspace', 'rspace': 'mediummathspace'},  # &Union;
     ('⊎', 'infix'): {'stretchy': 'true',  'lspace': 'mediummathspace', 'rspace': 'mediummathspace'},  # &UnionPlus;
@@ -353,3 +351,15 @@ operators = {
 
 integrals = ['∫', '∬', '∭', '∲', '∮', '∳', '∯', '∰', ]
 names = set(op[0] for op in operators.keys())
+
+def get_params(name: str, form: str) -> dict[str, str]:
+    ''' Get parameters for the given operator name and form '''
+    params = operators.get((name, form), {})
+    if not params:
+        params = operators.get((name, 'infix'), {})
+    if not params:
+        params = operators.get((name, 'postfix'), {})
+    if not params:
+        params = operators.get((name, 'prefix'), {})
+
+    return params

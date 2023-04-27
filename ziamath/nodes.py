@@ -597,7 +597,7 @@ class Moperator(Mnumber):
 
         # Load parameters from operators table for deciding how much space
         # to add on either side of the operator
-        self.params = operators.operators.get((self.string, self.form), {})
+        self.params = operators.get_params(self.string, self.form)
         self.params.update(element.attrib)
         self.width = kwargs.get('width', None)
         self._setup(**kwargs)

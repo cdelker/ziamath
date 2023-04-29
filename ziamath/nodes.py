@@ -347,14 +347,6 @@ def infer_opform(i: int, child: ET.Element, mrow: Mnode) -> None:
         child.attrib['form'] = form
 
 
-def isstretchy(text: str, font: MathFont) -> bool:
-    ''' Check if glyph is in font's extendedShapeCoverage list '''
-    if text:
-        glyph = font.glyph(text[0])
-        return font.math.isextended(glyph.index)
-    return False
-
-
 class Mrow(Mnode):
     ''' Math row, list of vertically aligned Mnodes '''
     def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
@@ -410,7 +402,7 @@ class Mrow(Mnode):
                 child = line[i]
                 text = getelementtext(child)
                 if child.tag == 'mo':
-                    if (isstretchy(text, self.font) and
+                    if (len(text) == 1 and
                         child.attrib.get('form') == 'prefix' and
                         child.attrib.get('stretchy') != 'false'):
                         fencekwargs = copy(kwargs)
@@ -664,7 +656,7 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float)
                 x += italicx * emscale
             firstg = superscript.firstglyph()
             if firstg:
-                if font.math.kernInfo:
+                if lastg.index >= 0 and font.math.kernInfo:  # assembled glyphs have idx<0
                     kern, shiftup = font.math.kernsuper(lastg, firstg)
                     x += kern * emscale
                 else:
@@ -701,7 +693,7 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont, emscale: float):
                 x -= italicx * emscale  # Shift back on integrals
             firstg = subscript.firstglyph()
             if firstg:
-                if font.math.kernInfo:
+                if lastg.index > 0 and font.math.kernInfo:
                     kern, shiftdn = font.math.kernsub(lastg, firstg)
                     x += kern * emscale
                 else:

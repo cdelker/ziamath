@@ -1141,16 +1141,15 @@ class Mroot(Mnode):
         rglyph = self.font.math.variant(self.font.glyphindex('√'), height/self.emscale, vert=True)
         rootnode = drawable.Glyph(rglyph, '√', self.glyphsize, self.emscale, self.style, **kwargs)
 
-        # Shift radical up/down to ensure minimum gap between top of text and overbar
-        # Keep contents at the same height.
-        rtop = self.base.bbox.ymax + self.font.math.consts.radicalVerticalGap * self.emscale + \
-               self.font.math.consts.radicalRuleThickness * self.emscale
-        if ((self.base.bbox.ymin < rglyph.path.bbox.ymin*self.emscale) or
-            (rglyph.path.bbox.ymax*self.emscale < self.base.bbox.ymax + self.font.math.consts.radicalVerticalGap * self.emscale)):
-            yrad = -(rtop - rglyph.path.bbox.ymax * self.emscale)
+        if self.displaystyle():
+            verticalgap = self.font.math.consts.radicalDisplayStyleVerticalGap * self.emscale
         else:
-            yrad = 0
+            verticalgap = self.font.math.consts.radicalVerticalGap * self.emscale
 
+        # Shift radical up/down to ensure minimum and consistent gap between top of text and overbar
+        # Keep contents at the same height.
+        rtop = self.base.bbox.ymax + verticalgap + self.font.math.consts.radicalRuleThickness * self.emscale
+        yrad = -(rtop - rglyph.path.bbox.ymax * self.emscale)
         ytop = yrad - rglyph.path.bbox.ymax * self.emscale
 
         # If the root has a degree, draw it next as it

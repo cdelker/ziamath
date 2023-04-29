@@ -645,6 +645,7 @@ class Moperator(Mnumber):
 
 def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float) -> tuple[float, float, float]:
     ''' Superscript. Can be above the operator (like sum) or regular super '''
+    lastg = base.lastglyph()
     if (hasattr(base, 'params') and base.params.get('movablelimits') == 'true'  # type: ignore
         and base.displaystyle()):
         x = -(base.bbox.xmax - base.bbox.xmin) / 2 - (superscript.bbox.xmax - superscript.bbox.xmin) / 2
@@ -652,7 +653,6 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float)
         xadvance = 0
     else:
         x = 0
-        lastg = base.lastglyph()
         shiftup = font.math.consts.superscriptShiftUp
 
         if hasattr(base, 'params'):
@@ -892,8 +892,13 @@ def place_over(base: Mnode, over: Mnode, font: MathFont, emscale: float) -> tupl
         Returns:
             x, y: position for over node
     '''
-    # Center the accent by default
+    # Center the node by default
     x = ((base.bbox.xmax - base.bbox.xmin) - (over.bbox.xmax-over.bbox.xmin)) / 2 - over.bbox.xmin
+    lastg = base.lastglyph()
+    if lastg:
+        italicx = font.math.italicsCorrection.getvalue(lastg.index)
+        if italicx:
+            x += italicx* emscale
 
     # Use font-specific accent attachment if defined
     if len(base.nodes) == 1 and isinstance(base.nodes[0], drawable.Glyph):
@@ -901,11 +906,10 @@ def place_over(base: Mnode, over: Mnode, font: MathFont, emscale: float) -> tupl
         basex = font.math.topattachment(gid)
         if basex is not None:
             x = basex*emscale - (over.bbox.xmax-over.bbox.xmin)/2
-
+            
     y = -base.bbox.ymax-font.math.consts.overbarVerticalGap*emscale
     y += over.bbox.ymin
     return x, y
-
 
 
 class Mover(Mnode):
@@ -971,8 +975,13 @@ def place_under(base: Mnode, under: Mnode, font: MathFont, emscale: float) -> tu
         Returns:
             x, y: position for under node
     '''
-    # TODO accent parameter used to raise/lower
     x = ((base.bbox.xmax - base.bbox.xmin) - (under.bbox.xmax-under.bbox.xmin)) / 2 - under.bbox.xmin
+    lastg = base.lastglyph()
+    if lastg:
+        italicx = font.math.italicsCorrection.getvalue(lastg.index)
+        if italicx:
+            x -= italicx * emscale
+
     y = -base.bbox.ymin + font.math.consts.underbarVerticalGap*emscale
     y += (under.bbox.ymax)
     return x, y
@@ -1020,13 +1029,13 @@ class Munderover(Mnode):
         kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
         self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
 
-        if self.element[1].text and len(self.element[1].text) == 1 and ord(self.element[1].text) in Mover.ACCENTS:
+        if self.element[2].text and len(self.element[2].text) == 1 and ord(self.element[2].text) in Mover.ACCENTS:
             overscriptlevel = self.scriptlevel
         else:
             kwargs['sup'] = True
             overscriptlevel = self.scriptlevel + 1
 
-        self.over = makenode(self.element[1], parent=self, scriptlevel=overscriptlevel, **kwargs)
+        self.over = makenode(self.element[2], parent=self, scriptlevel=overscriptlevel, **kwargs)
 
         self._setup(**kwargs)
 

@@ -509,6 +509,7 @@ class Mfenced(Mnode):
             fencebbox = mglyph.bbox
         else:
             height = max(mrow.bbox.ymax, mglyph.bbox.ymax) - min(mrow.bbox.ymin, mglyph.bbox.ymin)
+
             # height-adjusted fence glyph variant
             openglyph = self.font.math.variant(openglyph.index, height/self.emscale, vert=True)
             mglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize,
@@ -519,6 +520,12 @@ class Mfenced(Mnode):
                 openglyph = self.font.math.variant(self.font.glyph(self.openchr).index, height/self.emscale, vert=True)
                 mglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize,
                                         self.emscale, self.style, **kwargs)
+
+            # Rebuild the mrow with the height parameter to get stretchy
+            # \middle fences
+            mrow = Mrow(mrowelm, parent=self, scriptlevel=self.scriptlevel,
+                        height=mglyph.bbox.ymax-mglyph.bbox.ymin)
+
                 
             fencebbox = mrow.bbox
 
@@ -592,6 +599,7 @@ class Moperator(Mnumber):
         self.params = operators.get_params(self.string, self.form)
         self.params.update(element.attrib)
         self.width = kwargs.get('width', None)
+        self.height = kwargs.get('height', None)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs):
@@ -620,6 +628,8 @@ class Moperator(Mnumber):
 
             if self.width:
                 glyph = self.font.math.variant(glyph.index, self.width / self.emscale, vert=False)
+            elif self.height and self.params.get('fence') == 'true':
+                glyph = self.font.math.variant(glyph.index, self.height / self.emscale, vert=True)
 
             self.nodes.append(drawable.Glyph(
                 glyph, char, self.glyphsize, self.emscale, self.style, **kwargs))

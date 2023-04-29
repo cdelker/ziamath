@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Optional, Union, MutableMapping
 
 from copy import copy
-from collections import ChainMap
+from collections import ChainMap, namedtuple
 import itertools
 import xml.etree.ElementTree as ET
 
@@ -548,7 +548,7 @@ class Mfenced(Mnode):
 
         if self.closechr:
             try:
-                if isinstance(mrow.nodes[-1].nodes[-1], Mfrac):
+                if isinstance(mrow.nodes[-1].nodes[-1], Mfrac):  # type: ignore
                     # Mfrac adds space to right, remove it for fence
                     x -= getspaceems('thinmathspace') * self.emscale * self.font.info.layout.unitsperem
             except (IndexError, AttributeError):
@@ -1361,6 +1361,8 @@ class Mtable(Mnode):
         colspace = getdimension('0.2em', self.emscale)
         column_align_table = self.element.attrib.get('columnalign', 'center')
         
+        Cell = namedtuple('Cell', 'node columnalign')
+        
         # Build node objects from table cells
         rows = []
         for rowelm in self.element:
@@ -1378,20 +1380,20 @@ class Mtable(Mnode):
                 else:  # repeat last entry of columnalign
                     column_align = column_align_row[-1]
 
-                cells.append(makenode(cellelm, parent=self, scriptlevel=self.scriptlevel, **kwargs))
-                cells[-1].columnalign = column_align
+                cells.append(Cell(makenode(cellelm, parent=self, scriptlevel=self.scriptlevel, **kwargs),
+                              column_align))
             rows.append(cells)
 
         # Compute size of each cell to size rows and columns
         rowheights = []  # Maximum height ABOVE baseline
         rowdepths = []   # Maximum distanve BELOW baseline
         for row in rows:
-            rowheights.append(max([cell.bbox.ymax for cell in row]))
-            rowdepths.append(min([cell.bbox.ymin for cell in row]))
+            rowheights.append(max([cell.node.bbox.ymax for cell in row]))
+            rowdepths.append(min([cell.node.bbox.ymin for cell in row]))
 
         colwidths = []
         for col in [list(i) for i in zip(*rows)]:  # transposed
-            colwidths.append(max([cell.bbox.xmax - cell.bbox.xmin for cell in col]))
+            colwidths.append(max([cell.node.bbox.xmax - cell.node.bbox.xmin for cell in col]))
 
         if self.element.attrib.get('equalrows') == 'true':
             rowheights = [max(rowheights)] * len(rows)
@@ -1413,8 +1415,8 @@ class Mtable(Mnode):
         for r, row in enumerate(rows):
             x = colspace/2
             for c, cell in enumerate(row):
-                self.nodes.append(cell)
-                cellw = cell.bbox.xmax - cell.bbox.xmin
+                self.nodes.append(cell.node)
+                cellw = cell.node.bbox.xmax - cell.node.bbox.xmin
                 if cell.columnalign == 'center':
                     xcell = x + colwidths[c]/2-cellw/2
                 elif cell.columnalign == 'right':
@@ -1425,8 +1427,8 @@ class Mtable(Mnode):
                 self.nodexy.append((xcell, baselines[r]))
                 x += colwidths[c] + colspace
 
-        ymin = min([cell.bbox.ymin-baselines[-1] for cell in rows[-1]])
-        ymax = max([-baselines[0]+cell.bbox.ymax for cell in rows[0]])
+        ymin = min([cell.node.bbox.ymin-baselines[-1] for cell in rows[-1]])
+        ymax = max([-baselines[0]+cell.node.bbox.ymax for cell in rows[0]])
         self.bbox = BBox(0, width, ymin, ymax)
 
 

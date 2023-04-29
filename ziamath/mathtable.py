@@ -7,17 +7,18 @@ from __future__ import annotations
 from typing import Union, Sequence, Optional, TYPE_CHECKING
 from collections import namedtuple
 from dataclasses import dataclass
+import xml.etree.ElementTree as ET
 
 from ziafont.gpos import Coverage
 from ziafont.fontread import FontReader
-from ziafont import glyph
-from ziafont.fonttypes import Xform, BBox, GlyphComp
+from ziafont.glyph import SimpleGlyph, CompoundGlyph
+from ziafont.fonttypes import BBox
 
 if TYPE_CHECKING:
     from .mathfont import MathFont
 
 
-GlyphType = Union[glyph.SimpleGlyph, glyph.CompoundGlyph]    
+GlyphType = Union[SimpleGlyph, CompoundGlyph]    
     
 MathKernInfoRecord = namedtuple(
     'MathKernInfoRecord', ['topright', 'topleft', 'bottomright', 'bottomleft'])
@@ -325,7 +326,7 @@ class MathTable:
         ''' Determine if glyph is an extended shape (has stretchy variants) '''
         return self._extendedShapeCoverage.covidx(glyphid) is not None
 
-    def topattachment(self, glyphid: int) -> float:
+    def topattachment(self, glyphid: int) -> Optional[float]:
         ''' Get x-position to align an accent over the given base glyph ''' 
         return self.topAccentAttachment.getvalue(glyphid)
 
@@ -356,6 +357,68 @@ class MathConstructionTable:
             self.assembly = None
         font.fontfile.seek(fileptr)
 
+        
+class AssembledGlyph(SimpleGlyph):
+    ''' Assembled glyph from Math Assembly Table
+
+        Args:
+            index: glyph index
+            glyphs: list of glyphs included in the assembly
+            offsets: offset (either vertical or horizontal) for each
+                glyph in the assembly
+            vert: Vertical or horizontal assembly
+            font: Font instance
+    '''
+    def __init__(self,
+                 index: int,
+                 glyphs: Sequence[GlyphType],
+                 offsets: Sequence[float],
+                 vert: bool,
+                 font: 'MathFont'):
+        self.index = index
+        self.glyphs = glyphs
+        self.offsets = offsets
+        self.vert = vert
+        
+        if self.vert:
+            xmin = min([g.path.bbox.xmin for g in glyphs])
+            xmax = max([g.path.bbox.xmax for g in glyphs])
+            ymin = int(glyphs[0].path.bbox.ymin + offsets[0])
+            ymax = int(glyphs[-1].path.bbox.ymax + offsets[-1])
+        else:
+            xmin = int(glyphs[0].path.bbox.xmin)
+            xmax = int(glyphs[-1].path.bbox.xmax + offsets[-1])
+            ymin = min([g.path.bbox.ymin for g in glyphs])
+            ymax = max([g.path.bbox.ymax for g in glyphs])
+        bbox = BBox(xmin, xmax, ymin, ymax)
+        super().__init__(index, [], bbox, font)
+
+    def advance(self, nextchr=None) -> float:
+        ''' X-advance '''
+        return self.bbox.xmax
+
+    def svgpath(self, x0: float = 0, y0: float = 0, scale: float = 1) -> Optional[ET.Element]:
+        ''' Get svg <path> element for glyph, normalized to 12-point font '''
+        emscale = self.emscale * scale
+        element = ET.Element('g')
+
+        for glyph, ofst in zip(self.glyphs, self.offsets):
+            path = ''
+            for i, op in enumerate(glyph.operators):
+                if self.vert:
+                    op = op.xform(1, 0, 0, 1, 0, ofst, 1, 1)
+                else:
+                    op = op.xform(1, 0, 0, 1, ofst, 0, 1, 1)
+                segment = op.path(x0, y0, scale=emscale)
+                if segment[0] == 'M' and path != '':
+                    path += 'Z '  # Close intermediate segments
+                path += segment
+            if path == '':
+                continue  # Don't add empty path
+            path += 'Z '
+            element.append(ET.Element('path', attrib={'d': path}))
+        return element
+
 
 class MathAssembly:
     ''' Math assembly table, for combining several glyphs to extend the size
@@ -382,7 +445,7 @@ class MathAssembly:
                 font.fontfile.readuint16(),
                 font.fontfile.readuint16()))
 
-    def assemble(self, reqsize: float, minoverlap: float) -> glyph.CompoundGlyph:
+    def assemble(self, reqsize: float, minoverlap: float) -> AssembledGlyph:
         ''' Build glyph assembly, combining parts to create any required size
 
             Args:
@@ -415,44 +478,26 @@ class MathAssembly:
         dy = (size - reqsize) / (len(testparts)-1)
 
         # Build transforms for compound glyph
-        xforms = []
+        offsets = []
         if self.vert:
             y = -reqsize/2 + self.font.math.consts.axisHeight
-            ymin = y
         else:
             y = 0.
         for i, part in enumerate(testparts):
             if i > 0:
                 y -= minoverlap + dy
             if self.vert:
-                xforms.append(Xform(1, 0, 0, 1, 0, y, False))
+                offsets.append(y - self.font.glyph_fromid(part.glyphId).bbox.ymin)
             else:
-                xforms.append(Xform(1, 0, 0, 1, y, 0, False))
+                offsets.append(y)
             y += part.fullAdvance
-        size = y
 
         # Put together the CompoundGlyph
         glyphs = [self.font.glyph_fromid(part.glyphId) for part in testparts]
         
         # Make a unique ID, negative so it can't clash with other glyphs
         glyfid = -(testparts[0].glyphId + int(reqsize) << 16)
-
-        if self.vert:
-            xmin = min([g.path.bbox.xmin for g in glyphs])
-            xmax = max([g.path.bbox.xmax for g in glyphs])
-            ymin = min([ymin+g.path.bbox.ymin for g in glyphs])
-            ymax = size
-        else:
-            xmin = min([g.path.bbox.xmin for g in glyphs])
-            xmax = size
-            ymin = min([g.path.bbox.ymin for g in glyphs])
-            ymax = max([g.path.bbox.ymax for g in glyphs])
-
-        bbox = BBox(xmin, xmax, ymin, ymax)
-        gc = GlyphComp(glyphs, xforms, bbox)
-        glf = glyph.CompoundGlyph(glyfid, gc, self.font)
-        glf.advance = lambda x=bbox.xmax: x  # type: ignore
-        return glf
+        return AssembledGlyph(glyfid, glyphs, offsets, vert=self.vert, font=self.font)
 
 
 class MathVariants:

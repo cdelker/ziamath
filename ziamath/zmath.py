@@ -62,6 +62,7 @@ def tex2mml(tex: str, inline: bool = False) -> str:
     # Replace some operators with "stretchy" variants
     mml = re.sub(r'<mo>&#x0005E;', r'<mo>&#x00302;', mml)  # widehat
     mml = re.sub(r'<mo>&#x0007E;', r'<mo>&#x00303;', mml)  # widetilde
+    mml = re.sub(r'>&#x02015;', r'>&#x00332;', mml)  # underline
     return mml
     
 

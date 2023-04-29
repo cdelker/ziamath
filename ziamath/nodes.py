@@ -928,7 +928,9 @@ class Mover(Mnode):
         kwargs = copy(kwargs)
         assert len(self.element) == 2
         self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
-        kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
+        if (self.element[1].tag in ['mover', 'munder'] or
+            (self.element[1].tag == 'mo' and len(self.element[1].text) == 1)):
+            kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
 
         if self.element[1].text and len(self.element[1].text) == 1 and ord(self.element[1].text) in self.ACCENTS:
             overscriptlevel = self.scriptlevel
@@ -987,7 +989,10 @@ class Munder(Mnode):
         assert len(self.element) == 2
         self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['sub'] = True
-        kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
+        if (self.element[1].tag in ['mover', 'munder'] or
+            (self.element[1].tag == 'mo' and len(self.element[1].text) == 1)):
+            kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
+
         self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
@@ -1018,8 +1023,18 @@ class Munderover(Mnode):
         kwargs = copy(kwargs)
         assert len(self.element) == 3
         self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
-        kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
+        kwargs['sub'] = True
+        if (self.element[1].tag in ['mover', 'munder'] or
+            (self.element[1].tag == 'mo' and len(self.element[1].text) == 1)):
+            kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
         self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
+
+        kwargs.pop('width', None)
+        kwargs.pop('sub', None)
+        kwargs['sup'] = True
+        if (self.element[2].tag in ['mover', 'munder'] or
+            (self.element[2].tag == 'mo' and len(self.element[2].text) == 1)):
+            kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
 
         if self.element[2].text and len(self.element[2].text) == 1 and ord(self.element[2].text) in Mover.ACCENTS:
             overscriptlevel = self.scriptlevel

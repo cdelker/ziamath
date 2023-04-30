@@ -196,6 +196,9 @@ class Mnode(drawable.Drawable):
         except (IndexError, AttributeError):
             node = None
 
+        if isinstance(node, Mrow):
+            node = node.nodes[-1]
+
         return node
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
@@ -265,6 +268,10 @@ class Midentifier(Mnode):
         ymin = 9999
         ymax = -9999
         x = 0
+
+        if isinstance(self.leftsibling(), Mfenced):
+            x = getspaceems('verythinmathspace') * self.emscale * self.font.info.layout.unitsperem
+                
         for char in self.string:
             glyph = self.font.glyph(char)
             if kwargs.get('sup') or kwargs.get('sub'):
@@ -421,9 +428,7 @@ class Mrow(Mnode):
                         fenced = ET.Element('mfenced')
                         fenced.attrib.update(child.attrib)
                         fenced.attrib.update(fencekwargs)
-                        if len(children) > 0:
-                            frow = ET.SubElement(fenced, 'mrow')
-                            frow.extend(children)
+                        fenced.extend(children)
                         node = Mfenced(fenced, parent=self, scriptlevel=self.scriptlevel, **kwargs)
                         i = j + 1
 
@@ -532,7 +537,8 @@ class Mfenced(Mnode):
         self.nodes = []
         x = yofst = base = 0
         yglyphmin = yglyphmax = 0
-
+        x += getspaceems('verythinmathspace') * self.emscale * self.font.info.layout.unitsperem
+    
         if self.openchr:
             self.nodes.append(mglyph)
             self.nodexy.append((x, yofst))
@@ -547,9 +553,9 @@ class Mfenced(Mnode):
 
         if self.closechr:
             try:
-                if isinstance(mrow.nodes[-1].nodes[-1], Mfrac):  # type: ignore
+                if isinstance(mrow.nodes[-1], Mfrac):  # type: ignore
                     # Mfrac adds space to right, remove it for fence
-                    x -= getspaceems('thinmathspace') * self.emscale * self.font.info.layout.unitsperem
+                    x -= getspaceems('verythinmathspace') * self.emscale * self.font.info.layout.unitsperem
             except (IndexError, AttributeError):
                 pass
 
@@ -600,6 +606,11 @@ class Moperator(Mnumber):
         self.params.update(element.attrib)
         self.width = kwargs.get('width', None)
         self.height = kwargs.get('height', None)
+
+        if self.string in ['|', '‖', '∣', '❘'] and self.params.get('fence') == 'true':
+            # Hack around weird spacing with \middle operators
+            self.params['rspace'] = 'thinmathspace'
+
         self._setup(**kwargs)
 
     def _setup(self, **kwargs):
@@ -618,7 +629,7 @@ class Moperator(Mnumber):
         if addspace:
             lspace = getspaceems(self.params.get('lspace', '0')) * self.emscale * self.font.info.layout.unitsperem
             x += lspace
-
+        
         ymin = 999
         ymax = -999
         for glyph, char in zip(glyphs, self.string):
@@ -641,7 +652,7 @@ class Moperator(Mnumber):
         if addspace:
             rspace = getspaceems(self.params.get('rspace', '0')) * self.emscale * self.font.info.layout.unitsperem
             x += rspace
-
+            
         self.bbox = BBox(glyphs[0].path.bbox.xmin * self.emscale, x, ymin, ymax)
 
 

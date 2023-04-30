@@ -362,4 +362,4 @@ def get_params(name: str, form: str) -> dict[str, str]:
     if not params:
         params = operators.get((name, 'prefix'), {})
 
-    return params
+    return params.copy()

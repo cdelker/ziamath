@@ -142,10 +142,11 @@ class Math:
         '''
         # Extract each $..$, convert to MathML, but the raw text in <mtext>, and join
         # into a single <math>
-        parts = re.split(r'\$(.*?)\$', latex)
+        parts = re.split(r'(\$+.*?\$+)', latex)
         texts = parts[::2]
-        maths = [tex2mml(p, inline=True) for p in parts[1::2]]
-        mathels = [ET.fromstring(m)[0] for m in maths]   # Convert to xml, but drop opening <math>
+        maths = [tex2mml(p.replace('$', ''), inline=not p.startswith('$$')) for p in parts[1::2]]
+        mathels = [ET.fromstring(m) for m in maths]   # Convert to xml, but drop opening <math>
+
         mml = ET.Element('math')
         for text, mathel in zip_longest(texts, mathels):
             if text:
@@ -154,9 +155,11 @@ class Math:
                     mtext.attrib['mathvariant'] = textstyle
                 mtext.text = text
             if mathel is not None:
+                child = mathel[0]
                 if mathstyle:
-                    mathel.attrib['mathvariant'] = mathstyle
-                mml.append(mathel)
+                    child.attrib['mathvariant'] = mathstyle
+                child.attrib['display'] = mathel.attrib.get('display')
+                mml.append(child)
         if color:
             mml.attrib['mathcolor'] = color
         return cls(mml, size, font)

@@ -322,18 +322,18 @@ Latex
 
 .. jupyter-execute::
 
-    zm.Math.fromlatex(r'x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}')
+    zm.Latex(r'x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}')
 
 |
 
 
 .. jupyter-execute::
 
-    zm.Math.fromlatex(r'i \hbar \frac{\partial}{\partial t}\Psi(\mathbf{r},t) = \hat H \Psi(\mathbf{r},t)')
+    zm.Latex(r'i \hbar \frac{\partial}{\partial t}\Psi(\mathbf{r},t) = \hat H \Psi(\mathbf{r},t)')
 
 |
 
 
 .. jupyter-execute::
 
-    zm.Math.fromlatex(r'\Delta v = v_e \, \ln \frac{m_0}{m_f} = I_{sp} \, g_0 \, \ln \frac{m_0}{m_f}')
+    zm.Latex(r'\Delta v = v_e \, \ln \frac{m_0}{m_f} = I_{sp} \, g_0 \, \ln \frac{m_0}{m_f}')

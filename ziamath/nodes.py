@@ -13,7 +13,6 @@ from ziafont.fonttypes import BBox
 from ziafont.glyph import SimpleGlyph, fmt
 
 from .config import config
-from .drawable import Drawable
 from .styles import styledstr
 from .zmath import MathFont
 from . import operators
@@ -174,8 +173,9 @@ class Mnode(drawable.Drawable):
         self.nodexy: list[tuple[float, float]] = []
 
         self.glyphsize = max(self.size * (self.font.math.consts.scriptPercentScaleDown / 100)**self.scriptlevel,
-                            self.font.basesize*config.minsizefraction)
+                             self.font.basesize*config.minsizefraction)
         self.emscale = self.glyphsize / self.font.info.layout.unitsperem
+        self.bbox = BBox(0, 0, 0, 0)
 
     def _setup(self, **kwargs) -> None:
         ''' Calculate node position assuming this node is at 0, 0. Also set bbox. '''
@@ -196,7 +196,7 @@ class Mnode(drawable.Drawable):
         except (IndexError, AttributeError):
             node = None
 
-        if isinstance(node, Mrow):
+        if isinstance(node, Mrow) and node.nodes:
             node = node.nodes[-1]
 
         return node
@@ -241,7 +241,7 @@ class Mnode(drawable.Drawable):
             rect.set('width', fmt((self.bbox.xmax - self.bbox.xmin)))
             rect.set('height', fmt((self.bbox.ymax - self.bbox.ymin)))
             rect.set('fill', self.style['mathbackground'])  # type: ignore
-            
+
         xi = yi = 0.
         for (xi, yi), node in zip(self.nodexy, self.nodes):
             node.draw(x+xi, y+yi, svg)
@@ -271,13 +271,14 @@ class Midentifier(Mnode):
 
         if isinstance(self.leftsibling(), Mfenced):
             x = getspaceems('verythinmathspace') * self.emscale * self.font.info.layout.unitsperem
-                
+
         for char in self.string:
             glyph = self.font.glyph(char)
             if kwargs.get('sup') or kwargs.get('sub'):
                 glyph = subglyph(glyph, self.font)
 
-            self.nodes.append(drawable.Glyph(glyph, char, self.glyphsize, self.emscale, self.style, **kwargs))
+            self.nodes.append(
+                drawable.Glyph(glyph, char, self.glyphsize, self.emscale, self.style, **kwargs))
             self.nodexy.append((x, 0))
             x += glyph.advance() * self.emscale
             ymin = min(ymin, glyph.path.bbox.ymin * self.emscale)
@@ -285,11 +286,12 @@ class Midentifier(Mnode):
 
         try:
             xmin = self.nodes[0].bbox.xmin  # type:ignore
-            xmax = self.nodexy[-1][0] + max(self.nodes[-1].bbox.xmax, glyph.advance()*self.emscale)  # type:ignore
+            xmax = self.nodexy[-1][0] + max(
+                self.nodes[-1].bbox.xmax, glyph.advance()*self.emscale)  # type:ignore
         except IndexError:
             xmin = 0
             xmax = x
-        self.bbox = BBox(xmin, xmax, ymin, ymax) 
+        self.bbox = BBox(xmin, xmax, ymin, ymax)
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
@@ -393,7 +395,8 @@ class Mrow(Mnode):
             y = 0
             for i, node in enumerate(self.nodes):  # type: ignore
                 if i > 0:
-                    y += (node.bbox.ymax - self.nodes[i-1].bbox.ymin + self.font.math.consts.mathLeading*self.emscale*2)  # type: ignore
+                    y += (node.bbox.ymax - self.nodes[i-1].bbox.ymin +
+                          self.font.math.consts.mathLeading*self.emscale*2)  # type: ignore
                 self.nodexy.append((0, y))
             xmax = max([n.bbox.xmax for n in self.nodes])    # type: ignore
             ymin = -y+self.nodes[-1].bbox.ymin    # type: ignore
@@ -453,7 +456,7 @@ class Mrow(Mnode):
         ''' Get the first glyph in this node '''
         i = 0
         while (i < len(self.nodes) and 
-               isinstance(self.nodes[i], Mspace) and 
+               isinstance(self.nodes[i], Mspace) and
                self.nodes[i].width <= 0):  # type:ignore
             i += 1  # Negative space shouldn't count as first glyph
 
@@ -477,7 +480,7 @@ class Mrow(Mnode):
         except IndexError:
             return None
 
-        
+
 class Mfenced(Mnode):
     ''' Mfence element. Puts contents in parenthesis or other fence glyphs, with
         optional separators between components.
@@ -495,7 +498,8 @@ class Mfenced(Mnode):
         # Insert separators
         if len(self.element) > 1 and len(self.separators) > 0:
             fencedelms = list(itertools.chain.from_iterable(
-                itertools.zip_longest(self.element, separator_elms, fillvalue=separator_elms[-1])))   # flatten
+                itertools.zip_longest(
+                    self.element, separator_elms, fillvalue=separator_elms[-1])))   # flatten
             fencedelms = fencedelms[:len(self.element)*2-1]  # Remove any separators at end
         else:
             # Single element in fence, no separators
@@ -506,7 +510,8 @@ class Mfenced(Mnode):
         mrow = Mrow(mrowelm, parent=self, scriptlevel=self.scriptlevel)
         # standard size fence glyph
         openglyph = self.font.glyph(self.openchr)
-        mglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize, self.emscale, self.style, **kwargs)
+        mglyph = drawable.Glyph(
+            openglyph, self.openchr, self.glyphsize, self.emscale, self.style, **kwargs)
 
         if len(mrow.nodes) == 0:
             # Opening fence with nothing in it
@@ -522,7 +527,8 @@ class Mfenced(Mnode):
 
             if mrow.bbox.ymax > mglyph.bbox.ymax or mrow.bbox.ymin < mglyph.bbox.ymin:
                 height = max(mrow.bbox.ymax, -mrow.bbox.ymin)*2
-                openglyph = self.font.math.variant(self.font.glyph(self.openchr).index, height/self.emscale, vert=True)
+                openglyph = self.font.math.variant(
+                    self.font.glyph(self.openchr).index, height/self.emscale, vert=True)
                 mglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize,
                                         self.emscale, self.style, **kwargs)
 
@@ -531,14 +537,13 @@ class Mfenced(Mnode):
             mrow = Mrow(mrowelm, parent=self, scriptlevel=self.scriptlevel,
                         height=mglyph.bbox.ymax-mglyph.bbox.ymin)
 
-                
             fencebbox = mrow.bbox
 
         self.nodes = []
         x = yofst = base = 0
         yglyphmin = yglyphmax = 0
         x += getspaceems('verythinmathspace') * self.emscale * self.font.info.layout.unitsperem
-    
+
         if self.openchr:
             self.nodes.append(mglyph)
             self.nodexy.append((x, yofst))
@@ -555,7 +560,8 @@ class Mfenced(Mnode):
             try:
                 if isinstance(mrow.nodes[-1], Mfrac):  # type: ignore
                     # Mfrac adds space to right, remove it for fence
-                    x -= getspaceems('verythinmathspace') * self.emscale * self.font.info.layout.unitsperem
+                    x -= (getspaceems('verythinmathspace') * 
+                          self.emscale * self.font.info.layout.unitsperem)
             except (IndexError, AttributeError):
                 pass
 
@@ -568,7 +574,7 @@ class Mfenced(Mnode):
             x += closeglyph.advance() * self.emscale
             yglyphmin = min(-yofst+mglyph.bbox.ymin, yglyphmin)
             yglyphmax = max(-yofst+mglyph.bbox.ymax, yglyphmax)
-            
+
         self.bbox = BBox(0, x, min(yglyphmin, fencebbox.ymin), max(yglyphmax, fencebbox.ymax))
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
@@ -627,9 +633,10 @@ class Moperator(Mnumber):
 
         # Add lspace
         if addspace:
-            lspace = getspaceems(self.params.get('lspace', '0')) * self.emscale * self.font.info.layout.unitsperem
+            lspace = (getspaceems(self.params.get('lspace', '0')) * 
+                      self.emscale * self.font.info.layout.unitsperem)
             x += lspace
-        
+
         ymin = 999
         ymax = -999
         for glyph, char in zip(glyphs, self.string):
@@ -650,13 +657,15 @@ class Moperator(Mnumber):
             ymax = max(ymax, glyph.path.bbox.ymax * self.emscale)
 
         if addspace:
-            rspace = getspaceems(self.params.get('rspace', '0')) * self.emscale * self.font.info.layout.unitsperem
+            rspace = (getspaceems(self.params.get('rspace', '0')) *
+                      self.emscale * self.font.info.layout.unitsperem)
             x += rspace
-            
+
         self.bbox = BBox(glyphs[0].path.bbox.xmin * self.emscale, x, ymin, ymax)
 
 
-def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float) -> tuple[float, float, float]:
+def place_super(base: Mnode, superscript: Mnode, font: MathFont,
+                emscale: float) -> tuple[float, float, float]:
     ''' Superscript. Can be above the operator (like sum) or regular super '''
     lastg = base.lastglyph()
     if (hasattr(base, 'params') and base.params.get('movablelimits') == 'true'  # type: ignore
@@ -687,17 +696,18 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont, emscale: float)
                 shiftup = lastg.bbox.ymax
         supy = -shiftup * emscale
         xadvance = x + superscript.bbox.xmax
-        
-        if (isinstance(base, Midentifier) and 
-            base.element and base.element.text and 
+
+        if (isinstance(base, Midentifier) and
+            base.element and base.element.text and
             len(base.element.text) > 1):
-                xadvance += getspaceems('thinmathspace') * emscale * font.info.layout.unitsperem
+            xadvance += getspaceems('thinmathspace') * emscale * font.info.layout.unitsperem
     return x, supy, xadvance
 
 
 def place_sub(base: Mnode, subscript: Mnode, font: MathFont, emscale: float):
     ''' Calculate subscript. Can be below the operator (like sum) or regular sub '''
-    if hasattr(base, 'params') and base.params.get('movablelimits') == 'true' and base.displaystyle():  # type: ignore
+    if (hasattr(base, 'params') and base.params.get('movablelimits') == 'true'
+        and base.displaystyle()):  # type: ignore
         x = -(base.bbox.xmax - base.bbox.xmin) / 2 - (subscript.bbox.xmax - subscript.bbox.xmin) / 2
         suby = -base.bbox.ymin + font.math.consts.lowerLimitGapMin * emscale + subscript.bbox.ymax
         xadvance = 0
@@ -836,8 +846,10 @@ class Msubsup(Mnode):
         self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['sup'] = True
         kwargs['sub'] = True
-        self.subscript = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
-        self.superscript = makenode(self.element[2], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
+        self.subscript = makenode(
+            self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
+        self.superscript = makenode(
+            self.element[2], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -868,7 +880,7 @@ class Msubsup(Mnode):
             ymin = -suby
             xmax = x + max(xadvsub, xadvsup)
             ymax = -supy + self.superscript.bbox.ymax
-        
+
         self.bbox = BBox(xmin, xmax, ymin, ymax)
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
@@ -919,7 +931,7 @@ def place_over(base: Mnode, over: Mnode, font: MathFont, emscale: float) -> tupl
         basex = font.math.topattachment(gid)
         if basex is not None:
             x = basex*emscale - (over.bbox.xmax-over.bbox.xmin)/2
-            
+
     y = -base.bbox.ymax-font.math.consts.overbarVerticalGap*emscale
     y += over.bbox.ymin
     return x, y
@@ -950,7 +962,7 @@ class Mover(Mnode):
         assert len(self.element) == 2
         self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         if (self.element[1].tag in ['mover', 'munder'] or
-            (self.element[1].tag == 'mo' and len(self.element[1].text) == 1)):
+            (self.element[1].tag == 'mo' and self.element[1].text and len(self.element[1].text) == 1)):
             kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
 
         if self.element[1].text and len(self.element[1].text) == 1 and ord(self.element[1].text) in self.ACCENTS:
@@ -1011,7 +1023,7 @@ class Munder(Mnode):
         self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['sub'] = True
         if (self.element[1].tag in ['mover', 'munder'] or
-            (self.element[1].tag == 'mo' and len(self.element[1].text) == 1)):
+            (self.element[1].tag == 'mo' and self.element[1].text and len(self.element[1].text) == 1)):
             kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
 
         self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
@@ -1046,7 +1058,7 @@ class Munderover(Mnode):
         self.base = makenode(self.element[0], parent=self, scriptlevel=self.scriptlevel, **kwargs)
         kwargs['sub'] = True
         if (self.element[1].tag in ['mover', 'munder'] or
-            (self.element[1].tag == 'mo' and len(self.element[1].text) == 1)):
+            (self.element[1].tag == 'mo' and self.element[1].text and len(self.element[1].text) == 1)):
             kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
         self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
 
@@ -1054,7 +1066,7 @@ class Munderover(Mnode):
         kwargs.pop('sub', None)
         kwargs['sup'] = True
         if (self.element[2].tag in ['mover', 'munder'] or
-            (self.element[2].tag == 'mo' and len(self.element[2].text) == 1)):
+            (self.element[2].tag == 'mo' and self.element[2].text and len(self.element[2].text) == 1)):
             kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
 
         if self.element[2].text and len(self.element[2].text) == 1 and ord(self.element[2].text) in Mover.ACCENTS:
@@ -1084,7 +1096,9 @@ class Munderover(Mnode):
         self.nodexy.append((overx, overy))
         self.nodexy.append((underx, undery))
         xmin = min(underx, overx, basex+self.base.bbox.xmin)
-        xmax = max(underx+self.under.bbox.xmax, overx+self.over.bbox.xmax, basex+self.base.bbox.xmax)
+        xmax = max(underx+self.under.bbox.xmax,
+                   overx+self.over.bbox.xmax,
+                   basex+self.base.bbox.xmax)
         ymin = -undery + self.under.bbox.ymin
         ymax = -overy + self.over.bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
@@ -1328,7 +1342,7 @@ class Mspace(Mnode):
         self.height = getspaceems(element.attrib.get('height', '0'))  * self.emscale * self.font.info.layout.unitsperem
         self.depth = getspaceems(element.attrib.get('depth', '0'))  * self.emscale * self.font.info.layout.unitsperem
         self._setup(**kwargs)
-        
+
     def _setup(self, **kwargs) -> None:
         self.bbox = BBox(0, self.width, -self.depth, self.height)
 
@@ -1387,9 +1401,9 @@ class Mtable(Mnode):
         rowspace = getdimension('0.2em', self.emscale)
         colspace = getdimension('0.2em', self.emscale)
         column_align_table = self.element.attrib.get('columnalign', 'center')
-        
+
         Cell = namedtuple('Cell', 'node columnalign')
-        
+
         # Build node objects from table cells
         rows = []
         for rowelm in self.element:
@@ -1399,7 +1413,7 @@ class Mtable(Mnode):
             cells = []
             for i, cellelm in enumerate(rowelm):
                 assert cellelm.tag == 'mtd'
-                
+
                 if 'columnalign' in cellelm.attrib:
                     column_align = cellelm.attrib.get('columnalign')
                 elif i < len(column_align_row):
@@ -1408,7 +1422,7 @@ class Mtable(Mnode):
                     column_align = column_align_row[-1]
 
                 cells.append(Cell(makenode(cellelm, parent=self, scriptlevel=self.scriptlevel, **kwargs),
-                              column_align))
+                             column_align))
             rows.append(cells)
 
         # Compute size of each cell to size rows and columns

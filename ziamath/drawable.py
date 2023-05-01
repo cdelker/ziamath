@@ -9,13 +9,14 @@ from ziafont import Font
 from ziafont.fonttypes import BBox
 from ziafont.glyph import SimpleGlyph, fmt
 
+
 class Drawable:
     ''' Base class for drawable nodes '''
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
         return None
-        
+
     def lastglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the last glyph in this node '''
         return None
@@ -25,9 +26,10 @@ class Drawable:
         return None
 
     def draw(self, x: float, y: float, svg: ET.Element) -> tuple[float, float]:
+        ''' Draw the element. Must be subclassed. '''
         raise NotImplementedError
 
-        
+
 class Glyph(Drawable):
     ''' A single glyph '''
     def __init__(self, glyph: SimpleGlyph, char: str, size: float, emscale: float,
@@ -84,7 +86,8 @@ class Glyph(Drawable):
 
 class HLine(Drawable):
     ''' Horizontal Line. '''
-    def __init__(self, length: float, lw: float, style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
+    def __init__(self, length: float, lw: float,
+                 style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
         self.length = length
         self.lw = lw
         self.phantom = kwargs.get('phantom', False)
@@ -111,10 +114,11 @@ class HLine(Drawable):
                 bar.attrib['fill'] = self.style['mathcolor']  # type: ignore
         return x+self.length, y
 
-    
+
 class VLine(Drawable):
     ''' Vertical Line. '''
-    def __init__(self, height: float, lw: float, style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
+    def __init__(self, height: float, lw: float,
+                 style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
         self.height = height
         self.lw = lw
         self.phantom = kwargs.get('phantom', False)
@@ -140,8 +144,8 @@ class VLine(Drawable):
             if 'mathcolor' in self.style:
                 bar.attrib['fill'] = self.style['mathcolor']  # type: ignore
         return x, y
-    
-    
+
+
 class Box(Drawable):
     ''' Box '''
     def __init__(self, width: float, height: float, lw: float,
@@ -174,7 +178,7 @@ class Box(Drawable):
             bar.set('fill', self.style.get('mathbackground', 'none'))  # type: ignore
             if self.cornerradius:
                 bar.set('rx', fmt(self.cornerradius))
-                
+
         return x+self.width, y
 
 
@@ -190,7 +194,7 @@ class Diagonal(Drawable):
         self.phantom = kwargs.get('phantom', False)
         self.bbox = BBox(0, self.width, 0, self.height)
         self.style = style if style is not None else {}
-        
+
         self.arroww = self.width
         self.arrowh = self.height
         if self.arrow:
@@ -226,10 +230,10 @@ class Diagonal(Drawable):
             bar.set('stroke', self.style.get('mathcolor', 'black'))  # type: ignore
             if self.arrow:
                 bar.set('marker-end', 'url(#arrowhead)')
-                
+
         return x+self.width, y
 
-    
+
 class Ellipse(Drawable):
     ''' Ellipse '''
     def __init__(self, width: float, height: float, lw: float,

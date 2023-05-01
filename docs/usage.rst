@@ -11,22 +11,14 @@ Ziamath can be installed using pip:
     pip install ziamath
 
 
-Ziamath natively works with MathML. For Latex support, the `latex2mathml <https://pypi.org/project/latex2mathml/>`_ package is used to convert the Latex into MathML first.
-It can be installed along with ziamath:
-
-.. code-block:: bash
-
-    pip install ziamath[latex]
-
-
-Ziamath depends on its sister package, `Ziafont <https://ziafont.readthedocs.io>`_, for reading TTF font files.
+Ziamath depends only on two pure-Python packages: `Ziafont <https://ziafont.readthedocs.io>`_, for reading TTF font files, and `latex2mathml <https://pypi.org/project/latex2mathml/>`_ for parsing Latex math expressions.
 
 |
 
 Drawing Equations
 -----------------
 
-The :py:class:`ziamath.zmath.Math` class processes and draws a MathML <math> element.
+The :py:class:`ziamath.zmath.Math` class processes and draws a given MathML <math> element.
 The Math class has a Jupyter representation that shows the SVG
 image as the output of a cell.
 To render a `MathML <https://www.w3.org/TR/MathML3/>`_ string:
@@ -66,19 +58,39 @@ The font file must be math-enabled, with an embedded 'MATH' table.
 Drawing Latex
 -------------
  
-To render a math expression in Latex format, create the Math object using :py:meth:`ziamath.zmath.Math.fromlatex`:
+To render a math expression in Latex format, create the Math object using :py:meth:`ziamath.zmath.Latex`:
 
 .. jupyter-execute::
 
-    zm.Math.fromlatex(r'c = \pm \sqrt{a^2 + b^2}')
+    zm.Latex(r'c = \pm \sqrt{a^2 + b^2}')
+
+The Latex class inherits from the Math class.
 
 |
+
+
+Display Mode and Inline Mode
+****************************
+
+Latex math is drawn in display (block) mode by default. To render inline (text) mode, set the `inline` parameter to `True`.
+
+.. jupyter-execute::
+
+    zm.Latex(r'\sum_a^b', inline=False)  # Default display mode
+
+.. jupyter-execute::
+
+    zm.Latex(r'\sum_a^b', inline=True)  # Inline mode
+
+
+|
+
 
 Mixed Math and Text
 -------------------
 
 :py:meth:`ziamath.zmath.Math.fromlatextext` creates a MathML <math> element with text embedded in <mtext> elements.
-It takes a string input with math expressions enclosed between dollar signs $..$.
+It takes a string input with math expressions enclosed between single dollar signs $..$ for inline-mode math, and double dollar signs $$..$$ for block or display style math.
 This method works for single line math and text expressions.
 
 .. jupyter-execute::
@@ -92,7 +104,7 @@ Text Objects
 ------------
 
 Another option for mixed math and text is the :py:class:`ziamath.zmath.Text` class.
-It takes a string, which may contain multiple lines and math expressions enclosed in $..$,
+It takes a string, which may contain multiple lines and math expressions enclosed in $..$ or $$..$$,
 and draws directly to SVG. The text is drawn directly; no <math> or <mtext> elements are accessible.
 Different fonts may be used for the plain text and math portions.
 
@@ -110,117 +122,4 @@ Text objects support rotation (in degrees) and color (CSS named color or hex col
 .. jupyter-execute::
 
     zm.Text('$\\sqrt{a}$', rotation=30, color='mediumslateblue')
-
-
-|
-
-Drawing on an existing SVG
---------------------------
-
-To draw math expressions on an existing SVG, create the SVG XML structure using an `XML Element Tree <https://docs.python.org/3/library/xml.etree.elementtree.html>`_.
-Then use :py:meth:`ziamath.zmath.Math.drawon`, or :py:meth:`ziamath.zmath.Text.drawon`, with the x and y position and svg to draw on:
-
-.. jupyter-execute::
-
-    from IPython.display import SVG
-    from xml.etree import ElementTree as ET
-
-    svg = ET.Element('svg')
-    svg.set('width', '200')
-    svg.set('height', '100')
-    svg.set('xmlns', 'http://www.w3.org/2000/svg')
-    svg.set('viewBox', f'0 0 100 100')
-    circ = ET.SubElement(svg, 'circle')
-    circ.set('cx', '20')
-    circ.set('cy', '25')
-    circ.set('r', '25')
-    circ.set('fill', 'orange')
-
-    myequation = zm.Math.fromlatex(r'\int_0^1 f(x) \mathrm{d}x', size=18)
-    myequation.drawon(svg, 50, 45)
-
-    SVG(ET.tostring(svg))
-
-|
-
-
-
-Other image formats
--------------------
-
-Ziamath only outputs SVG format, but other image formats may be obtained using other Python libraries.
-`Cairosvg <https://cairosvg.org/>`_ can be used to convert to PNG, for example:
-
-.. code-block:: python
-
-    import cairosvg
-    expr = zm.Math.fromlatextext('$x^2 + y^2$')
-    pngbytes = cairosvg.svg2png(expr.svg())
-
-|
-
-Configuration Options
----------------------
-
-Global configuration options can be set in the `ziamath.config` object.
-
-SVG Version Compatibility
-*************************
-
-Some SVG renderers, including recent versions of Inkscape and some OS built-in image viewers, are not fully compatible with the SVG 2.0 specification.
-Set the `ziamath.config.svg2` parameter to `False` for better compatibility. This may result in larger file sizes
-as each glyph is included as its own <path> element rather than being reused with <symbol> and <use> elements.
-
-.. code-block:: python
-
-    zm.config.svg2 = False
-    zm.Math.fromlatextext('$x^2 + y^2$')
-
-Decimal Precision
-*****************
-
-The decimal precision of coordinates in SVG tags can be set using ziafont.config.precision. Lower precision saves space in the SVG string, but may reduce quality of the image.
-
-.. code-block:: python
-
-    zm.config.precision = 2
-
-
-|
-
-
-Command Line
-------------
-
-Ziamath may be accessed from the command line, reading input from a file with
-
-.. code-block:: bash
-
-    python -m ziamath inputfile.txt
-
-Or reading stdin (with LaTeX input):
-
-.. code-block:: bash
-
-    echo "x^2 + y^2" | python -m ziamath --latex
-
-Run `python -m ziamath --help` to show all the options.
-
-
-|
-
-Limitations
------------
-
-Not every MathML element is implemented at this time.
-Unsupported elements and attributes inculde:
-
-- <mstyle>
-- <ms>
-- <mglyph>
-- <merror>
-- <mmultiscripts>
-- <mlabeledtr>
-- scriptlevel attribute
-- table alignment attributes
 

@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 
 
 GlyphType = Union[SimpleGlyph, CompoundGlyph]    
-    
+
 MathKernInfoRecord = namedtuple(
     'MathKernInfoRecord', ['topright', 'topleft', 'bottomright', 'bottomleft'])
 GlyphPartRecord = namedtuple(
@@ -194,7 +194,8 @@ class MathTable:
         italicscorrections = []
         for i in range(cnt):
             italicscorrections.append(read_valuerecord(self.fontfile))
-        italicscoverage = Coverage(self.ofst+ofst+italics+covofst, self.fontfile, nulltable=(italics==0))
+        italicscoverage = Coverage(self.ofst+ofst+italics+covofst,
+                                   self.fontfile, nulltable=(italics==0))
 
         # Top Accent Attachment Table
         self.fontfile.seek(self.ofst + ofst + topaccent)
@@ -494,7 +495,7 @@ class MathAssembly:
 
         # Put together the CompoundGlyph
         glyphs = [self.font.glyph_fromid(part.glyphId) for part in testparts]
-        
+
         # Make a unique ID, negative so it can't clash with other glyphs
         glyfid = -(testparts[0].glyphId + int(reqsize) << 16)
         return AssembledGlyph(glyfid, glyphs, offsets, vert=self.vert, font=self.font)

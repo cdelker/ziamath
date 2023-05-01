@@ -21,7 +21,7 @@ class MathFont(Font):
         self.basesize = basesize
         if 'MATH' not in self.tables:
             raise ValueError('Font has no MATH table!')
-            
+
         self.math = MathTable(self)
         self.features.ssty = True  # Enable math script variants
         if 'math' in self.scripts():

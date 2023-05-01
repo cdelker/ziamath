@@ -33,7 +33,7 @@ To render from Latex:
 
 .. jupyter-execute::
 
-    zm.Math.fromlatex(r'\frac{1}{1-x^2}')
+    zm.Latex(r'\frac{1}{1-x^2}')
 
 |
 
@@ -57,7 +57,7 @@ If you appreciate Ziamath, buy me a coffee to show your support!
 
 ----
 
-Source code is available on `Bitbucket <https://bitbucket.org/cdelker/ziamath>`_.
+Source code is available on `Github <https://github.com/cdelker/ziamath>`_.
 
 Ziamath is also used by the `Ziaplot <https://ziaplot.readthedocs.io>`_ and `Schemdraw <https://schemdraw.readthedocs.io>`_ Python packages, and was used for rendering the SVG and PNG equations on `MathGrabber <https://mathgrabber.com>`_.
 
@@ -70,6 +70,7 @@ Ziamath is also used by the `Ziaplot <https://ziaplot.readthedocs.io>`_ and `Sch
    :caption: Contents:
 
    usage.rst
+   options.rst
    examples.rst
    test.rst
    changes.rst

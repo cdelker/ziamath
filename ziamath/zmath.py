@@ -36,10 +36,11 @@ def denamespace(element: ET.Element) -> ET.Element:
 
 
 def declareoperator(name: str) -> None:
-    ''' Declare a new operator name, similar to Latex \DeclareMathOperator command.
-        Should start with \.
+    r''' Declare a new operator name, similar to Latex ``\DeclareMathOperator`` command.
 
-        Example: declareoperator(r'\myfunc')
+        Args:
+            name: Name of operator, should start with a ``\``.
+                Example: ``declareoperator(r'\myfunc')``
     '''
     latex2mathml.commands.FUNCTIONS = latex2mathml.commands.FUNCTIONS + (name,)
 
@@ -64,7 +65,7 @@ def tex2mml(tex: str, inline: bool = False) -> str:
     mml = re.sub(r'<mo>&#x0007E;', r'<mo>&#x00303;', mml)  # widetilde
     mml = re.sub(r'>&#x02015;', r'>&#x00332;', mml)  # underline
     return mml
-    
+
 
 class Math:
     ''' MathML Element Renderer
@@ -158,7 +159,8 @@ class Math:
                 child = mathel[0]
                 if mathstyle:
                     child.attrib['mathvariant'] = mathstyle
-                child.attrib['display'] = mathel.attrib.get('display')
+                if mathel.attrib.get('display'):
+                    child.attrib['display'] = mathel.attrib['display']
                 mml.append(child)
         if color:
             mml.attrib['mathcolor'] = color
@@ -253,7 +255,7 @@ class Latex(Math):
     def __init__(self, latex: str, size: float=24, mathstyle: str=None,
                  font: str=None, color: str=None, inline: bool = False):
         self.latex = latex
-        
+
         mathml: Union[str, ET.Element]
         mathml = tex2mml(latex, inline=inline)
         if mathstyle:
@@ -326,7 +328,7 @@ class Text:
     def svgxml(self) -> ET.Element:
         ''' Get standalone SVG of expression as XML Element Tree '''
         svg = ET.Element('svg')
-        svgelm, (x1, x2, y1, y2) = self._drawon(svg)
+        _, (x1, x2, y1, y2) = self._drawon(svg)
         svg.attrib['width'] = fmt(x2-x1)
         svg.attrib['height'] = fmt(y2-y1)
         svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
@@ -389,7 +391,7 @@ class Text:
                                           size=self.size, color=self.color)
                     svgparts.append(math)
                     partsizes.append(math.getsize())
-                    
+
                 elif part.startswith('$') and part.endswith('$'):  # Text-mode Math
                     math = Math.fromlatex(part.replace('$', ''),
                                           font=self.mathfont,

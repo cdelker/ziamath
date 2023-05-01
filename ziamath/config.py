@@ -16,22 +16,24 @@ class Config:
     '''
     minsizefraction: float = .3
     debug: bool = False
-    
+
     @property
     def svg2(self) -> bool:
+        ''' Get SVG2 mode '''
         return zfconfig.svg2
-    
+
     @svg2.setter
     def svg2(self, value: bool) -> None:
         zfconfig.svg2 = value
 
     @property
     def precision(self) -> float:
+        ''' Get decimal precision '''
         return zfconfig.precision
-    
+
     @precision.setter
     def precision(self, value: float) -> None:
         zfconfig.precision = value
 
-    
+
 config = Config()

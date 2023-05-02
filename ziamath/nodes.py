@@ -347,6 +347,8 @@ def infer_opform(i: int, child: ET.Element, mrow: Mnode) -> None:
     if 'form' not in child.attrib:
         if isinstance(mrow, (Msub, Msup, Msubsup)):
             form = 'prefix'
+        elif len(mrow.element) == 1:
+            form = 'none'
         elif i == 0:
             form = 'prefix'
         elif i == len(mrow.element) - 1:
@@ -406,19 +408,20 @@ class Mrow(Mnode):
             # Single line
             ymax = -9999
             ymin = 9999
+            height = kwargs.pop('height', None)
             i = 0
             x = 0
             while i < len(line):
                 child = line[i]
                 text = getelementtext(child)
                 if child.tag == 'mo':
-                    if (len(text) == 1 and
+                    if (text in operators.fences and
                         child.attrib.get('form') == 'prefix' and
                         child.attrib.get('stretchy') != 'false'):
                         fencekwargs = copy(kwargs)
                         j = 0
                         for j in range(i+1, len(self.element)):
-                            if self.element[j].tag == 'mo' and self.element[j].attrib.get('form') == 'postfix':
+                            if self.element[j].tag == 'mo' and self.element[j].attrib.get('form') == 'postfix' and self.element[j].text in operators.fences:
                                 children = self.element[i+1: j]
                                 fencekwargs['open'] = getelementtext(child)
                                 fencekwargs['close'] = getelementtext(self.element[j])
@@ -439,7 +442,7 @@ class Mrow(Mnode):
                         if text == '':
                             i += 1
                             continue  # InvisibleTimes, etc.
-                        node = Moperator(child, parent=self, scriptlevel=self.scriptlevel, **kwargs)
+                        node = Moperator(child, parent=self, scriptlevel=self.scriptlevel, height=height, **kwargs)
                         i += 1
                 else:
                     node = makenode(child, parent=self, scriptlevel=self.scriptlevel, **kwargs)
@@ -542,7 +545,11 @@ class Mfenced(Mnode):
         self.nodes = []
         x = yofst = base = 0
         yglyphmin = yglyphmax = 0
-        x += getspaceems('verythinmathspace') * self.emscale * self.font.info.layout.unitsperem
+        try:
+            if self.parent.leftsibling():
+                x += getspaceems('verythinmathspace') * self.emscale * self.font.info.layout.unitsperem
+        except AttributeError:
+            pass
 
         if self.openchr:
             self.nodes.append(mglyph)
@@ -558,8 +565,8 @@ class Mfenced(Mnode):
 
         if self.closechr:
             try:
-                if isinstance(mrow.nodes[-1], Mfrac):  # type: ignore
-                    # Mfrac adds space to right, remove it for fence
+                if isinstance(mrow.nodes[-1], (Mfrac, Msub, Msup, Msubsup)):  # type: ignore
+                    # Mfrac, Msub adds space to right, remove it for fence
                     x -= (getspaceems('verythinmathspace') * 
                           self.emscale * self.font.info.layout.unitsperem)
             except (IndexError, AttributeError):
@@ -605,7 +612,7 @@ class Moperator(Mnumber):
         Mnode.__init__(self, element, parent, scriptlevel, **kwargs)
         self.string = styledstr(getelementtext(self.element), **self.style)
         self.form = element.attrib.get('form', 'infix')
-
+        
         # Load parameters from operators table for deciding how much space
         # to add on either side of the operator
         self.params = operators.get_params(self.string, self.form)
@@ -677,8 +684,8 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont,
         x = 0
         shiftup = font.math.consts.superscriptShiftUp
 
-        if hasattr(base, 'params'):
-            x -= getspaceems(base.params.get('rspace', '0')) / emscale  # type: ignore
+        if hasattr(base, 'params') and base.params.get('movablelimits') == 'true':
+            x -= getspaceems(base.params.get('rspace', '0')) * emscale * font.info.layout.unitsperem # type: ignore
 
         if lastg:
             italicx = font.math.italicsCorrection.getvalue(lastg.index)
@@ -696,11 +703,7 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont,
                 shiftup = lastg.bbox.ymax
         supy = -shiftup * emscale
         xadvance = x + superscript.bbox.xmax
-
-        if (isinstance(base, Midentifier) and
-            base.element and base.element.text and
-            len(base.element.text) > 1):
-            xadvance += getspaceems('thinmathspace') * emscale * font.info.layout.unitsperem
+        xadvance += getspaceems('verythinmathspace') * emscale * font.info.layout.unitsperem
     return x, supy, xadvance
 
 
@@ -715,8 +718,9 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont, emscale: float):
         lastg = base.lastglyph()
         shiftdn = font.math.consts.subscriptShiftDown
         x = 0
-        if hasattr(base, 'params'):
-            x -= getspaceems(base.params.get('rspace', '0')) / emscale  # type: ignore
+
+        if hasattr(base, 'params') and base.params.get('movablelimits') == 'true':
+            x -= getspaceems(base.params.get('rspace', '0')) * emscale * font.info.layout.unitsperem # type: ignore
 
         if lastg:
             italicx = font.math.italicsCorrection.getvalue(lastg.index)
@@ -734,6 +738,7 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont, emscale: float):
                 shiftdn = -lastg.bbox.ymin
         suby = shiftdn * emscale
         xadvance = x + subscript.bbox.xmax
+        xadvance += getspaceems('verythinmathspace') * emscale * font.info.layout.unitsperem
     return x, suby, xadvance
 
 

@@ -350,10 +350,17 @@ operators = {
 
 
 integrals = ['∫', '∬', '∭', '∲', '∮', '∳', '∯', '∰', ]
+fences = [op[0] for op, params in operators.items() if params.get('fence') == 'true'] + ['|', '∣', '❘', '‖']
 names = set(op[0] for op in operators.keys())
+
+
 
 def get_params(name: str, form: str) -> dict[str, str]:
     ''' Get parameters for the given operator name and form '''
+    if form == 'none':
+        # form of 'none' is given to single element mrows like {,}
+        return {}
+
     params = operators.get((name, form), {})
     if not params:
         params = operators.get((name, 'infix'), {})

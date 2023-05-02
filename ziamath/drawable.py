@@ -91,7 +91,7 @@ class HLine(Drawable):
         self.length = length
         self.lw = lw
         self.phantom = kwargs.get('phantom', False)
-        self.bbox = BBox(0, lw/2, self.length, self.lw)
+        self.bbox = BBox(0, self.length, -self.lw/2, self.lw/2)
         self.style = style if style is not None else {}
 
     def draw(self, x: float, y: float, svg: ET.Element) -> tuple[float, float]:

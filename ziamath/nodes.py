@@ -925,10 +925,10 @@ def place_over(base: Mnode, over: Mnode, font: MathFont, emscale: float) -> tupl
     # Center the node by default
     x = ((base.bbox.xmax - base.bbox.xmin) - (over.bbox.xmax-over.bbox.xmin)) / 2 - over.bbox.xmin
     lastg = base.lastglyph()
-    if lastg:
+    if lastg and not isinstance(over, drawable.HLine):
         italicx = font.math.italicsCorrection.getvalue(lastg.index)
         if italicx:
-            x += italicx* emscale
+            x += italicx * emscale
 
     # Use font-specific accent attachment if defined
     if len(base.nodes) == 1 and isinstance(base.nodes[0], drawable.Glyph):
@@ -961,6 +961,10 @@ class Mover(Mnode):
         0x02DA, # \mathring
         ]
 
+    # Over/underbar character. Fonts not consistent with using stretchy/assembled
+    # glyphs, so draw with HLine instead of glyph.
+    BAR = '―'  # 0x2015
+    
     def __init__(self, element: ET.Element, parent: 'Mnode', scriptlevel: int = 0, **kwargs):
         super().__init__(element, parent, scriptlevel, **kwargs)
         kwargs = copy(kwargs)
@@ -975,7 +979,13 @@ class Mover(Mnode):
         else:
             overscriptlevel = self.scriptlevel + 1
 
-        self.over = makenode(self.element[1], parent=self, scriptlevel=overscriptlevel, **kwargs)
+        if self.element[1].text and self.element[1].text == self.BAR:
+            self.over = drawable.HLine(
+                kwargs['width'],
+                self.font.math.consts.overbarRuleThickness * self.emscale)
+        else:
+            self.over = makenode(self.element[1], parent=self, scriptlevel=overscriptlevel, **kwargs)
+
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -1009,7 +1019,7 @@ def place_under(base: Mnode, under: Mnode, font: MathFont, emscale: float) -> tu
     '''
     x = ((base.bbox.xmax - base.bbox.xmin) - (under.bbox.xmax-under.bbox.xmin)) / 2 - under.bbox.xmin
     lastg = base.lastglyph()
-    if lastg:
+    if lastg and not isinstance(under, drawable.HLine):
         italicx = font.math.italicsCorrection.getvalue(lastg.index)
         if italicx:
             x -= italicx * emscale
@@ -1031,7 +1041,12 @@ class Munder(Mnode):
             (self.element[1].tag == 'mo' and self.element[1].text and len(self.element[1].text) == 1)):
             kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
 
-        self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
+        if self.element[1].text and self.element[1].text == Mover.BAR:
+            self.under = drawable.HLine(
+                kwargs['width'],
+                self.font.math.consts.underbarRuleThickness * self.emscale)
+        else:
+            self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -1041,7 +1056,6 @@ class Munder(Mnode):
         if underx < 0:
             basex = -underx
             underx = 0
-
         self.nodes.append(self.base)
         self.nodexy.append((basex, 0))
         self.nodes.append(self.under)

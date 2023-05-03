@@ -653,7 +653,7 @@ class Moperator(Mnumber):
 
             if self.width:
                 glyph = self.font.math.variant(glyph.index, self.width / self.emscale, vert=False)
-            elif self.height and self.params.get('fence') == 'true':
+            elif self.height and self.params.get('fence') == 'true' and self.params.get('stretchy') != 'false':
                 glyph = self.font.math.variant(glyph.index, self.height / self.emscale, vert=True)
 
             self.nodes.append(drawable.Glyph(

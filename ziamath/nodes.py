@@ -515,7 +515,6 @@ class Mfenced(Mnode):
         openglyph = self.font.glyph(self.openchr)
         mglyph = drawable.Glyph(
             openglyph, self.openchr, self.glyphsize, self.emscale, self.style, **kwargs)
-
         if len(mrow.nodes) == 0:
             # Opening fence with nothing in it
             height = mglyph.bbox.ymax - mglyph.bbox.ymin
@@ -524,17 +523,11 @@ class Mfenced(Mnode):
             height = max(mrow.bbox.ymax, mglyph.bbox.ymax) - min(mrow.bbox.ymin, mglyph.bbox.ymin)
 
             # height-adjusted fence glyph variant
-            openglyph = self.font.math.variant(openglyph.index, height/self.emscale, vert=True)
+            openglyph = self.font.math.variant_minmax(openglyph.index, mrow.bbox.ymin/self.emscale, mrow.bbox.ymax/self.emscale)
+
             mglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize,
                                     self.emscale, self.style, **kwargs)
-
-            if mrow.bbox.ymax > mglyph.bbox.ymax or mrow.bbox.ymin < mglyph.bbox.ymin:
-                height = max(mrow.bbox.ymax, -mrow.bbox.ymin)*2
-                openglyph = self.font.math.variant(
-                    self.font.glyph(self.openchr).index, height/self.emscale, vert=True)
-                mglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize,
-                                        self.emscale, self.style, **kwargs)
-
+            
             # Rebuild the mrow with the height parameter to get stretchy
             # \middle fences
             mrow = Mrow(mrowelm, parent=self, scriptlevel=self.scriptlevel,
@@ -552,9 +545,13 @@ class Mfenced(Mnode):
             pass
 
         if self.openchr:
+            params = operators.get_params(self.openchr, 'prefix')
+            rspace = (getspaceems(params.get('rspace', '0')) *
+                      self.emscale * self.font.info.layout.unitsperem)
             self.nodes.append(mglyph)
             self.nodexy.append((x, yofst))
             x += openglyph.advance() * self.emscale
+            x += rspace
             yglyphmin = min(-yofst+mglyph.bbox.ymin, yglyphmin)
             yglyphmax = max(-yofst+mglyph.bbox.ymax, yglyphmax)
 
@@ -565,15 +562,21 @@ class Mfenced(Mnode):
 
         if self.closechr:
             try:
-                if isinstance(mrow.nodes[-1], (Mfrac, Msub, Msup, Msubsup)):  # type: ignore
-                    # Mfrac, Msub adds space to right, remove it for fence
-                    x -= (getspaceems('verythinmathspace') * 
-                          self.emscale * self.font.info.layout.unitsperem)
+                # Mfrac, Msub adds space to right, remove it for fence
+                if isinstance(mrow.nodes[-1], (Msub, Msup, Msubsup)):  # type: ignore
+                    x -= self.font.math.consts.spaceAfterScript * self.emscale
+                elif isinstance(mrow.nodes[-1], Mfrac):  # type: ignore
+                    x -= getspaceems('thinmathspace')* self.emscale * self.font.info.layout.unitsperem
             except (IndexError, AttributeError):
                 pass
 
+            params = operators.get_params(self.closechr, 'postfix')
+            lspace = (getspaceems(params.get('lspace', '0')) *
+                      self.emscale * self.font.info.layout.unitsperem)
+            x += lspace
+
             closeglyph = self.font.glyph(self.closechr)
-            closeglyph = self.font.math.variant(closeglyph.index, height/self.emscale, vert=True)
+            closeglyph = self.font.math.variant_minmax(closeglyph.index, mrow.bbox.ymin/self.emscale, mrow.bbox.ymax/self.emscale, vert=True)
             mglyph = drawable.Glyph(closeglyph, self.closechr, self.glyphsize,
                                     self.emscale, self.style, **kwargs)
             self.nodes.append(mglyph)
@@ -1145,8 +1148,12 @@ class Mfrac(Mnode):
         # TODO: bevelled attribute for x/y fractions with slanty bar
 
     def _setup(self, **kwargs) -> None:
-        ynum = -self.font.math.consts.fractionNumeratorShiftUp * self.emscale
-        ydenom = + self.font.math.consts.fractionDenominatorShiftDown * self.emscale
+        if self.displaystyle():
+            ynum = -self.font.math.consts.fractionNumeratorDisplayStyleShiftUp * self.emscale
+            ydenom = + self.font.math.consts.fractionDenominatorDisplayStyleShiftDown * self.emscale
+        else:
+            ynum = -self.font.math.consts.fractionNumeratorShiftUp * self.emscale
+            ydenom = + self.font.math.consts.fractionDenominatorShiftDown * self.emscale
         denombox = self.denominator.bbox
         numbox = self.numerator.bbox
 
@@ -1161,8 +1168,6 @@ class Mfrac(Mnode):
                 x = getspaceems('verythinmathspace') * self.emscale * self.font.info.layout.unitsperem
             else:
                 x = getspaceems('thinmathspace') * self.emscale * self.font.info.layout.unitsperem
-        # COULD DO: adjust denominator ydenom to match the sibling
-        # and/or adjust sibling's denominator
 
         width = max(numbox.xmax, denombox.xmax)
         xnum = x + (width - (numbox.xmax - numbox.xmin))/2

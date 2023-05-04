@@ -323,6 +323,21 @@ class MathTable:
             variant = self._variantshorz.getvariant(glyphid, height)
         return variant
 
+    def variant_minmax(self, glyphid: int, ymin: float, ymax: float, vert: bool=True) -> GlyphType:
+        ''' Get a height variant for the glyph that covers or exceeds the range (ymin, ymax)
+
+            Args:
+                glyphid: Glyph index
+                ymin: Minimum y value to contain
+                ymax: Maximum y value to contain
+                vert: Vertical variant or horizontal variant
+        '''
+        if vert:
+            variant = self._variantsvert.getvariant_minmax(glyphid, ymin=ymin, ymax=ymax)
+        else:
+            variant = self._variantshorz.getvariant_minmax(glyphid, ymin=ymin, ymax=ymax)
+        return variant
+
     def isextended(self, glyphid: int) -> bool:
         ''' Determine if glyph is an extended shape (has stretchy variants) '''
         return self._extendedShapeCoverage.covidx(glyphid) is not None
@@ -537,6 +552,36 @@ class MathVariants:
 
         return glf
 
+    def getvariant_minmax(self, glyphid: int, ymin: float, ymax: float) -> GlyphType:
+        ''' Get the smallest variant that encloses ymin and ymax '''
+        covidx = self.coverage.covidx(glyphid)
+        if covidx is None:
+            # Not covered by a variant
+            return self.font.glyph_fromid(glyphid)
+
+        construction = self.construction[covidx]
+        variants = construction.variants
+        glf: GlyphType
+        
+        gids = list(variants.values())
+        ymins = [self.font.glyph_fromid(gid).bbox.ymin for gid in gids]
+        ymaxs = [self.font.glyph_fromid(gid).bbox.ymax for gid in gids]
+        i = 0
+        for gid, ymn, ymx in zip(gids, ymins, ymaxs):
+            if ymn < ymin and ymx > ymax:
+                glf = self.font.glyph_fromid(gid)
+                break
+        else:
+            height = ymax-ymin
+            if height > ymaxs[-1] - ymins[-1] and construction.assembly:
+                glf = construction.assembly.assemble(height, self.minoverlap)
+            else:
+                glf = self.font.glyph_fromid(gids[-1])
+        return glf
+            
+        
+    
+    
 
 class MathKernTable:
     ''' Math Kerning Table, for adjusting sub/superscripts

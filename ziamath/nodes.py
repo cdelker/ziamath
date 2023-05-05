@@ -524,14 +524,19 @@ class Mfenced(Mnode):
 
             # height-adjusted fence glyph variant
             openglyph = self.font.math.variant_minmax(openglyph.index, mrow.bbox.ymin/self.emscale, mrow.bbox.ymax/self.emscale)
-
-            mglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize,
-                                    self.emscale, self.style, **kwargs)
+            oglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize,
+                                   self.emscale, self.style, **kwargs)
             
+            if self.closechr:
+                closeglyph = self.font.glyph(self.closechr)
+                closeglyph = self.font.math.variant_minmax(closeglyph.index, mrow.bbox.ymin/self.emscale, mrow.bbox.ymax/self.emscale, vert=True)
+                cglyph = drawable.Glyph(closeglyph, self.closechr, self.glyphsize,
+                                        self.emscale, self.style, **kwargs)
+
             # Rebuild the mrow with the height parameter to get stretchy
             # \middle fences
             mrow = Mrow(mrowelm, parent=self, scriptlevel=self.scriptlevel,
-                        height=mglyph.bbox.ymax-mglyph.bbox.ymin)
+                        height=oglyph.bbox.ymax-oglyph.bbox.ymin)
 
             fencebbox = mrow.bbox
 
@@ -548,12 +553,12 @@ class Mfenced(Mnode):
             params = operators.get_params(self.openchr, 'prefix')
             rspace = (getspaceems(params.get('rspace', '0')) *
                       self.emscale * self.font.info.layout.unitsperem)
-            self.nodes.append(mglyph)
+            self.nodes.append(oglyph)
             self.nodexy.append((x, yofst))
             x += openglyph.advance() * self.emscale
             x += rspace
-            yglyphmin = min(-yofst+mglyph.bbox.ymin, yglyphmin)
-            yglyphmax = max(-yofst+mglyph.bbox.ymax, yglyphmax)
+            yglyphmin = min(-yofst+oglyph.bbox.ymin, yglyphmin)
+            yglyphmax = max(-yofst+oglyph.bbox.ymax, yglyphmax)
 
         if len(fencedelms) > 0:
             self.nodes.append(mrow)
@@ -575,15 +580,11 @@ class Mfenced(Mnode):
                       self.emscale * self.font.info.layout.unitsperem)
             x += lspace
 
-            closeglyph = self.font.glyph(self.closechr)
-            closeglyph = self.font.math.variant_minmax(closeglyph.index, mrow.bbox.ymin/self.emscale, mrow.bbox.ymax/self.emscale, vert=True)
-            mglyph = drawable.Glyph(closeglyph, self.closechr, self.glyphsize,
-                                    self.emscale, self.style, **kwargs)
-            self.nodes.append(mglyph)
+            self.nodes.append(cglyph)
             self.nodexy.append((x, yofst))
             x += closeglyph.advance() * self.emscale
-            yglyphmin = min(-yofst+mglyph.bbox.ymin, yglyphmin)
-            yglyphmax = max(-yofst+mglyph.bbox.ymax, yglyphmax)
+            yglyphmin = min(-yofst+cglyph.bbox.ymin, yglyphmin)
+            yglyphmax = max(-yofst+cglyph.bbox.ymax, yglyphmax)
 
         self.bbox = BBox(0, x, min(yglyphmin, fencebbox.ymin), max(yglyphmax, fencebbox.ymax))
 
@@ -702,8 +703,10 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont,
                 else:
                     shiftup = lastg.bbox.ymax - \
                         (superscript.bbox.ymax - superscript.bbox.ymin)/2/emscale
+                    x += getspaceems('verythinmathspace') * emscale * font.info.layout.unitsperem
             else:  # eg ^/frac
                 shiftup = lastg.bbox.ymax
+                x += getspaceems('verythinmathspace') * emscale * font.info.layout.unitsperem
         supy = -shiftup * emscale
         xadvance = x + superscript.bbox.xmax
         xadvance += getspaceems('verythinmathspace') * emscale * font.info.layout.unitsperem
@@ -1140,11 +1143,13 @@ class Mfrac(Mnode):
         super().__init__(element, parent, scriptlevel, **kwargs)
         assert len(self.element) == 2
         kwargs['frac'] = True
+        kwargs.pop('sup', None)
         self.numerator = makenode(self.element[0], parent=self,
                                   scriptlevel=self.scriptlevel, **kwargs)
         self.denominator = makenode(self.element[1], parent=self,
                                     scriptlevel=self.scriptlevel, **kwargs)
         self._setup(**kwargs)
+
         # TODO: bevelled attribute for x/y fractions with slanty bar
 
     def _setup(self, **kwargs) -> None:
@@ -1197,7 +1202,6 @@ class Mfrac(Mnode):
         ymin = (-ydenom) + denombox.ymin
         ymax = (-ynum) + numbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
-
 
 class Mroot(Mnode):
     ''' Nth root '''

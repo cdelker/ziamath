@@ -58,6 +58,10 @@ def tex2mml(tex: str, inline: bool = False) -> str:
     tex = re.sub(r'\\binom{(.+?)}{(.+?)}', r'\\left( \1 \\atop \2 \\right)', tex)
     tex = re.sub(r'\\mathrm{(.+?)}', r'\\mathrm {\1}', tex)  # latex2mathml bug requires space after mathrm
     tex = tex.replace('||', '‖')
+    if config.decimal_separator == ',':
+        # Replace , with {,} to remove right space
+        # (must be surrounded by digits)
+        tex = re.sub(r'([0-9]),([0-9])', r'\1{,}\2', tex)
 
     mml = convert(tex, display='inline' if inline else 'block')
 

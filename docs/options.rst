@@ -62,9 +62,23 @@ Declaring Operators
 
 To declare a new math operator, use :py:meth:`ziamath.zmath.declareoperator`. This works similar to LaTeX's DeclareMathOperator to allow custom function names typeset as functions instead of identifiers.
 
+Decimal Separator
+*****************
 
+For regions that use a comma as the decimal separator, set `ziamath.config.decimal_separator`.
+This removes the space after the commas between two digits, by treating it as if it were enclosed in braces, such as `1{,}0`. Only used for Latex expressions.
+
+.. jupyter-execute::
+
+    zm.Latex('1,2')
+    
+.. jupyter-execute::
+
+    zm.config.decimal_separator = ','
+    display(zm.Latex('1,2'))
 
 |
+
 
 Configuration Options
 ---------------------

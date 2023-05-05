@@ -1,5 +1,6 @@
 ''' Global configuration options '''
 from ziafont import config as zfconfig
+from . import operators
 
 
 class Config:
@@ -13,13 +14,15 @@ class Config:
         svg2: Use SVG2.0. Disable for better browser compatibility,
             at the expense of SVG size
         precision: SVG decimal precision for coordinates
+        decimal_separator: Use `.` or `,` as decimal separator. (only
+            affects Latex math)
     '''
     minsizefraction: float = .3
     debug: bool = False
+    decimal_separator = '.'
 
     @property
     def svg2(self) -> bool:
-        ''' Get SVG2 mode '''
         return zfconfig.svg2
 
     @svg2.setter
@@ -28,7 +31,6 @@ class Config:
 
     @property
     def precision(self) -> float:
-        ''' Get decimal precision '''
         return zfconfig.precision
 
     @precision.setter

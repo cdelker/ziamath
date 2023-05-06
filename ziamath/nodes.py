@@ -990,6 +990,8 @@ class Mover(Mnode):
                 kwargs['width'],
                 self.font.math.consts.overbarRuleThickness * self.emscale)
         else:
+            self.element[1].attrib['lspace'] = '0'
+            self.element[1].attrib['rspace'] = '0'
             self.over = makenode(self.element[1], parent=self, scriptlevel=overscriptlevel, **kwargs)
 
         self._setup(**kwargs)
@@ -1098,6 +1100,8 @@ class Munderover(Mnode):
             overscriptlevel = self.scriptlevel
         else:
             kwargs['sup'] = True
+            self.element[2].attrib['lspace'] = '0'
+            self.element[2].attrib['rspace'] = '0'
             overscriptlevel = self.scriptlevel + 1
 
         self.over = makenode(self.element[2], parent=self, scriptlevel=overscriptlevel, **kwargs)

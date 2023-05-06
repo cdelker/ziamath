@@ -45,12 +45,6 @@ def declareoperator(name: str) -> None:
     latex2mathml.commands.FUNCTIONS = latex2mathml.commands.FUNCTIONS + (name,)
 
 
-declareoperator(r'\tg')
-declareoperator(r'\ctg')
-declareoperator(r'\arcctg')
-declareoperator(r'\arctg')
-
-
 def tex2mml(tex: str, inline: bool = False) -> str:
     ''' Convert Latex to MathML. Do some hacky preprocessing to work around
         some issues with generated MathML that ziamath doesn't support yet.

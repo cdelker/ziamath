@@ -129,8 +129,10 @@ def getdimension(size: str, emscale: float) -> float:
             s = float(size[:-2]) / emscale
         elif size.endswith('px'):
             s = float(size[:-2])
+        elif size.endswith('pt'):
+            s = float(size[:-2]) * 1.333
         else:
-            raise ValueError(f'Undefined size {s}')
+            raise ValueError(f'Undefined size {size}')
     return s
 
 

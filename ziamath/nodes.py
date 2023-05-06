@@ -402,17 +402,18 @@ class Mrow(Mnode):
                     y += (node.bbox.ymax - self.nodes[i-1].bbox.ymin +
                           self.font.math.consts.mathLeading*self.emscale*2)  # type: ignore
                 self.nodexy.append((0, y))
+            xmin = min([n.bbox.xmin for n in self.nodes])
             xmax = max([n.bbox.xmax for n in self.nodes])    # type: ignore
             ymin = -y+self.nodes[-1].bbox.ymin    # type: ignore
             ymax = self.nodes[0].bbox.ymax    # type: ignore
-            self.bbox = BBox(0, xmax, ymin, ymax)
+            self.bbox = BBox(xmin, xmax, ymin, ymax)
         else:
             # Single line
             ymax = -9999
             ymin = 9999
             height = kwargs.pop('height', None)
             i = 0
-            x = 0
+            x = xmin = 0
             while i < len(line):
                 child = line[i]
                 text = getelementtext(child)
@@ -453,9 +454,10 @@ class Mrow(Mnode):
                 self.nodes.append(node)
                 self.nodexy.append((x, 0))
                 x += node.bbox.xmax
+                xmin = min([nxy[0]+n.bbox.xmin for nxy, n in zip(self.nodexy, self.nodes)])
                 ymax = max(ymax, node.bbox.ymax)
                 ymin = min(ymin, node.bbox.ymin)
-            self.bbox = BBox(0, x, ymin, ymax)
+            self.bbox = BBox(xmin, x, ymin, ymax)
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
@@ -705,7 +707,6 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont,
                 else:
                     shiftup = lastg.bbox.ymax - \
                         (superscript.bbox.ymax - superscript.bbox.ymin)/2/emscale
-                    x += getspaceems('verythinmathspace') * emscale * font.info.layout.unitsperem
             else:  # eg ^/frac
                 shiftup = lastg.bbox.ymax
                 x += getspaceems('verythinmathspace') * emscale * font.info.layout.unitsperem
@@ -771,12 +772,12 @@ class Msup(Mnode):
         self.nodes.append(self.superscript)
         self.nodexy.append((x+supx, supy))
         if self.base.bbox.ymax > self.base.bbox.ymin:
-            xmin = self.base.bbox.xmin
-            xmax = x + xadv
+            xmin = min(self.base.bbox.xmin, x+supx+self.superscript.bbox.xmin)
+            xmax = max(x + xadv, self.base.bbox.xmax, x+supx+self.superscript.bbox.xmax)
             ymin = min(self.base.bbox.ymin, -supy + self.superscript.bbox.ymin)
             ymax = max(self.base.bbox.ymax, -supy + self.superscript.bbox.ymax)
         else:  # Empty base
-            xmin = 0
+            xmin = self.superscript.bbox.xmin
             ymin = -supy
             xmax = x + xadv
             ymax = -supy + self.superscript.bbox.ymax
@@ -823,8 +824,9 @@ class Msub(Mnode):
         subx, suby, xadv = place_sub(self.base, self.subscript, self.font, self.emscale)
         self.nodes.append(self.subscript)
         self.nodexy.append((x + subx, suby))
-        xmin = self.base.bbox.xmin
-        xmax = x + xadv
+        
+        xmin = min(self.base.bbox.xmin, x+subx+self.subscript.bbox.xmin)
+        xmax = max(x + xadv, self.base.bbox.xmax, x+subx+self.subscript.bbox.xmax)
         ymin = min(self.base.bbox.ymin, -suby+self.subscript.bbox.ymin)
         ymax = max(self.base.bbox.ymax, -suby+self.subscript.bbox.ymax)
         self.bbox = BBox(xmin, xmax, ymin, ymax)

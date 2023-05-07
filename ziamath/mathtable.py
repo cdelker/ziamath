@@ -568,7 +568,7 @@ class MathVariants:
         ymaxs = [self.font.glyph_fromid(gid).bbox.ymax for gid in gids]
         i = 0
         for gid, ymn, ymx in zip(gids, ymins, ymaxs):
-            if ymn < ymin and ymx > ymax:
+            if ymn <= ymin and ymx >= ymax:
                 glf = self.font.glyph_fromid(gid)
                 break
         else:

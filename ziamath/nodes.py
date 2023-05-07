@@ -514,22 +514,23 @@ class Mfenced(Mnode):
 
         mrowelm = ET.Element('mrow')
         mrowelm.extend(fencedelms)
-        mrow = Mrow(mrowelm, parent=self, scriptlevel=self.scriptlevel)
+
+        # Make a copy of mrowelm because it can get modified
+        # and we need the original later
+        mrow = Mrow(ET.fromstring(ET.tostring(mrowelm)), parent=self,
+                    scriptlevel=self.scriptlevel)
         # standard size fence glyph
         openglyph = self.font.glyph(self.openchr)
         mglyph = drawable.Glyph(
             openglyph, self.openchr, self.glyphsize, self.emscale, self.style, **kwargs)
         if len(mrow.nodes) == 0:
             # Opening fence with nothing in it
-            height = mglyph.bbox.ymax - mglyph.bbox.ymin
             fencebbox = mglyph.bbox
         else:
-            height = max(mrow.bbox.ymax, mglyph.bbox.ymax) - min(mrow.bbox.ymin, mglyph.bbox.ymin)
-
             # height-adjusted fence glyph variant
             openglyph = self.font.math.variant_minmax(openglyph.index, mrow.bbox.ymin/self.emscale, mrow.bbox.ymax/self.emscale)
             oglyph = drawable.Glyph(openglyph, self.openchr, self.glyphsize,
-                                   self.emscale, self.style, **kwargs)
+                                    self.emscale, self.style, **kwargs)
             
             if self.closechr:
                 closeglyph = self.font.glyph(self.closechr)
@@ -539,6 +540,8 @@ class Mfenced(Mnode):
 
             # Rebuild the mrow with the height parameter to get stretchy
             # \middle fences
+            mrowelm = ET.Element('mrow')
+            mrowelm.extend(fencedelms)
             mrow = Mrow(mrowelm, parent=self, scriptlevel=self.scriptlevel,
                         height=oglyph.bbox.ymax-oglyph.bbox.ymin)
 
@@ -627,6 +630,22 @@ class Moperator(Mnumber):
         self.params.update(element.attrib)
         self.width = kwargs.get('width', None)
         self.height = kwargs.get('height', None)
+
+        minsize = getspaceems(element.attrib.get('minsize', '0'))
+        maxsize = getspaceems(element.attrib.get('maxsize', '0'))
+        mathsize = getspaceems(element.attrib.get('mathsize', '0'))
+        if self.height:
+            if minsize:
+                self.height = max(self.height, minsize * self.emscale * self.font.info.layout.unitsperem)
+            if maxsize:
+                self.height = min(self.height, maxsize * self.emscale * self.font.info.layout.unitsperem)
+        else:
+            if mathsize:
+                self.height = mathsize * self.emscale * self.font.info.layout.unitsperem
+            elif minsize:
+                self.height = minsize * self.emscale * self.font.info.layout.unitsperem
+            elif maxsize:
+                self.height = maxsize * self.emscale * self.font.info.layout.unitsperem
 
         if self.string in ['|', '‖', '∣', '❘'] and self.params.get('fence') == 'true':
             # Hack around weird spacing with \middle operators
@@ -1255,7 +1274,7 @@ class Mroot(Mnode):
         x += rootnode.bbox.xmax
         self.nodes.append(self.base)
         self.nodexy.append((x, 0))
-        width = self.base.bbox.xmax - self.base.bbox.xmin
+        width = self.base.bbox.xmax
 
         lastg = self.base.lastglyph()
         if lastg:

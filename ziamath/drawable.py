@@ -12,7 +12,9 @@ from ziafont.glyph import SimpleGlyph, fmt
 
 class Drawable:
     ''' Base class for drawable nodes '''
-
+    def __init__(self):
+        self.bbox = BBox(0, 0, 0, 0)
+    
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
         return None
@@ -31,24 +33,32 @@ class Drawable:
 
 
 class Glyph(Drawable):
-    ''' A single glyph '''
-    def __init__(self, glyph: SimpleGlyph, char: str, size: float, emscale: float,
+    ''' A single glyph
+
+        Args:
+            glyph: The glyph to draw
+            char: unicode character represented by the glyph
+            size: point size
+            style: font style (currently only mathcolor is used)
+    '''
+    def __init__(self, glyph: SimpleGlyph, char: str, size: float,
                  style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
+        super().__init__()
         self.glyph = glyph
         self.char = char
         self.size = size
-        self.emscale = emscale
         self.phantom = kwargs.get('phantom', False)
         self.style = style if style is not None else {}
-        self._setup()
-
-    def _setup(self, **kwargs) -> None:
-        ''' Place the glyphs with 0, 0 positions '''
+        self._funits_to_pts = self.size / self.glyph.font.info.layout.unitsperem
         self.bbox = BBox(
-            self.glyph.path.bbox.xmin * self.emscale,
-            self.glyph.path.bbox.xmax * self.emscale,
-            self.glyph.path.bbox.ymin * self.emscale,
-            self.glyph.path.bbox.ymax * self.emscale)
+            self.funit_to_points(self.glyph.path.bbox.xmin),
+            self.funit_to_points(self.glyph.path.bbox.xmax),
+            self.funit_to_points(self.glyph.path.bbox.ymin),
+            self.funit_to_points(self.glyph.path.bbox.ymax))
+
+    def funit_to_points(self, value: float) -> float:
+        ''' Convert font units to SVG points '''
+        return value * self._funits_to_pts
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
@@ -79,8 +89,8 @@ class Glyph(Drawable):
             if path is not None:
                 svg.append(path)
             if 'mathcolor' in self.style:
-                svg[-1].set('fill', self.style['mathcolor'])  # type: ignore
-        x += self.glyph.advance() * self.emscale
+                svg[-1].set('fill', str(self.style['mathcolor']))
+        x += self.funit_to_points(self.glyph.advance())
         return x, y
 
 
@@ -88,6 +98,7 @@ class HLine(Drawable):
     ''' Horizontal Line. '''
     def __init__(self, length: float, lw: float,
                  style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
+        super().__init__()
         self.length = length
         self.lw = lw
         self.phantom = kwargs.get('phantom', False)
@@ -111,7 +122,7 @@ class HLine(Drawable):
             bar.attrib['width'] = fmt(self.length)
             bar.attrib['height'] = fmt(self.lw)
             if 'mathcolor' in self.style:
-                bar.attrib['fill'] = self.style['mathcolor']  # type: ignore
+                bar.attrib['fill'] = str(self.style['mathcolor'])
         return x+self.length, y
 
 
@@ -119,6 +130,7 @@ class VLine(Drawable):
     ''' Vertical Line. '''
     def __init__(self, height: float, lw: float,
                  style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
+        super().__init__()
         self.height = height
         self.lw = lw
         self.phantom = kwargs.get('phantom', False)
@@ -142,7 +154,7 @@ class VLine(Drawable):
             bar.attrib['width'] = fmt(self.lw)
             bar.attrib['height'] = fmt(self.height)
             if 'mathcolor' in self.style:
-                bar.attrib['fill'] = self.style['mathcolor']  # type: ignore
+                bar.attrib['fill'] = str(self.style['mathcolor'])
         return x, y
 
 
@@ -151,6 +163,7 @@ class Box(Drawable):
     def __init__(self, width: float, height: float, lw: float,
                  cornerradius: float=None,
                  style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
+        super().__init__()
         self.width = width
         self.height = height
         self.cornerradius = cornerradius
@@ -174,8 +187,8 @@ class Box(Drawable):
             bar.set('width', fmt(self.width))
             bar.set('height', fmt(self.height))
             bar.set('stroke-width', fmt(self.lw))
-            bar.set('stroke', self.style.get('mathcolor', 'black'))  # type: ignore
-            bar.set('fill', self.style.get('mathbackground', 'none'))  # type: ignore
+            bar.set('stroke', str(self.style.get('mathcolor', 'black')))
+            bar.set('fill', str(self.style.get('mathbackground', 'none')))
             if self.cornerradius:
                 bar.set('rx', fmt(self.cornerradius))
 
@@ -187,6 +200,7 @@ class Diagonal(Drawable):
     def __init__(self, width: float, height: float, lw: float,
                  arrow: bool=False,
                  style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
+        super().__init__()
         self.width = width
         self.height = height
         self.lw = lw
@@ -227,7 +241,7 @@ class Diagonal(Drawable):
 
             bar.set('d', f'M {fmt(x)} {fmt(y-self.height)} L {fmt(x+self.width)} {fmt(y)}')
             bar.set('stroke-width', fmt(self.lw))
-            bar.set('stroke', self.style.get('mathcolor', 'black'))  # type: ignore
+            bar.set('stroke', str(self.style.get('mathcolor', 'black')))
             if self.arrow:
                 bar.set('marker-end', 'url(#arrowhead)')
 
@@ -238,6 +252,7 @@ class Ellipse(Drawable):
     ''' Ellipse '''
     def __init__(self, width: float, height: float, lw: float,
                  style: MutableMapping[str, Union[str, bool]]=None, **kwargs):
+        super().__init__()
         self.width = width
         self.height = height
         self.lw = lw
@@ -260,6 +275,6 @@ class Ellipse(Drawable):
             bar.set('rx', fmt(self.width/2))
             bar.set('ry', fmt(self.height/2))
             bar.set('stroke-width', fmt(self.lw))
-            bar.set('stroke', self.style.get('mathcolor', 'black'))  # type: ignore
-            bar.set('fill', self.style.get('mathbackground', 'none'))  # type: ignore
+            bar.set('stroke', str(self.style.get('mathcolor', 'black')))
+            bar.set('fill', str(self.style.get('mathbackground', 'none')))
         return x+self.width, y

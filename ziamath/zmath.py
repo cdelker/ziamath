@@ -80,11 +80,12 @@ class Math:
                  size: float=24, font: str=None):
         self.mathml = mathml
         self.size = size
+        self.font: MathFont
 
         if font is None:
-            self.font = loadedfonts.get('default')
+            self.font = loadedfonts.get('default', MathFont(fontname))
         elif font in loadedfonts:
-            self.font = loadedfonts.get(font)
+            self.font = loadedfonts.get(font, MathFont(fontname))
         else:
             self.font = MathFont(font, size)
             loadedfonts[font] = self.font
@@ -201,7 +202,7 @@ class Math:
         width, height = self.getsize()
         yshift = {'top': self.node.bbox.ymax,
                   'center': height/2 + self.node.bbox.ymin,
-                  'axis': self.font.math.consts.axisHeight * self.node.emscale,  # type: ignore
+                  'axis': self.node.units_to_points(self.font.math.consts.axisHeight),
                   'bottom': self.node.bbox.ymin}.get(valign, 0)
         xshift = {'center': -width/2,
                   'right': -width}.get(halign, 0)
@@ -515,4 +516,4 @@ class Text:
 # Cache the loaded fonts to prevent reloading all the time
 with pkg_resources.path('ziamath.fonts', 'STIXTwoMath-Regular.ttf') as p:
     fontname = p
-loadedfonts: Dict[str, Union[zf.Font, MathFont]] = {'default': MathFont(fontname)}
+loadedfonts: Dict[str, MathFont] = {'default': MathFont(fontname)}

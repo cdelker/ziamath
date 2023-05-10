@@ -155,6 +155,17 @@ def subglyph(glyph: SimpleGlyph, font: MathFont) -> SimpleGlyph:
     return glyph
 
 
+def node_is_singlechar(node: Mnode) -> bool:
+    ''' Node is a single character '''
+    if isinstance(node, Mrow):
+        if len(node.element) > 1:
+            return False
+        else:
+            return node_is_singlechar(node.nodes[0])
+        
+    return hasattr(node, 'string') and len(node.string) == 1
+    
+    
 class Mnode(drawable.Drawable):
     ''' Math Drawing Node
 
@@ -302,6 +313,10 @@ class Midentifier(Mnode):
 
             self.nodes.append(
                 drawable.Glyph(glyph, char, self.glyphsize, self.style, **kwargs))
+            
+            if self.nodes[-1].bbox.xmin < 0:
+                x -= self.nodes[-1].bbox.xmin
+            
             self.nodexy.append((x, 0))
             x += self.units_to_points(glyph.advance())
             ymin = min(ymin, self.units_to_points(glyph.path.bbox.ymin))
@@ -746,7 +761,7 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont) -> tuple[float,
                 if lastg.index >= 0 and font.math.kernInfo:  # assembled glyphs have idx<0
                     kern, shiftup = font.math.kernsuper(lastg, firstg)
                     x += base.units_to_points(kern)
-                else:
+                elif not isinstance(base, Midentifier):
                     shiftup = lastg.bbox.ymax - \
                         base.points_to_units((superscript.bbox.ymax - superscript.bbox.ymin)/2)
 
@@ -755,7 +770,6 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont) -> tuple[float,
                 x += base.ems_to_pts(space_ems('verythinmathspace'))
         supy = base.units_to_points(-shiftup)
         xadvance = x + superscript.bbox.xmax
-        xadvance += base.ems_to_pts(space_ems('verythinmathspace'))
     return x, supy, xadvance
 
 
@@ -775,21 +789,20 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont) -> tuple[float, flo
 
         if lastg:
             italicx = font.math.italicsCorrection.getvalue(lastg.index)
-            if italicx and base.lastchar() in operators.integrals:
+            if italicx:# and base.lastchar() in operators.integrals:
                 x -= base.units_to_points(italicx)  # Shift back on integrals
             firstg = subscript.firstglyph()
             if firstg:
                 if lastg.index > 0 and font.math.kernInfo:
                     kern, shiftdn = font.math.kernsub(lastg, firstg)
                     x += base.units_to_points(kern)
-                else:
+                elif not isinstance(base, Midentifier):
                     shiftdn = -lastg.bbox.ymin + \
                         base.points_to_units((subscript.bbox.ymax - subscript.bbox.ymin)/2)
             else:
                 shiftdn = -lastg.bbox.ymin
         suby = base.units_to_points(shiftdn)
         xadvance = x + subscript.bbox.xmax
-        xadvance += base.ems_to_pts(space_ems('verythinmathspace'))
     return x, suby, xadvance
 
 
@@ -976,16 +989,17 @@ def place_over(base: Mnode,
     '''
     # Center the node by default
     x = ((base.bbox.xmax - base.bbox.xmin) - (over.bbox.xmax-over.bbox.xmin)) / 2 - over.bbox.xmin
-    lastg = base.lastglyph()
-    if lastg and not isinstance(over, drawable.HLine):
+
+    if node_is_singlechar(base) and not isinstance(over, drawable.HLine):
+        # Italic adjustment and font-specific accent attachment,
+        # if base is a single glyph
+        lastg = base.lastglyph()
         italicx = font.math.italicsCorrection.getvalue(lastg.index)
         if italicx:
             x += base.units_to_points(italicx)
 
-    # Use font-specific accent attachment if defined
-    if len(base.nodes) == 1 and isinstance(base.nodes[0], drawable.Glyph):
-        gid = base.nodes[0].glyph.index
-        basex = font.math.topattachment(gid)
+        # Use font-specific accent attachment if defined
+        basex = font.math.topattachment(lastg.index)
         if basex is not None:
             x = base.units_to_points(basex) - (over.bbox.xmax-over.bbox.xmin)/2
 
@@ -1038,6 +1052,9 @@ class Mover(Mnode):
                 kwargs['width'],
                 self.units_to_points(self.font.math.consts.overbarRuleThickness))
         else:
+            if self.element[1].attrib.get('stretchy') == 'true':
+                self.element[1].attrib['lspace'] = '0'
+                self.element[1].attrib['rspace'] = '0'
             self.over = makenode(self.element[1], parent=self, scriptlevel=overscriptlevel, **kwargs)
 
         self._setup(**kwargs)
@@ -1054,12 +1071,21 @@ class Mover(Mnode):
         self.nodes.append(self.over)
         self.nodexy.append((overx, overy))
         xmin = min(overx, self.base.bbox.xmin)
-        xmax = max(overx+self.over.bbox.xmax, self.base.bbox.xmax)
+        xmax = basex + self.base.bbox.xmax
+        if hasattr(self.over, 'element') and (len(self.over.element) or len(self.over.element.text) > 1):
+            # Keep bbox within original glyph for things like accents
+            # to prevent sub/superscripts from moving too far right
+            xmax = max(overx+self.over.bbox.xmax, basex+self.base.bbox.xmax)
+
         ymin = self.base.bbox.ymin
         ymax = -overy + self.over.bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
 
+    def lastglyph(self) -> Optional[SimpleGlyph]:
+        ''' Get the last glyph in this node '''
+        return self.base.lastglyph()
 
+        
 def place_under(base: Mnode,
                 under: Union[Mnode, drawable.HLine],
                 font: MathFont) -> tuple[float, float]:
@@ -1073,8 +1099,8 @@ def place_under(base: Mnode,
             x, y: position for under node
     '''
     x = ((base.bbox.xmax - base.bbox.xmin) - (under.bbox.xmax-under.bbox.xmin)) / 2 - under.bbox.xmin
-    lastg = base.lastglyph()
-    if lastg and not isinstance(under, drawable.HLine):
+    if node_is_singlechar(base) and not isinstance(under, drawable.HLine):
+        lastg = base.lastglyph()
         italicx = font.math.italicsCorrection.getvalue(lastg.index)
         if italicx:
             x -= base.units_to_points(italicx)
@@ -1103,6 +1129,9 @@ class Munder(Mnode):
                 kwargs['width'],
                 self.units_to_points(self.font.math.consts.underbarRuleThickness))
         else:
+            if self.element[1].attrib.get('stretchy') == 'true':
+                self.element[1].attrib['lspace'] = '0'
+                self.element[1].attrib['rspace'] = '0'
             self.under = makenode(self.element[1], parent=self, scriptlevel=self.scriptlevel+1, **kwargs)
         self._setup(**kwargs)
 
@@ -1123,6 +1152,10 @@ class Munder(Mnode):
         ymin = -undery + self.under.bbox.ymin
         ymax = self.base.bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
+
+    def lastglyph(self) -> Optional[SimpleGlyph]:
+        ''' Get the last glyph in this node '''
+        return self.base.lastglyph()
 
 
 class Munderover(Mnode):
@@ -1149,8 +1182,9 @@ class Munderover(Mnode):
             overscriptlevel = self.scriptlevel
         else:
             kwargs['sup'] = True
-            self.element[2].attrib['lspace'] = '0'
-            self.element[2].attrib['rspace'] = '0'
+            if self.element[2].attrib.get('stretchy') == 'true':
+                self.element[2].attrib['lspace'] = '0'
+                self.element[2].attrib['rspace'] = '0'
             overscriptlevel = self.scriptlevel + 1
 
         self.over = makenode(self.element[2], parent=self, scriptlevel=overscriptlevel, **kwargs)
@@ -1180,6 +1214,10 @@ class Munderover(Mnode):
         ymin = -undery + self.under.bbox.ymin
         ymax = -overy + self.over.bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
+
+    def lastglyph(self) -> Optional[SimpleGlyph]:
+        ''' Get the last glyph in this node '''
+        return self.base.lastglyph()
 
 
 class Mfrac(Mnode):

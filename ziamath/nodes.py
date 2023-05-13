@@ -617,7 +617,7 @@ class Mfenced(Mnode):
                 if isinstance(mrow.nodes[-1], (Msub, Msup, Msubsup)):
                     x -= self.units_to_points(self.font.math.consts.spaceAfterScript)
                 elif isinstance(mrow.nodes[-1], Mfrac):
-                    x -= self.ems_to_pts(space_ems('thinmathspace'))
+                    x -= self.ems_to_pts(space_ems('verythinmathspace'))
             except (IndexError, AttributeError):
                 pass
 

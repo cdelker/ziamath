@@ -83,9 +83,9 @@ class Math:
         self.font: MathFont
 
         if font is None:
-            self.font = loadedfonts.get('default', MathFont(fontname))
+            self.font = loadedfonts['default']
         elif font in loadedfonts:
-            self.font = loadedfonts.get(font, MathFont(fontname))
+            self.font = loadedfonts[font]
         else:
             self.font = MathFont(font, size)
             loadedfonts[font] = self.font

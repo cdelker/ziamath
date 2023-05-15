@@ -3,21 +3,21 @@
 from __future__ import annotations
 from typing import Union, Literal, Tuple, Optional, Dict
 import re
+from collections import ChainMap
 from math import inf, cos, sin, radians
 from itertools import zip_longest
 import importlib.resources as pkg_resources
 import xml.etree.ElementTree as ET
 
-import ziafont as zf
-from ziafont.glyph import fmt
-
-from .mathfont import MathFont
-from .nodes import makenode, getstyle
-from .escapes import unescape
-from .config import config
-
 from latex2mathml.converter import convert  # type: ignore
 import latex2mathml.commands  # type: ignore
+
+import ziafont as zf
+from ziafont.glyph import fmt
+from .mathfont import MathFont
+from .nodes import makenode, parse_style
+from .escapes import unescape
+from .config import config
 
 
 Halign = Literal['left', 'center', 'right']
@@ -65,6 +65,24 @@ def tex2mml(tex: str, inline: bool = False) -> str:
     return mml
 
 
+def apply_mstyle(element: ET.Element) -> ET.Element:
+    ''' Take attributes defined in <mstyle> elements and add them
+        to all the child elements, removing the original <mstyle>
+    '''
+    def flatten_attrib(element: ET.Element) -> None:
+        for child in element:
+            if element.tag == 'mstyle':
+                child.attrib = dict(ChainMap(child.attrib, element.attrib))
+            flatten_attrib(child)
+
+    flatten_attrib(element)
+
+    elmstr = ET.tostring(element).decode('utf-8')
+    elmstr = re.sub(r'<mstyle.+?>', '', elmstr)
+    elmstr = re.sub(r'</mstyle>', '', elmstr)
+    return ET.fromstring(elmstr)
+
+
 class Math:
     ''' MathML Element Renderer
 
@@ -77,8 +95,7 @@ class Math:
     # by the <mathcolor> tags in MML. Since Math is a single line,
     # alignment is done at the drawon function rather than the class level.
     def __init__(self, mathml: Union[str, ET.Element],
-                 size: float=24, font: str=None):
-        self.mathml = mathml
+                 size: float = 24, font: str = None):
         self.size = size
         self.font: MathFont
 
@@ -94,14 +111,16 @@ class Math:
             mathml = unescape(mathml)
             mathml = ET.fromstring(mathml)
         mathml = denamespace(mathml)
+        mathml = apply_mstyle(mathml)
 
-        self.style = getstyle(mathml)
+        self.mathml = mathml
+        self.style = parse_style(mathml)
         self.element = mathml
         self.node = makenode(mathml, parent=self)  # type: ignore
 
     @classmethod
-    def fromlatex(cls, latex: str, size: float=24, mathstyle: str=None,
-                  font: str=None, color: str=None, inline: bool = False):
+    def fromlatex(cls, latex: str, size: float = 24, mathstyle: str = None,
+                  font: str = None, color: str = None, inline: bool = False):
         ''' Create Math Renderer from a single LaTeX expression. Requires
             latex2mathml Python package.
 
@@ -125,9 +144,9 @@ class Math:
         return cls(mathml, size, font)
 
     @classmethod
-    def fromlatextext(cls, latex: str, size: float=24, mathstyle: str=None,
-                      textstyle: str=None, font: str=None,
-                      color: str=None):
+    def fromlatextext(cls, latex: str, size: float = 24, mathstyle: str = None,
+                      textstyle: str = None, font: str = None,
+                      color: str = None):
         ''' Create Math Renderer from a sentence containing zero or more LaTeX
             expressions delimited by $..$, resulting in single MathML element.
             Requires latex2mathml Python package.
@@ -182,8 +201,8 @@ class Math:
         svg.attrib['viewBox'] = f'{fmt(bbox.xmin-1)} {fmt(-bbox.ymax-1)} {fmt(width)} {fmt(height)}'
         return svg
 
-    def drawon(self, svg: ET.Element, x: float=0, y: float=0,
-               halign: Halign='left', valign: Valign='base') -> ET.Element:
+    def drawon(self, svg: ET.Element, x: float = 0, y: float = 0,
+               halign: Halign = 'left', valign: Valign = 'base') -> ET.Element:
         ''' Draw the math expression on an existing SVG
 
             Args:
@@ -226,7 +245,7 @@ class Math:
 
     @classmethod
     def mathml2svg(cls, mathml: Union[str, ET.Element],
-                   size: float=24, font: str=None):
+                   size: float = 24, font: str = None):
         ''' Shortcut to just return SVG string directly '''
         return cls(mathml, size=size, font=font).svg()
 
@@ -251,8 +270,8 @@ class Latex(Math):
             color: Color parameter, equivalent to "mathcolor" attribute
             inline: Use inline math mode (default is block mode)
         '''
-    def __init__(self, latex: str, size: float=24, mathstyle: str=None,
-                 font: str=None, color: str=None, inline: bool = False):
+    def __init__(self, latex: str, size: float = 24, mathstyle: str = None,
+                 font: str = None, color: str = None, inline: bool = False):
         self.latex = latex
 
         mathml: Union[str, ET.Element]
@@ -288,11 +307,11 @@ class Text:
                 https://matplotlib.org/stable/gallery/text_labels_and_annotations/demo_text_rotation_mode.html
 
     '''
-    def __init__(self, s, textfont: str=None, mathfont: str=None,
-                 mathstyle: str=None, size: float=24, linespacing: float=1,
-                 color: str=None,
-                 halign: str='left', valign: str='base',
-                 rotation: float=0, rotation_mode: str='anchor'):
+    def __init__(self, s, textfont: str = None, mathfont: str = None,
+                 mathstyle: str = None, size: float = 24, linespacing: float = 1,
+                 color: str = None,
+                 halign: str = 'left', valign: str = 'base',
+                 rotation: float = 0, rotation_mode: str = 'anchor'):
         self.str = s
         self.mathfont = mathfont
         self.mathstyle = mathstyle
@@ -341,8 +360,8 @@ class Text:
         with open(fname, 'w') as f:
             f.write(self.svg())
 
-    def drawon(self, svg: ET.Element, x: float=0, y: float=0,
-               halign: str=None, valign: str=None) -> ET.Element:
+    def drawon(self, svg: ET.Element, x: float = 0, y: float = 0,
+               halign: str = None, valign: str = None) -> ET.Element:
         ''' Draw text on existing SVG element
 
             Args:
@@ -355,8 +374,8 @@ class Text:
         svgelm, _ = self._drawon(svg, x, y, halign, valign)
         return svgelm
 
-    def _drawon(self, svg: ET.Element, x: float=0, y: float=0,
-                halign: str=None, valign: str=None) -> Tuple[ET.Element, Tuple[float, float, float, float]]:
+    def _drawon(self, svg: ET.Element, x: float = 0, y: float = 0,
+                halign: str = None, valign: str = None) -> Tuple[ET.Element, Tuple[float, float, float, float]]:
         ''' Draw text on existing SVG element
 
             Args:

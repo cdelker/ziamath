@@ -200,15 +200,24 @@ class Mnode(drawable.Drawable):
 
     def firstglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the first glyph in this node '''
-        return None
+        try:
+            return self.nodes[0].firstglyph()
+        except IndexError:
+            return None
 
     def lastglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the last glyph in this node '''
-        return None
+        try:
+            return self.nodes[-1].lastglyph()
+        except IndexError:
+            return None
 
     def lastchar(self) -> Optional[str]:
         ''' Get the last character in this node '''
-        return None
+        try:
+            return self.nodes[-1].lastchar()
+        except IndexError:
+            return None
 
     def draw(self, x: float, y: float, svg: ET.Element) -> tuple[float, float]:
         ''' Draw the node on the SVG
@@ -245,24 +254,17 @@ class Mnode(drawable.Drawable):
         return x+xi, y+yi
 
 
-class Midentifier(Mnode):
-    ''' Midentifier node <mi> '''
+class Mnumber(Mnode):
+    ''' Mnumber node <mn> '''
     def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
         super().__init__(element, parent, **kwargs)
-        text = elementtext(self.element)
-
-        if len(text) == 1 and not self.style.mathvariant.italic and not self.style.mathvariant.normal:
-            # Identifiers are italic unless longer than one character
-            self.style.mathvariant.italic = True
-
-        if len(text) > 1:
-            # Function identifiers (sin, etc) get a bit of space before/after
-            text = '\U00002009' + text
-            if not isinstance(parent, (Msub, Msup, Msubsup)):
-                text = text + '\U00002009'
-
-        self.string = styledstr(text, self.style)  # convert to italic/bold/etc unicode variants
+        self.string = self._getstring()
         self._setup(**kwargs)
+
+    def _getstring(self) -> str:
+        ''' Get the styled string for this node '''
+        text = elementtext(self.element)
+        return styledstr(text, self.style)
 
     def _setup(self, **kwargs) -> None:
         ymin = 9999.
@@ -298,45 +300,35 @@ class Midentifier(Mnode):
             xmax = x
         self.bbox = BBox(xmin, xmax, ymin, ymax)
 
-    def firstglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the first glyph in this node '''
-        try:
-            return self.nodes[0].firstglyph()
-        except IndexError:
-            return None
 
-    def lastglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the last glyph in this node '''
-        try:
-            return self.nodes[-1].lastglyph()
-        except IndexError:
-            return None
-
-    def lastchar(self) -> Optional[str]:
-        ''' Get the last character in this node '''
-        try:
-            return self.nodes[-1].lastchar()
-        except IndexError:
-            return None
-
-
-class Mnumber(Midentifier):
+class Midentifier(Mnumber):
     ''' Number node <mn> '''
-    def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
-        Mnode.__init__(self, element, parent, **kwargs)
-        self.string = styledstr(elementtext(self.element), self.style)
-        self._setup(**kwargs)
+    def _getstring(self) -> str:
+        ''' Get the styled string for the identifier. Applies
+            italics if single-char identifier, and extra whitespace
+            if function (eg 'sin')
+        '''
+        text = elementtext(self.element)
+
+        if len(text) == 1 and not self.style.mathvariant.italic and not self.style.mathvariant.normal:
+            self.style.mathvariant.italic = True
+
+        if len(text) > 1:
+            text = '\U00002009' + text
+            if not isinstance(self.parent, (Msub, Msup, Msubsup)):
+                text = text + '\U00002009'
+
+        return styledstr(text, self.style)
 
 
-class Mtext(Midentifier):
+class Mtext(Mnumber):
     ''' Text Node <mtext> '''
-    def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
-        Mnode.__init__(self, element, parent, **kwargs)
-        # Don't use elementtext since it strips whitespace
-        self.string = ''
+    def _getstring(self) -> str:
+        string = ''
         if self.element.text:
-            self.string = styledstr(self.element.text, self.style)
-        self._setup(**kwargs)
+            # Don't use elementtext() since it strips whitespace
+            string = styledstr(self.element.text, self.style)
+        return string
 
 
 def infer_opform(i: int, child: ET.Element, mrow: Mnode) -> None:
@@ -474,27 +466,13 @@ class Mrow(Mnode):
             return None
         return glyph
 
-    def lastglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the last glyph in this node '''
-        try:
-            return self.nodes[-1].lastglyph()
-        except IndexError:
-            return None
-
-    def lastchar(self) -> Optional[str]:
-        ''' Get the last character in this node '''
-        try:
-            return self.nodes[-1].lastchar()
-        except IndexError:
-            return None
-
 
 class Mfenced(Mnode):
     ''' Mfence element. Puts contents in parenthesis or other fence glyphs, with
         optional separators between components.
     '''
     def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
-        Mnode.__init__(self, element, parent, **kwargs)
+        super().__init__(element, parent, **kwargs)
         self.openchr = element.get('open', '(')
         self.closechr = element.get('close', ')')
         self.separators = element.get('separators', ',').replace(' ', '')
@@ -596,32 +574,11 @@ class Mfenced(Mnode):
 
         self.bbox = BBox(0, x, min(yglyphmin, fencebbox.ymin), max(yglyphmax, fencebbox.ymax))
 
-    def firstglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the first glyph in this node '''
-        try:
-            return self.nodes[0].firstglyph()
-        except IndexError:
-            return None
 
-    def lastglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the last glyph in this node '''
-        try:
-            return self.nodes[-1].lastglyph()
-        except IndexError:
-            return None
-
-    def lastchar(self) -> Optional[str]:
-        ''' Get the last character in this node '''
-        try:
-            return self.nodes[-1].lastchar()
-        except IndexError:
-            return None
-
-
-class Moperator(Mnumber):
+class Moperator(Mnode):
     ''' Operator math element '''
     def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
-        Mnode.__init__(self, element, parent, **kwargs)
+        super().__init__(element, parent, **kwargs)
         self.string = styledstr(elementtext(self.element), self.style)
         self.form = element.get('form', 'infix')
 
@@ -752,7 +709,7 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont) -> tuple[float, flo
 
         if lastg:
             italicx = font.math.italicsCorrection.getvalue(lastg.index)
-            if italicx:
+            if italicx and base.lastchar() in operators.integrals:
                 x -= base.units_to_points(italicx)  # Shift back on integrals
             firstg = subscript.firstglyph()
             if firstg:
@@ -800,27 +757,6 @@ class Msup(Mnode):
             ymax = -supy + self.superscript.bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
 
-    def firstglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the first glyph in this node '''
-        try:
-            return self.nodes[0].firstglyph()
-        except IndexError:
-            return None
-
-    def lastglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the last glyph in this node '''
-        try:
-            return self.nodes[-1].lastglyph()
-        except IndexError:
-            return None
-
-    def lastchar(self) -> Optional[str]:
-        ''' Get the last character in this node '''
-        try:
-            return self.nodes[-1].lastchar()
-        except IndexError:
-            return None
-
 
 class Msub(Mnode):
     ''' Subscript Node '''
@@ -847,27 +783,6 @@ class Msub(Mnode):
         ymin = min(self.base.bbox.ymin, -suby+self.subscript.bbox.ymin)
         ymax = max(self.base.bbox.ymax, -suby+self.subscript.bbox.ymax)
         self.bbox = BBox(xmin, xmax, ymin, ymax)
-
-    def firstglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the first glyph in this node '''
-        try:
-            return self.nodes[0].firstglyph()
-        except IndexError:
-            return None
-
-    def lastglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the last glyph in this node '''
-        try:
-            return self.nodes[-1].lastglyph()
-        except IndexError:
-            return None
-
-    def lastchar(self) -> Optional[str]:
-        ''' Get the last character in this node '''
-        try:
-            return self.nodes[-1].lastchar()
-        except IndexError:
-            return None
 
 
 class Msubsup(Mnode):
@@ -916,27 +831,6 @@ class Msubsup(Mnode):
             ymax = -supy + self.superscript.bbox.ymax
 
         self.bbox = BBox(xmin, xmax, ymin, ymax)
-
-    def firstglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the first glyph in this node '''
-        try:
-            return self.nodes[0].firstglyph()
-        except IndexError:
-            return None
-
-    def lastglyph(self) -> Optional[SimpleGlyph]:
-        ''' Get the last glyph in this node '''
-        try:
-            return self.nodes[-1].lastglyph()
-        except IndexError:
-            return None
-
-    def lastchar(self) -> Optional[str]:
-        ''' Get the last character in this node '''
-        try:
-            return self.nodes[-1].lastchar()
-        except IndexError:
-            return None
 
 
 def place_over(base: Mnode,
@@ -1261,12 +1155,16 @@ class Mroot(Mnode):
     ''' Nth root '''
     def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
         super().__init__(element, parent, **kwargs)
-        self.base = makenode(element[0], parent=self, **kwargs)
-        self.degree: Optional[Mnode]
-        self.increase_child_scriptlevel(self.element[1])
-        self.degree = makenode(element[1], parent=self, **kwargs)
+        self.base, self.degree = self._getbase(**kwargs)
         self._setup(**kwargs)
 
+    def _getbase(self, **kwargs) -> tuple[Mnode, Optional[Mnode]]:
+        ''' Get base and optional degree nodes for the root '''
+        base = makenode(self.element[0], parent=self, **kwargs)
+        self.increase_child_scriptlevel(self.element[1])
+        degree = makenode(self.element[1], parent=self, **kwargs)
+        return base, degree
+        
     def _setup(self, **kwargs) -> None:
         height = self.base.bbox.ymax - self.base.bbox.ymin
 
@@ -1327,16 +1225,15 @@ class Mroot(Mnode):
 
 class Msqrt(Mroot):
     ''' Square root '''
-    def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
-        Mnode.__init__(self, element, parent, **kwargs)
+    def _getbase(self, **kwargs) -> tuple[Mnode, Optional[Mnode]]:
+        ''' Get base and optional degree nodes for the root '''
         if len(self.element) > 1:
             row = ET.Element('mrow')
             row.extend(list(self.element))
-            self.base = makenode(row, parent=self, **kwargs)
+            base = makenode(row, parent=self, **kwargs)
         else:
-            self.base = makenode(self.element[0], parent=self, **kwargs)
-        self.degree = None
-        self._setup(**kwargs)
+            base = makenode(self.element[0], parent=self, **kwargs)
+        return base, None
 
 
 class Menclose(Mnode):

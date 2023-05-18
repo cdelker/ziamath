@@ -15,7 +15,8 @@ import latex2mathml.commands  # type: ignore
 import ziafont as zf
 from ziafont.glyph import fmt
 from .mathfont import MathFont
-from .nodes import makenode, parse_style
+from .nodes import Mnode
+from .styles import parse_style
 from .escapes import unescape
 from .config import config
 
@@ -50,7 +51,8 @@ def tex2mml(tex: str, inline: bool = False) -> str:
         some issues with generated MathML that ziamath doesn't support yet.
     '''
     tex = re.sub(r'\\binom{(.+?)}{(.+?)}', r'\\left( \1 \\atop \2 \\right)', tex)
-    tex = re.sub(r'\\mathrm{(.+?)}', r'\\mathrm {\1}', tex)  # latex2mathml bug requires space after mathrm
+    # latex2mathml bug requires space after mathrm
+    tex = re.sub(r'\\mathrm{(.+?)}', r'\\mathrm {\1}', tex)
     tex = tex.replace('||', '‖')
     if config.decimal_separator == ',':
         # Replace , with {,} to remove right space
@@ -116,7 +118,7 @@ class Math:
         self.mathml = mathml
         self.style = parse_style(mathml)
         self.element = mathml
-        self.node = makenode(mathml, parent=self)  # type: ignore
+        self.node = Mnode.fromelement(mathml, parent=self)  # type: ignore
 
     @classmethod
     def fromlatex(cls, latex: str, size: float = 24, mathstyle: str = None,
@@ -177,8 +179,9 @@ class Math:
                 child = mathel[0]
                 if mathstyle:
                     child.attrib['mathvariant'] = mathstyle
-                if mathel.attrib.get('display'):
-                    child.attrib['display'] = mathel.attrib['display']
+                if (dstyle := mathel.attrib.get('display')):
+                    child.attrib['displaystyle'] = {'inline': 'false',
+                                                    'block': 'true'}.get(dstyle, 'true')
                 mml.append(child)
         if color:
             mml.attrib['mathcolor'] = color

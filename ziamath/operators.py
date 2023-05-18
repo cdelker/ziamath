@@ -356,7 +356,6 @@ fences = [op[0] for op, params in operators.items() if params.get('fence') == 't
 names = set(op[0] for op in operators.keys())
 
 
-
 def get_params(name: str, form: str) -> dict[str, str]:
     ''' Get parameters for the given operator name and form '''
     if form == 'none':

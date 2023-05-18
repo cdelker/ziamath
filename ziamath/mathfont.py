@@ -16,7 +16,7 @@ class MathFont(Font):
             fname: File name of font
             basesize: Default font size
     '''
-    def __init__(self, fname: Union[str, Path], basesize: float=24):
+    def __init__(self, fname: Union[str, Path], basesize: float = 24):
         super().__init__(fname)
         self.basesize = basesize
         if 'MATH' not in self.tables:

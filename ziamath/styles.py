@@ -47,7 +47,7 @@ def parse_variant(variant: str, parent_variant: MathVariant) -> MathVariant:
 
     return MathVariant(style=style, italic=italic, bold=bold, normal=normal)
 
-    
+
 def parse_displaystyle(params: MutableMapping[str, Any]) -> bool:
     ''' Extract displaystyle mode from MathML attributes '''
     dstyle = True

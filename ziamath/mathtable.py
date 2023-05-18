@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from .mathfont import MathFont
 
 
-GlyphType = Union[SimpleGlyph, CompoundGlyph]    
+GlyphType = Union[SimpleGlyph, CompoundGlyph]
 
 MathKernInfoRecord = namedtuple(
     'MathKernInfoRecord', ['topright', 'topleft', 'bottomright', 'bottomleft'])
@@ -204,14 +204,17 @@ class MathTable:
         accents = []
         for i in range(cnt):
             accents.append(read_valuerecord(self.fontfile))
-        accentcoverage = Coverage(self.ofst+ofst+topaccent+covofst, self.fontfile, nulltable=(topaccent==0))
+        accentcoverage = Coverage(
+            self.ofst+ofst+topaccent+covofst, self.fontfile, nulltable=(topaccent==0))
 
         # Extended Shape Coverage
-        extshapes = Coverage(self.ofst+ofst+extendshape, self.fontfile, nulltable=(extendshape==0))
+        extshapes = Coverage(
+            self.ofst+ofst+extendshape, self.fontfile, nulltable=(extendshape==0))
 
         # Kern Info
         if kernofst:
-            kerninfo = MathKernInfoTable(self.ofst+ofst+kernofst, self.fontfile, nulltable=(kernofst==0))
+            kerninfo = MathKernInfoTable(
+                self.ofst+ofst+kernofst, self.fontfile, nulltable=(kernofst==0))
         else:
             kerninfo = None
 
@@ -232,16 +235,20 @@ class MathTable:
         vertConstruction = []
         for i in range(vertcount):
             vofst = self.fontfile.readuint16()
-            vertConstruction.append(MathConstructionTable(self.ofst+ofst+vofst, self.font, vert=True))
+            vertConstruction.append(
+                MathConstructionTable(self.ofst+ofst+vofst, self.font, vert=True))
         horzConstruction = []
         for i in range(horzcount):
             hofst = self.fontfile.readuint16()
-            horzConstruction.append(MathConstructionTable(self.ofst+ofst+hofst, self.font, vert=False))
+            horzConstruction.append(
+                MathConstructionTable(self.ofst+ofst+hofst, self.font, vert=False))
 
         vertcoverage = Coverage(self.ofst + ofst + vertcovofst, self.fontfile)
         horzcoverage = Coverage(self.ofst + ofst + horzcovofst, self.fontfile)
-        self._variantsvert = MathVariants(vertcoverage, vertConstruction, minoverlap, self.font, vert=True)
-        self._variantshorz = MathVariants(horzcoverage, horzConstruction, minoverlap, self.font, vert=False)
+        self._variantsvert = MathVariants(
+            vertcoverage, vertConstruction, minoverlap, self.font, vert=True)
+        self._variantshorz = MathVariants(
+            horzcoverage, horzConstruction, minoverlap, self.font, vert=False)
 
     def kernsuper(self, glyph1: GlyphType, glyph2: GlyphType) -> tuple[int, int]:
         ''' Calculate superscript kerning between the two glyphs
@@ -292,7 +299,7 @@ class MathTable:
         '''
         if self.kernInfo is None:
             return 0, max(self.consts.subscriptTopMax,
-                           self.consts.subscriptShiftDown)
+                          self.consts.subscriptShiftDown)
 
         glyph1_kern = self.kernInfo.glyph(glyph1.index)
         glyph2_kern = self.kernInfo.glyph(glyph2.index)
@@ -310,7 +317,7 @@ class MathTable:
             kern2 += glyph2_kern.topleft.getkern(height2)
         return min(kern1, kern2), shiftdn
 
-    def variant(self, glyphid: int, height: float, vert: bool=True) -> GlyphType:
+    def variant(self, glyphid: int, height: float, vert: bool = True) -> GlyphType:
         ''' Get a height variant for the glyph
 
             glyphid: Glyph index
@@ -323,7 +330,8 @@ class MathTable:
             variant = self._variantshorz.getvariant(glyphid, height)
         return variant
 
-    def variant_minmax(self, glyphid: int, ymin: float, ymax: float, vert: bool=True) -> GlyphType:
+    def variant_minmax(self, glyphid: int, ymin: float, ymax: float,
+                       vert: bool = True) -> GlyphType:
         ''' Get a height variant for the glyph that covers or exceeds the range (ymin, ymax)
 
             Args:
@@ -355,7 +363,7 @@ class MathConstructionTable:
             font: Font
             vert: Vertical or horizontal variant
     '''
-    def __init__(self, ofst: int, font: 'MathFont', vert: bool=True):
+    def __init__(self, ofst: int, font: 'MathFont', vert: bool = True):
         fileptr = font.fontfile.tell()
         font.fontfile.seek(ofst)
         assemblyofst = font.fontfile.readuint16()
@@ -413,13 +421,14 @@ class AssembledGlyph(SimpleGlyph):
         ''' X-advance '''
         return self.bbox.xmax
 
-    def svgpath(self, x0: float = 0, y0: float = 0, scale_factor: float = 1) -> Optional[ET.Element]:
+    def svgpath(self, x0: float = 0, y0: float = 0,
+                scale_factor: float = 1) -> Optional[ET.Element]:
         ''' Get svg <path> element for glyph, normalized to 12-point font '''
         element = ET.Element('g')
 
         for glyph, ofst in zip(self.glyphs, self.offsets):
             path = ''
-            for i, operator in enumerate(glyph.operators):
+            for operator in glyph.operators:
                 if self.vert:
                     operator = operator.xform(1, 0, 0, 1, 0, ofst, 1, 1)
                 else:
@@ -445,7 +454,7 @@ class MathAssembly:
             font: Font
             vert: Vertical or horizontal variant
     '''
-    def __init__(self, ofst: int, font: 'MathFont', vert: bool=True):
+    def __init__(self, ofst: int, font: 'MathFont', vert: bool = True):
         self.vert = vert
         self.font = font
         font.fontfile.seek(ofst)
@@ -612,7 +621,8 @@ class MathKernTable:
 
 class ZeroKern:
     ''' A kerning table with 0 kerning '''
-    def getkern(self, height):
+    def getkern(self, height: float) -> int:
+        ''' Get kerning for this height '''
         return 0
 
 

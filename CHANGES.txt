@@ -1,9 +1,13 @@
 0.8 - in development
 
-- Implement display/block mode versus inline/text mode.
+- Implement parameter for display/block mode versus inline/text mode
 - Added `Latex` class for creating expressions from Latex directly
 - Added `declareoperator` method for adding operator names
-- Various spacing and alignment adjustmnets
+- Added `decimal_separator` config option
+- Implement `\middle` operator
+- Implement negative space operators
+- Fix rendering of assembled glyphs in some fonts
+- Various spacing and alignment adjustments
 
 
 0.7 - 2022-11-05

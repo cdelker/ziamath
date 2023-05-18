@@ -11,6 +11,9 @@ from .styles import MathStyle
 
 class Drawable:
     ''' Base class for drawable nodes '''
+    mtag = 'drawable'
+    nodes: list[Drawable] = []
+
     def __init__(self):
         self.bbox = BBox(0, 0, 0, 0)
 

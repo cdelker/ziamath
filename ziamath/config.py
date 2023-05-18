@@ -1,11 +1,10 @@
 ''' Global configuration options '''
 from ziafont import config as zfconfig
-from . import operators
 
 
 class Config:
     ''' Global configuration options for Ziamath
-    
+
         Attributes
         ----------
         minsizefraction: Smallest allowed text size, as fraction of

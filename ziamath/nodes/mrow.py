@@ -1,4 +1,5 @@
 ''' <mrow> Math Elelment '''
+from __future__ import annotations
 from typing import Optional, Union
 from copy import copy
 from xml.etree import ElementTree as ET

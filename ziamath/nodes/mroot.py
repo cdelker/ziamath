@@ -1,4 +1,5 @@
 ''' <mroot> and <msqrt> Math Elements '''
+from __future__ import annotations
 from typing import Optional
 import xml.etree.ElementTree as ET
 

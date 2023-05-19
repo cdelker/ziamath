@@ -6,6 +6,8 @@
     See Appendix F of MathML2 Documentation:
     https://www.w3.org/TR/MathML2/appendixf.html
 '''
+from __future__ import annotations
+
 
 operators = {
     ('(', 'prefix'):  {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},

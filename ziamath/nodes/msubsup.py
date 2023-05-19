@@ -1,4 +1,5 @@
 ''' <msub>, <msup>, <msubsup> Superscript and Subscript Elements '''
+from __future__ import annotations
 import xml.etree.ElementTree as ET
 
 from ziafont.fonttypes import BBox

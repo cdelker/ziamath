@@ -1,4 +1,5 @@
 ''' Math node - parent class of all math nodes '''
+from __future__ import annotations
 from typing import Optional, MutableMapping, Type
 import logging
 from xml.etree import ElementTree as ET

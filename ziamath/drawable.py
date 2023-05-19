@@ -29,6 +29,10 @@ class Drawable:
         ''' Get the last character in this node '''
         return None
 
+    def xadvance(self) -> float:
+        ''' X-advance for the glyph. Usually bbox.xmax '''
+        return self.bbox.xmax
+
     def draw(self, x: float, y: float, svg: ET.Element) -> tuple[float, float]:
         ''' Draw the element. Must be subclassed. '''
         raise NotImplementedError
@@ -57,7 +61,7 @@ class Glyph(Drawable):
             self.funit_to_points(self.glyph.path.bbox.xmax),
             self.funit_to_points(self.glyph.path.bbox.ymin),
             self.funit_to_points(self.glyph.path.bbox.ymax))
-
+        
     def funit_to_points(self, value: float) -> float:
         ''' Convert font units to SVG points '''
         return value * self._funits_to_pts

@@ -20,7 +20,7 @@ class Mnumber(Mnode, tag='mn'):
     def _getstring(self) -> str:
         ''' Get the styled string for this node '''
         text = elementtext(self.element)
-        return styledstr(text, self.style)
+        return styledstr(text, self.style.mathvariant)
 
     def _setup(self, **kwargs) -> None:
         ymin = 9999.
@@ -76,7 +76,7 @@ class Midentifier(Mnumber, tag='mi'):
             if self.parent.mtag not in ['msub', 'msup', 'msubsup']:
                 text = text + '\U00002009'
 
-        return styledstr(text, self.style)
+        return styledstr(text, self.style.mathvariant)
 
 
 class Mtext(Mnumber, tag='mtext'):
@@ -85,5 +85,5 @@ class Mtext(Mnumber, tag='mtext'):
         string = ''
         if self.element.text:
             # Don't use elementtext() since it strips whitespace
-            string = styledstr(self.element.text, self.style)
+            string = styledstr(self.element.text, self.style.mathvariant)
         return string

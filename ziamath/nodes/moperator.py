@@ -15,7 +15,7 @@ class Moperator(Mnode, tag='mo'):
     ''' Operator math element '''
     def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
         super().__init__(element, parent, **kwargs)
-        self.string = styledstr(elementtext(self.element), self.style)
+        self.string = styledstr(elementtext(self.element), self.style.mathvariant)
         self.form = element.get('form', 'infix')
 
         # Load parameters from operators table for deciding how much space
@@ -56,7 +56,7 @@ class Moperator(Mnode, tag='mo'):
         else:
             addspace = True
 
-        x = 0
+        x = xmax = 0
         self.nodes = []
 
         # Add lspace
@@ -82,15 +82,18 @@ class Moperator(Mnode, tag='mo'):
             self.nodes.append(Glyph(
                 glyph, char, self.glyphsize, self.style, **kwargs))
             self.nodexy.append((x, 0))
+            xmax = max(xmax, x + self.units_to_points(glyph.path.bbox.xmax))
             x += self.units_to_points(glyph.advance())
             ymin = min(ymin, self.units_to_points(glyph.path.bbox.ymin))
             ymax = max(ymax, self.units_to_points(glyph.path.bbox.ymax))
 
         if addspace:
             x += self.ems_to_pts(space_ems(self.params.get('rspace', '0')))
+            xmax = max(xmax, x)
 
         try:
             xmin = self.units_to_points(glyphs[0].path.bbox.xmin)
         except IndexError:
             xmin = 0
-        self.bbox = BBox(xmin, x, ymin, ymax)
+        
+        self.bbox = BBox(xmin, xmax, ymin, ymax)

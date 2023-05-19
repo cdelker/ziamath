@@ -43,8 +43,9 @@ def place_over(base: Mnode,
             x, y: position for over node
     '''
     # Center the node by default
-    x = ((base.bbox.xmax - base.bbox.xmin) - (over.bbox.xmax-over.bbox.xmin)) / 2 - over.bbox.xmin
-
+    x = (((base.bbox.xmax - base.bbox.xmin) - (over.bbox.xmax-over.bbox.xmin)) / 2
+         - over.bbox.xmin)
+    
     if ((lastg := base.lastglyph())
             and node_is_singlechar(base)
             and not isinstance(over, drawable.HLine)):
@@ -54,9 +55,14 @@ def place_over(base: Mnode,
             x += base.units_to_points(italicx)
 
         # Use font-specific accent attachment if defined
-        basex = font.math.topattachment(lastg.index)
-        if basex is not None:
-            x = base.units_to_points(basex) - (over.bbox.xmax-over.bbox.xmin)/2
+        if (basex := font.math.topattachment(lastg.index)):
+            x = base.units_to_points(basex)
+            
+            if (node_is_singlechar(over)
+                    and (attachx := font.math.topattachment(over.lastglyph().index))):  # type: ignore
+                x -= over.units_to_points(attachx)
+            else:
+                x -= (over.bbox.xmax-over.bbox.xmin)/2
 
     y = -base.bbox.ymax - base.units_to_points(font.math.consts.overbarVerticalGap)
     y += over.bbox.ymin
@@ -77,6 +83,7 @@ def place_under(base: Mnode,
     '''
     x = (((base.bbox.xmax - base.bbox.xmin) - (under.bbox.xmax-under.bbox.xmin)) / 2
          - under.bbox.xmin)
+
     if ((lastg := base.lastglyph())
             and node_is_singlechar(base)
             and not isinstance(under, drawable.HLine)):
@@ -105,9 +112,11 @@ class Mover(Mnode, tag='mover'):
                 or (self.element[1].tag == 'mo' and len(elementtext(self.element[1])) == 1)):
             kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
 
+        self._isaccent = False
         if not (len(elementtext(self.element[1])) == 1
                 and ord(elementtext(self.element[1])) in ACCENTS):
             self.increase_child_scriptlevel(self.element[1])
+            self._isaccent = True
 
         if elementtext(self.element[1]) == self.BAR:
             self.over = drawable.HLine(
@@ -132,17 +141,19 @@ class Mover(Mnode, tag='mover'):
         self.nodexy.append((basex, 0))
         self.nodes.append(self.over)
         self.nodexy.append((overx, overy))
-        xmin = min(overx, self.base.bbox.xmin)
-        xmax = basex + self.base.bbox.xmax
-        if (hasattr(self.over, 'element')
-                and (len(self.over.element) or len(self.over.element.text) > 1)):  # type: ignore
-            # Keep bbox within original glyph for things like accents
-            # to prevent sub/superscripts from moving too far right
-            xmax = max(overx+self.over.bbox.xmax, basex+self.base.bbox.xmax)
 
+        xmin = min(overx+self.over.bbox.xmin, basex+self.base.bbox.xmin)
+        xmax = max(overx+self.over.bbox.xmax, basex+self.base.bbox.xmax)
         ymin = self.base.bbox.ymin
         ymax = -overy + self.over.bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
+        if not self._isaccent:
+            self._xadvance = self.base.xadvance()
+        else:
+            self._xadvance = xmax
+
+    def xadvance(self) -> float:
+        return self._xadvance
 
     def lastglyph(self) -> Optional[SimpleGlyph]:
         ''' Get the last glyph in this node '''
@@ -159,7 +170,7 @@ class Munder(Mnode, tag='munder'):
         assert len(self.element) == 2
         self.base = Mnode.fromelement(self.element[0], parent=self, **kwargs)
         kwargs['sub'] = True
-        if (self.element[1].tag in ['mover', 'munder']
+        if (self.element[1].tag in ['mover', 'munder', 'munderover']
                 or (self.element[1].tag == 'mo' and len(elementtext(self.element[1])) == 1)):
             kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
 
@@ -188,8 +199,8 @@ class Munder(Mnode, tag='munder'):
         self.nodes.append(self.under)
         self.nodexy.append((underx, undery))
 
-        xmin = min(underx, self.base.bbox.xmin)
-        xmax = max(underx+self.under.bbox.xmax, self.base.bbox.xmax)
+        xmin = min(underx+self.under.bbox.xmin, basex+self.base.bbox.xmin)
+        xmax = max(underx+self.under.bbox.xmax, basex+self.base.bbox.xmax)
         ymin = -undery + self.under.bbox.ymin
         ymax = self.base.bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
@@ -207,7 +218,7 @@ class Munderover(Mnode, tag='munderover'):
         assert len(self.element) == 3
         self.base = Mnode.fromelement(self.element[0], parent=self, **kwargs)
         kwargs['sub'] = True
-        if (self.element[1].tag in ['mover', 'munder']
+        if (self.element[1].tag in ['mover', 'munder', 'munderover']
                 or (self.element[1].tag == 'mo' and len(elementtext(self.element[1])) == 1)):
             kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
         self.increase_child_scriptlevel(self.element[1])
@@ -215,14 +226,12 @@ class Munderover(Mnode, tag='munderover'):
 
         kwargs.pop('width', None)
         kwargs.pop('sub', None)
-        kwargs['sup'] = True
         if (self.element[2].tag in ['mover', 'munder']
                 or (self.element[2].tag == 'mo' and len(elementtext(self.element[2])) == 1)):
             kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
 
         if not (len(elementtext(self.element[2])) == 1
                 and ord(elementtext(self.element[2])) in ACCENTS):
-            kwargs['sup'] = True
             if self.element[2].get('stretchy') == 'true':
                 self.element[2].set('lspace', '0')
                 self.element[2].set('rspace', '0')

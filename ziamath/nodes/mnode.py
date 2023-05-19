@@ -140,7 +140,7 @@ class Mnode(Drawable):
         '''
         if config.debug:
             rect = ET.SubElement(svg, 'rect')
-            rect.set('x', fmt(x))
+            rect.set('x', fmt(x + self.bbox.xmin))
             rect.set('y', fmt(y - self.bbox.ymax))
             rect.set('width', fmt((self.bbox.xmax - self.bbox.xmin)))
             rect.set('height', fmt((self.bbox.ymax - self.bbox.ymin)))
@@ -153,7 +153,7 @@ class Mnode(Drawable):
 
         if self.style.mathbackground not in ['none', None]:
             rect = ET.SubElement(svg, 'rect')
-            rect.set('x', fmt(x))
+            rect.set('x', fmt(x + self.bbox.xmin))
             rect.set('y', fmt(y - self.bbox.ymax))
             rect.set('width', fmt((self.bbox.xmax - self.bbox.xmin)))
             rect.set('height', fmt((self.bbox.ymax - self.bbox.ymin)))

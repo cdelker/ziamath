@@ -107,6 +107,10 @@ class Mfenced(Mnode, tag='mfenced'):
             except (IndexError, AttributeError):
                 pass
 
+            if (lastg := mrow.lastglyph()):
+                if (italicx := self.font.math.italicsCorrection.getvalue(lastg.index)):
+                    x += mrow.units_to_points(italicx)
+                        
             params = operators.get_params(self.closechr, 'postfix')
             lspace = self.ems_to_pts(space_ems(params.get('lspace', '0')))
             x += lspace

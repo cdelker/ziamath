@@ -65,7 +65,7 @@ class Mrow(Mnode, tag='mrow'):
         ymin = 9999
         height = kwargs.pop('height', None)
         i = 0
-        x = xmin = 0
+        x = xmin = xmax = 0.
         while i < len(line):
             child = line[i]
             text = elementtext(child)
@@ -107,11 +107,12 @@ class Mrow(Mnode, tag='mrow'):
 
             self.nodes.append(node)
             self.nodexy.append((x, 0))
-            x += node.bbox.xmax
+            xmax = max(xmax, x + node.bbox.xmax)
             xmin = min([nxy[0]+n.bbox.xmin for nxy, n in zip(self.nodexy, self.nodes)])
             ymax = max(ymax, node.bbox.ymax)
             ymin = min(ymin, node.bbox.ymin)
-        self.bbox = BBox(xmin, x, ymin, ymax)
+            x += node.xadvance()
+        self.bbox = BBox(xmin, xmax, ymin, ymax)
 
     def _setup(self, **kwargs) -> None:
         kwargs = copy(kwargs)

@@ -2,15 +2,15 @@
     characters [A-Z, a-z, and 0-9] to their higher unicode alternatives. Note
     this does not check whether the new character glyph exists in the font.
 '''
-
 from __future__ import annotations
 from typing import Any, MutableMapping
-from collections import ChainMap
+from collections import ChainMap, namedtuple
 from dataclasses import dataclass, asdict
 from xml.etree import ElementTree as ET
 
 
 VARIANTS = ['serif', 'sans', 'script', 'double', 'mono', 'fraktur']
+Styletype = namedtuple('Styletype', 'bold italic')
 
 
 @dataclass
@@ -78,76 +78,163 @@ def parse_style(element: ET.Element, parent_style: MathStyle = None) -> MathStyl
     return MathStyle(**args)
 
 
-def styledchr(c: str, style: MathStyle) -> str:
-    ''' Convert an ASCII character into it's styled unicode counterpart '''
-    ordc = ord(c)
-    if not ((0x41 <= ordc <= 0x5A) or (0x61 <= ordc <= 0x7A) or (0x30 <= ordc <= 0x39)):
-        return c
+LATIN_CAP_RANGE = (0x41, 0x5A)
+LATIN_CAPS = \
+    {'serif': {Styletype(bold=False, italic=False): 0x0000,
+               Styletype(bold=True, italic=False): 0x1D400,
+               Styletype(bold=False, italic=True): 0x1D434,
+               Styletype(bold=True, italic=True): 0x1D468
+               },
+     'sans':  {Styletype(bold=False, italic=False): 0x1D5A0,
+               Styletype(bold=True, italic=False): 0x1D5D4,
+               Styletype(bold=False, italic=True): 0x1D608,
+               Styletype(bold=True, italic=True): 0x1D63C
+               },
+     'script': {Styletype(bold=False, italic=False): 0x1D49C,
+                Styletype(bold=False, italic=True): 0x1D4D0
+                },
+     'fraktur': {Styletype(bold=False, italic=False): 0x1D504,
+                 Styletype(bold=True, italic=False): 0x1D56C
+                 },
+     'mono': {Styletype(bold=False, italic=False): 0x1D670,
+              },
+     'double': {Styletype(bold=False, italic=False): 0x1D538,
+                },
+    }
 
-    italic = style.mathvariant.italic
-    bold = style.mathvariant.bold
+LATIN_SMALL_RANGE = (0x61, 0x7a)
+LATIN_SMALL = \
+    {'serif': {Styletype(bold=False, italic=False): 0x0000,
+               Styletype(bold=True, italic=False): 0x1D41A,
+               Styletype(bold=False, italic=True): 0x1D44E,
+               Styletype(bold=True, italic=True): 0x1D482
+               },
+     'sans':  {Styletype(bold=False, italic=False): 0x1D5BA,
+               Styletype(bold=True, italic=False): 0x1D5EE,
+               Styletype(bold=False, italic=True): 0x1D622,
+               Styletype(bold=True, italic=True): 0x1D656
+               },
+     'script': {Styletype(bold=False, italic=False): 0x1D4B6,
+                Styletype(bold=False, italic=True): 0x1D4EA
+                },
+     'fraktur': {Styletype(bold=False, italic=False): 0x1D51E,
+                 Styletype(bold=True, italic=False): 0x1D586
+                 },
+     'mono': {Styletype(bold=False, italic=False): 0x1D68A,
+              },
+     'double': {Styletype(bold=False, italic=False): 0x1D552,
+                },
+    }
 
-    # Look up replacement characters that don't map directly by offset
-    # because unicode defines them in a weird place.
-    replace = {('serif', True, False): {
-                   'h': 'ℎ'},
-               ('script', False, False): {
-                   'B': 'ℬ', 'E': 'ℰ', 'F': 'ℱ', 'H': 'ℋ', 'I': 'ℐ', 'L': 'ℒ',
-                   'M': 'ℳ', 'R': 'ℛ', 'e': 'ℯ', 'g': 'ℊ', 'o': 'ℴ'},
-               ('fraktur', False, False): {
-                    'C': 'ℭ', 'H': 'ℌ', 'I': 'ℑ', 'R': 'ℜ', 'Z': 'ℨ'},
-               ('double', False, False): {
-                    'C': 'ℂ', 'H': 'ℍ', 'N': 'ℕ', 'P': 'ℙ', 'Q': 'ℚ', 'R': 'ℝ', 'Z': 'ℤ'}}
+GREEK_CAP_RANGE = (0x0391, 0x3AA)
+GREEK_CAPS = \
+    {'serif': {Styletype(bold=False, italic=False): 0x0000,
+               Styletype(bold=True, italic=False): 0x1D6A8,
+               Styletype(bold=False, italic=True): 0x1D6E2,
+               Styletype(bold=True, italic=True): 0x1D71C
+               },
+     'sans': {Styletype(bold=False, italic=False): 0x0000,
+              Styletype(bold=True, italic=False): 0x1D756,
+              Styletype(bold=True, italic=True): 0x1D790
+              },
+    }
 
-    cx = replace.get((style.mathvariant.style, italic, bold), {}).get(c)
-    if cx is not None:
-        return cx
+GREEK_LOWER_RANGE = (0x3b1, 0x3d0)
+GREEK_LOWER = \
+    {'serif': {Styletype(bold=False, italic=False): 0x0000,
+               Styletype(bold=True, italic=False): 0x1D6C2,
+               Styletype(bold=False, italic=True): 0x1D6FC,
+               Styletype(bold=True, italic=True): 0x1D736
+               },
+     'sans': {Styletype(bold=False, italic=False): 0x0000,
+              Styletype(bold=True, italic=False): 0x1D770,
+              Styletype(bold=True, italic=True): 0x1D7AA
+              },
+    }
 
-    # Other replacement characters can be selected by offset
-    if (0x30 <= ordc <= 0x39):  # Digit
-        #        style    bold
-        ofst = {('serif', True): 0x1D7CE,
-                ('double', False): 0x1D7D8,
-                ('sans', False): 0x1D7E2,
-                ('sans', True): 0x1D7EC,
-                ('mono', False): 0x1D7F6}.get((style.mathvariant.style, bold))
-
-        if ofst is None:
-            return c
-        return chr(ordc - ord('0') + ofst)
-
-    if (0x61 <= ordc <= 0x7A):
-        # Lowercase
-        base = ordc - 6 - ord('A')
-    else:
-        base = ordc - ord('A')
-
-    ofst = None
-    if style.mathvariant.style == 'serif':
-        ofst = {(False, True): 0x1D400,
-                (True, False): 0x1D434,
-                (True, True): 0x1D468}.get((italic, bold))
-    elif style.mathvariant.style == 'sans':
-        ofst = {(False, False): 0x1D5A0,
-                (False, True): 0x1D5D4,
-                (True, False): 0x1D608,
-                (True, True): 0x1D63C}.get((italic, bold))
-    elif style.mathvariant.style == 'script':
-        ofst = {False: 0x1D49C,
-                True: 0x1D4D0}.get(bold)
-    elif style.mathvariant.style == 'fraktur':
-        ofst = {False: 0x1D504,
-                True: 0x1D504}.get(bold)
-    elif style.mathvariant.style == 'mono':
-        ofst = 0x1D670
-    elif style.mathvariant.style == 'double':
-        ofst = 0x1D538
-
-    if ofst is None:
-        return c
-    return chr(base + ofst)
+DIGIT_RANGE = (0x30, 0x39)
+DIGITS = \
+    {'serif': {Styletype(bold=False, italic=False): 0x0000,
+               Styletype(bold=True, italic=False): 0x1D7CE,
+               },
+     'double': {Styletype(bold=False, italic=False): 0x1D7D8, },
+     'mono': {Styletype(bold=False, italic=False): 0x1D7F6, },
+     'sans': {Styletype(bold=False, italic=False): 0x1D7E2,
+              Styletype(bold=True, italic=False): 0x1D7EC,
+              },
+    }
 
 
-def styledstr(st: str, style: MathStyle) -> str:
+subtables = ((LATIN_CAP_RANGE, LATIN_CAPS),
+             (LATIN_SMALL_RANGE, LATIN_SMALL),
+             (GREEK_CAP_RANGE, GREEK_CAPS),
+             (GREEK_LOWER_RANGE, GREEK_LOWER),
+             (DIGIT_RANGE, DIGITS))
+
+
+# These are the yellow characters in wikipedia's table
+OFFSET_EXCEPTIONS = {
+    'ϴ': 0x0391+0x11,
+    '∇': 0x0391+0x19,
+    '∂': 0x03B1+0x19,
+    'ϵ': 0x03B1+0x1A,
+    'ϑ': 0x03B1+0x1B,
+    'ϰ': 0x03B1+0x1C,
+    'ϕ': 0x03B1+0x1D,
+    'ϱ': 0x03B1+0x1E,
+    'ϖ': 0x03B1+0x1F}
+
+
+EXCEPTIONS = {
+    0x1D49C+0x01: 'ℬ',  # latin cap scripts
+    0x1D49C+0x04: 'ℰ',
+    0x1D49C+0x05: 'ℱ',
+    0x1D49C+0x07: 'ℋ',
+    0x1D49C+0x08: 'ℐ',
+    0x1D49C+0x0B: 'ℒ',
+    0x1D49C+0x0C: 'ℳ',
+    0x1D49C+0x11: 'ℛ',
+    0x1D504+0x02: 'ℭ',  # latin cap frakturs
+    0x1D504+0x07: 'ℌ',
+    0x1D504+0x08: 'ℑ',
+    0x1D504+0x11: 'ℜ',
+    0x1D504+0x19: 'ℨ',
+    0x1D538+0x02: 'ℂ',  # latin cap doubles
+    0x1D538+0x07: 'ℍ',
+    0x1D538+0x0D: 'ℕ',
+    0x1D538+0x0F: 'ℙ',
+    0x1D538+0x10: 'ℚ',
+    0x1D538+0x11: 'ℝ',
+    0x1D538+0x19: 'ℤ',
+    0x1D44E+0x07: 'ℎ',  # latin small italic
+    0x1D4B6+0x04: 'ℯ',  # latin small script
+    0x1D4B6+0x06: 'ℊ',
+    0x1D4B6+0x0E: 'ℴ',
+    }
+
+
+def styledchr(char, variant: MathVariant):
+    ''' Convert character to its styled (bold, italic, script, etc.) variant.
+        See tables at: https://en.wikipedia.org/wiki/Mathematical_Alphanumeric_Symbols
+    '''
+    script = variant.style
+    style = Styletype(variant.bold, variant.italic)
+    styledchr = char  # Default is to return char unchanged
+
+    charord = OFFSET_EXCEPTIONS.get(char, ord(char))
+    for ordrange, table in subtables:
+        if ordrange[0] <= charord <= ordrange[1]:
+            ordoffset = charord - ordrange[0]
+            scripttable = table.get(script, table.get('serif'))
+            offset = scripttable.get(style, scripttable.get(Styletype(False, False)))  # type: ignore
+            if offset:
+                styledchr = chr(ordoffset + offset)
+            styledchr = EXCEPTIONS.get(ord(styledchr), styledchr)
+            break
+
+    return styledchr
+
+
+def styledstr(st: str, variant: MathVariant) -> str:
     ''' Apply unicode styling conversion to a string '''
-    return ''.join([styledchr(s, style) for s in st])
+    return ''.join([styledchr(s, variant) for s in st])

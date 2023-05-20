@@ -37,11 +37,15 @@ class Mroot(Mnode, tag='mroot'):
             verticalgap = self.units_to_points(self.font.math.consts.radicalVerticalGap)
 
         # Shift radical up/down to ensure minimum and consistent gap between top of text and overbar
-        # Keep contents at the same height.
-        rtop = (self.base.bbox.ymax + verticalgap +
-                self.units_to_points(self.font.math.consts.radicalRuleThickness))
-        yrad = -(rtop - self.units_to_points(rglyph.path.bbox.ymax))
-        ytop = yrad - self.units_to_points(rglyph.path.bbox.ymax)
+        if (self.base.bbox.ymax > self.units_to_points(rglyph.path.bbox.ymax) - verticalgap
+                or self.base.bbox.ymin < self.units_to_points(rglyph.path.bbox.ymax) - verticalgap - self.units_to_points(self.font.math.consts.radicalRuleThickness)):
+            rtop = (self.base.bbox.ymax + verticalgap +
+                    self.units_to_points(self.font.math.consts.radicalRuleThickness))
+            yrad = -(rtop - self.units_to_points(rglyph.path.bbox.ymax))
+            ytop = yrad - self.units_to_points(rglyph.path.bbox.ymax)
+        else:
+            yrad = 0
+            ytop = -self.units_to_points(rglyph.path.bbox.ymax)
 
         # If the root has a degree, draw it next as it
         # determines radical x position
@@ -52,12 +56,12 @@ class Mroot(Mnode, tag='mroot'):
             ydeg = ytop * self.font.math.consts.radicalDegreeBottomRaisePercent/100
             self.nodes.append(self.degree)
             self.nodexy.append((x, ydeg))
-            x += self.degree.bbox.xmax
+            x += self.degree.xadvance()
             x += self.units_to_points(self.font.math.consts.radicalKernAfterDegree)
 
         self.nodes.append(rootnode)
         self.nodexy.append((x, yrad))
-        x += rootnode.bbox.xmax
+        x += rootnode.xadvance()
         self.nodes.append(self.base)
         self.nodexy.append((x, 0))
         width = self.base.bbox.xmax

@@ -79,7 +79,7 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont) -> tuple[float, flo
             else:
                 shiftdn = -lastg.bbox.ymin
         suby = base.units_to_points(shiftdn)
-        xadvance = x + subscript.bbox.xmax
+        xadvance = x + subscript.xadvance()
     return x, suby, xadvance
 
 
@@ -97,7 +97,7 @@ class Msup(Mnode, tag='msup'):
     def _setup(self, **kwargs) -> None:
         self.nodes.append(self.base)
         self.nodexy.append((0, 0))
-        x = self.base.bbox.xmax
+        x = self.base.xadvance()
 
         supx, supy, xadv = place_super(self.base, self.superscript, self.font)
         self.nodes.append(self.superscript)
@@ -129,7 +129,7 @@ class Msub(Mnode, tag='msub'):
     def _setup(self, **kwargs) -> None:
         self.nodes.append(self.base)
         self.nodexy.append((0, 0))
-        x = self.base.bbox.xmax
+        x = self.base.xadvance()
 
         subx, suby, xadv = place_sub(self.base, self.subscript, self.font)
         self.nodes.append(self.subscript)
@@ -161,7 +161,7 @@ class Msubsup(Mnode, tag='msubsup'):
     def _setup(self, **kwargs) -> None:
         self.nodes.append(self.base)
         self.nodexy.append((0, 0))
-        x = self.base.bbox.xmax
+        x = self.base.xadvance()
         subx, suby, xadvsub = place_sub(self.base, self.subscript, self.font)
         supx, supy, xadvsup = place_super(self.base, self.superscript, self.font)
 

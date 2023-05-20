@@ -91,10 +91,12 @@ LATIN_CAPS = \
                Styletype(bold=True, italic=True): 0x1D63C
                },
      'script': {Styletype(bold=False, italic=False): 0x1D49C,
-                Styletype(bold=False, italic=True): 0x1D4D0
+                Styletype(bold=True, italic=False): 0x1D4D0,
+                Styletype(bold=True, italic=True): 0x1D4D0  # No separate italic
                 },
      'fraktur': {Styletype(bold=False, italic=False): 0x1D504,
-                 Styletype(bold=True, italic=False): 0x1D56C
+                 Styletype(bold=True, italic=False): 0x1D56C, 
+                 Styletype(bold=True, italic=True): 0x1D56C  # No separate italic
                  },
      'mono': {Styletype(bold=False, italic=False): 0x1D670,
               },
@@ -115,10 +117,12 @@ LATIN_SMALL = \
                Styletype(bold=True, italic=True): 0x1D656
                },
      'script': {Styletype(bold=False, italic=False): 0x1D4B6,
-                Styletype(bold=False, italic=True): 0x1D4EA
+                Styletype(bold=True, italic=False): 0x1D4EA,
+                Styletype(bold=True, italic=True): 0x1D4EA  # No separate italic
                 },
      'fraktur': {Styletype(bold=False, italic=False): 0x1D51E,
-                 Styletype(bold=True, italic=False): 0x1D586
+                 Styletype(bold=True, italic=False): 0x1D586,
+                 Styletype(bold=True, italic=True): 0x1D586  # No separate italic
                  },
      'mono': {Styletype(bold=False, italic=False): 0x1D68A,
               },
@@ -161,6 +165,7 @@ DIGITS = \
      'mono': {Styletype(bold=False, italic=False): 0x1D7F6, },
      'sans': {Styletype(bold=False, italic=False): 0x1D7E2,
               Styletype(bold=True, italic=False): 0x1D7EC,
+              Styletype(bold=True, italic=True): 0x1D7EC,
               },
     }
 

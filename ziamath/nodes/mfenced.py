@@ -49,6 +49,7 @@ class Mfenced(Mnode, tag='mfenced'):
         if len(mrow.nodes) == 0:
             # Opening fence with nothing in it
             fencebbox = mglyph.bbox
+            xadvance = mglyph.xadvance()
         else:
             # height-adjusted fence glyph variant
             openglyph = self.font.math.variant_minmax(openglyph.index,
@@ -70,8 +71,8 @@ class Mfenced(Mnode, tag='mfenced'):
             mrowelm = ET.Element('mrow')
             mrowelm.extend(fencedelms)
             mrow = Mnode.fromelement(mrowelm, parent=self, height=oglyph.bbox.ymax-oglyph.bbox.ymin)
-
             fencebbox = mrow.bbox
+            xadvance = mrow.xadvance()
 
         self.nodes = []
         x = yofst = base = 0.
@@ -95,7 +96,7 @@ class Mfenced(Mnode, tag='mfenced'):
         if len(fencedelms) > 0:
             self.nodes.append(mrow)
             self.nodexy.append((x, base))
-            x += fencebbox.xmax
+            x += xadvance
 
         if self.closechr:
             try:

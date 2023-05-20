@@ -78,6 +78,10 @@ class Glyph(Drawable):
         ''' Get the last character in this node '''
         return self.char
 
+    def xadvance(self) -> float:
+        ''' X-advance for the glyph. Usually bbox.xmax '''
+        return self.funit_to_points(self.glyph.advance())
+
     def draw(self, x: float, y: float, svg: ET.Element) -> tuple[float, float]:
         ''' Draw the node on the SVG
 

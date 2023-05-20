@@ -37,8 +37,8 @@ class Mroot(Mnode, tag='mroot'):
             verticalgap = self.units_to_points(self.font.math.consts.radicalVerticalGap)
 
         # Shift radical up/down to ensure minimum and consistent gap between top of text and overbar
-        if (self.base.bbox.ymax > self.units_to_points(rglyph.path.bbox.ymax) - verticalgap
-                or self.base.bbox.ymin < self.units_to_points(rglyph.path.bbox.ymax) - verticalgap - self.units_to_points(self.font.math.consts.radicalRuleThickness)):
+        if (self.base.bbox.ymax > self.units_to_points(rglyph.bbox.ymax) - verticalgap
+                or self.base.bbox.ymin <= self.units_to_points(rglyph.bbox.ymin + self.font.math.consts.radicalRuleThickness)):
             rtop = (self.base.bbox.ymax + verticalgap +
                     self.units_to_points(self.font.math.consts.radicalRuleThickness))
             yrad = -(rtop - self.units_to_points(rglyph.path.bbox.ymax))

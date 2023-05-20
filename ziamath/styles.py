@@ -75,6 +75,20 @@ def parse_style(element: ET.Element, parent_style: MathStyle = None) -> MathStyl
     args['scriptlevel'] = int(params.get('scriptlevel', 0))
     args['mathvariant'] = parse_variant(element.attrib.get('mathvariant', ''), parent_variant) 
     args['displaystyle'] = parse_displaystyle(params)
+    
+    css = params.get('style', '')
+    if css:
+        cssparams = css.split(';')
+        for cssparam in cssparams:
+            if not cssparam:
+                continue  # blank lines
+            key, val = cssparam.split(':')
+            key = key.strip()
+            val = val.strip()
+            if key.lower() == 'background':
+                args['mathbackground'] = val
+            elif key.lower() == 'color':
+                args['mathcolor'] = val
     return MathStyle(**args)
 
 

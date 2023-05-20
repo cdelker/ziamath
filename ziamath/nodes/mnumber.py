@@ -6,7 +6,6 @@ from ziafont.fonttypes import BBox
 from ..styles import styledstr
 from ..drawable import Glyph
 from .nodetools import subglyph, elementtext
-from .spacing import space_ems
 from .mnode import Mnode
 
 
@@ -28,7 +27,7 @@ class Mnumber(Mnode, tag='mn'):
         x = 0.
 
         if (leftsibling := self.leftsibling()) and leftsibling.mtag == 'mfenced':
-            x = self.ems_to_pts(space_ems('verythinmathspace'))
+            x = self.size_px('verythinmathspace')
 
         for char in self.string:
             glyph = self.font.glyph(char)

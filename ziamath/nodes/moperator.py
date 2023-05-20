@@ -8,7 +8,6 @@ from ..drawable import Glyph
 from .. import operators
 from . import Mnode
 from .nodetools import elementtext, subglyph
-from .spacing import space_ems
 
 
 class Moperator(Mnode, tag='mo'):
@@ -25,9 +24,9 @@ class Moperator(Mnode, tag='mo'):
         self.width = kwargs.get('width', None)
         self.height = kwargs.get('height', None)
 
-        minsize = self.ems_to_pts(space_ems(element.get('minsize', '0')))
-        maxsize = self.ems_to_pts(space_ems(element.get('maxsize', '0')))
-        mathsize = self.ems_to_pts(space_ems(self.style.mathsize))
+        minsize = self.size_px(element.get('minsize', '0'))
+        maxsize = self.size_px(element.get('maxsize', '0'))
+        mathsize = self.size_px(self.style.mathsize)
         if self.height:
             if minsize:
                 self.height = max(self.height, minsize)
@@ -61,7 +60,7 @@ class Moperator(Mnode, tag='mo'):
 
         # Add lspace
         if addspace:
-            x += self.ems_to_pts(space_ems(self.params.get('lspace', '0')))
+            x += self.size_px(self.params.get('lspace', '0'))
 
         ymin = 999
         ymax = -999
@@ -88,7 +87,7 @@ class Moperator(Mnode, tag='mo'):
             ymax = max(ymax, self.units_to_points(glyph.path.bbox.ymax))
 
         if addspace:
-            x += self.ems_to_pts(space_ems(self.params.get('rspace', '0')))
+            x += self.size_px(self.params.get('rspace', '0'))
             xmax = max(xmax, x)
 
         try:

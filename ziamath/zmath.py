@@ -118,6 +118,7 @@ class Math:
         self.mathml = mathml
         self.style = parse_style(mathml)
         self.element = mathml
+        self.mtag = 'math'
         self.node = Mnode.fromelement(mathml, parent=self)  # type: ignore
 
     @classmethod

@@ -6,7 +6,6 @@ from ziafont.fonttypes import BBox
 from ..styles import parse_style
 from ..drawable import HLine
 from . import Mnode
-from .spacing import space_ems, topoints
 
 
 class Mfrac(Mnode, tag='mfrac'):
@@ -34,33 +33,52 @@ class Mfrac(Mnode, tag='mfrac'):
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
+
+        linethick = self.units_to_points(self.font.math.consts.fractionRuleThickness)
+        if 'linethickness' in self.element.attrib:
+            lt = self.element.get('linethickness', '')
+            try:
+                linethick = self.size_px(lt)
+            except ValueError:
+                linethick = {'thin': linethick * .5,
+                             'thick': linethick * 2}.get(lt, linethick)
+
         if self.style.displaystyle:
             ynum = self.units_to_points(
                 -self.font.math.consts.fractionNumeratorDisplayStyleShiftUp)
             ydenom = self.units_to_points(
                 self.font.math.consts.fractionDenominatorDisplayStyleShiftDown)
+            numgap = self.units_to_points(
+                self.font.math.consts.fractionNumDisplayStyleGapMin)
+            denomgap = self.units_to_points(
+                self.font.math.consts.fractionDenomDisplayStyleGapMin)
         else:
             ynum = self.units_to_points(
                 -self.font.math.consts.fractionNumeratorShiftUp)
             ydenom = self.units_to_points(
                 self.font.math.consts.fractionDenominatorShiftDown)
+            numgap = self.units_to_points(
+                self.font.math.consts.fractionNumeratorGapMin)
+            denomgap = self.units_to_points(
+                self.font.math.consts.fractionDenominatorGapMin)
 
         denombox = self.denominator.bbox
         numbox = self.numerator.bbox
+        if self.parent.mtag == 'mrow':
+            # Make sure axisheight aligns across mrow even with different font sizes
+            axheight = self.parent.units_to_points(self.font.math.consts.axisHeight)
+        else:
+            axheight = self.units_to_points(self.font.math.consts.axisHeight)
 
-        if ynum + numbox.ymin < 0:
-            ynum += numbox.ymin + self.units_to_points(
-                self.font.math.consts.fractionNumeratorGapMin)
-        if ydenom - denombox.ymax < 0:
-            ydenom -= ydenom - denombox.ymax + self.units_to_points(
-                self.font.math.consts.fractionDenominatorGapMin)
+        ynum = min(ynum, -(axheight + numgap - numbox.ymin + linethick/2))
+        ydenom = max(ydenom, (-axheight + denomgap + denombox.ymax + linethick/2))
 
         x = 0.
         if (leftsibling := self.leftsibling()):
             if leftsibling.mtag == 'mfrac':
-                x = self.ems_to_pts(space_ems('verythinmathspace'))
+                x = self.size_px('verythinmathspace')
             else:
-                x = self.ems_to_pts(space_ems('thinmathspace'))
+                x = self.size_px('thinmathspace')
 
         width = max(numbox.xmax, denombox.xmax)
         xnum = x + (width - (numbox.xmax - numbox.xmin))/2
@@ -70,23 +88,14 @@ class Mfrac(Mnode, tag='mfrac'):
         self.nodexy.append((xnum, ynum))
         self.nodexy.append((xdenom, ydenom))
 
-        linethick = self.units_to_points(self.font.math.consts.fractionRuleThickness)
-        if 'linethickness' in self.element.attrib:
-            lt = self.element.get('linethickness', '')
-            try:
-                linethick = topoints(lt, self.glyphsize)
-            except ValueError:
-                linethick = {'thin': linethick * .5,
-                             'thick': linethick * 2}.get(lt, linethick)
-
-        bary = self.units_to_points(-self.font.math.consts.axisHeight)
+        bary = -axheight - linethick/2
         self.nodes.append(HLine(width, linethick, style=self.style, **kwargs))
         self.nodexy.append((x, bary))
 
         # Calculate/cache bounding box
         xmin = 0
         xmax = x + max(numbox.xmax, denombox.xmax)
-        xmax += self.ems_to_pts(space_ems('thinmathspace'))
+        xmax += self.size_px('thinmathspace')
         ymin = (-ydenom) + denombox.ymin
         ymax = (-ynum) + numbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)

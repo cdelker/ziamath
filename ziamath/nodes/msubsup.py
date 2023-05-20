@@ -7,7 +7,6 @@ from ziafont.fonttypes import BBox
 from ..mathfont import MathFont
 from .. import operators
 from .mnode import Mnode
-from .spacing import space_ems
 
 
 def place_super(base: Mnode, superscript: Mnode, font: MathFont) -> tuple[float, float, float]:
@@ -21,28 +20,26 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont) -> tuple[float,
         xadvance = 0.
     else:
         x = 0.
-        shiftup = font.math.consts.superscriptShiftUp
-
         if base.params.get('movablelimits') == 'true':
-            x -= base.ems_to_pts(space_ems(base.params.get('rspace', '0')))
+            x -= base.size_px(base.params.get('rspace', '0'))
 
-        if (lastg := base.lastglyph()):
+        lastg = base.lastglyph()
+        firstg = superscript.firstglyph()
+
+        if lastg:
             if ((italicx := font.math.italicsCorrection.getvalue(lastg.index))
                     and base.lastchar() not in operators.integrals):
                 x += base.units_to_points(italicx)
 
-            if (firstg := superscript.firstglyph()):
-                if lastg.index >= 0 and font.math.kernInfo:  # assembled glyphs have idx<0
-                    kern, shiftup = font.math.kernsuper(lastg, firstg)
-                    x += base.units_to_points(kern)
-                elif base.mtag != 'mi':
-                    shiftup = (lastg.bbox.ymax
-                               - base.points_to_units((superscript.bbox.ymax
-                                                       - superscript.bbox.ymin)/2))
+        shiftup = max(font.math.consts.superscriptShiftUp,
+                      -firstg.bbox.ymin + font.math.consts.superscriptBottomMin if firstg else 0,
+                      base.points_to_units(base.bbox.ymax) - font.math.consts.superscriptBaselineDropMax)
 
-            else:  # eg ^/frac
-                shiftup = lastg.bbox.ymax
-                x += base.ems_to_pts(space_ems('verythinmathspace'))
+        if superscript.mtag in ['mi', 'mn']:
+            if firstg and lastg and lastg.index >= 0 and font.math.kernInfo:  # assembled glyphs have idx<0
+                kern, shiftup = font.math.kernsuper(lastg, firstg)
+                x += base.units_to_points(kern)
+
         supy = base.units_to_points(-shiftup)
         xadvance = x + superscript.bbox.xmax
     return x, supy, xadvance
@@ -57,27 +54,29 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont) -> tuple[float, flo
                 + subscript.bbox.ymax)
         xadvance = 0.
     else:
-        shiftdn = font.math.consts.subscriptShiftDown
         x = 0.
 
         if base.params.get('movablelimits') == 'true':
-            x -= base.ems_to_pts(space_ems(base.params.get('rspace', '0')))
+            x -= base.size_px(base.params.get('rspace', '0'))
 
-        if (lastg := base.lastglyph()):
+        lastg = base.lastglyph()
+        firstg = subscript.firstglyph()
+
+        if lastg:
             if ((italicx := font.math.italicsCorrection.getvalue(lastg.index))
                     and base.lastchar() in operators.integrals):
                 x -= base.units_to_points(italicx)  # Shift back on integrals
 
-            if (firstg := subscript.firstglyph()):
-                if lastg.index > 0 and font.math.kernInfo:
-                    kern, shiftdn = font.math.kernsub(lastg, firstg)
-                    x += base.units_to_points(kern)
-                elif base.mtag != 'mi':
-                    shiftdn = (-lastg.bbox.ymin
-                               + base.points_to_units((subscript.bbox.ymax
-                                                       - subscript.bbox.ymin)/2))
-            else:
-                shiftdn = -lastg.bbox.ymin
+        if lastg and firstg and lastg.index > 0 and font.math.kernInfo:
+            # Kern and vertical-shift set by font
+            kern, shiftdn = font.math.kernsub(lastg, firstg)
+            x += base.units_to_points(kern)
+        else:
+            # calculate vertical shift based on bounding box and math constants table
+            shiftdn = max(font.math.consts.subscriptShiftDown,
+                          firstg.bbox.ymax - font.math.consts.subscriptTopMax if firstg else 0,
+                          font.math.consts.subscriptBaselineDropMin - base.points_to_units(base.bbox.ymin))
+                
         suby = base.units_to_points(shiftdn)
         xadvance = x + subscript.xadvance()
     return x, suby, xadvance

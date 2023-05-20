@@ -5,7 +5,6 @@ from copy import copy
 
 from ziafont.fonttypes import BBox
 
-from .spacing import topoints
 from . import Mnode
 
 
@@ -17,8 +16,8 @@ class Mtable(Mnode, tag='mtable'):
 
     def _setup(self, **kwargs) -> None:
         kwargs = copy(kwargs)
-        rowspace = topoints('0.2em', self.glyphsize)
-        colspace = topoints('0.2em', self.glyphsize)
+        rowspace = self.size_px('0.2em')
+        colspace = self.size_px('0.2em')
         column_align_table = self.element.get('columnalign', 'center')
 
         Cell = namedtuple('Cell', 'node columnalign')

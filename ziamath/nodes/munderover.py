@@ -116,8 +116,9 @@ class Mover(Mnode, tag='mover'):
         self._isaccent = False
         if not (len(elementtext(self.element[1])) == 1
                 and ord(elementtext(self.element[1])) in ACCENTS):
-            self.increase_child_scriptlevel(self.element[1])
-            self._isaccent = True
+            if self.element.get('accent', 'false').lower() == 'false':
+                self.increase_child_scriptlevel(self.element[1])
+                self._isaccent = True
 
         if elementtext(self.element[1]) == self.BAR:
             self.over = drawable.HLine(
@@ -183,7 +184,9 @@ class Munder(Mnode, tag='munder'):
             if self.element[1].get('stretchy') == 'true':
                 self.element[1].set('lspace', '0')
                 self.element[1].set('rspace', '0')
-            self.increase_child_scriptlevel(self.element[1])
+            if self.element.get('accentunder', 'false').lower() == 'false':
+                self.increase_child_scriptlevel(self.element[1])
+                self._isaccent = True
             self.under = Mnode.fromelement(self.element[1], parent=self, **kwargs)
         self._setup(**kwargs)
 
@@ -222,7 +225,9 @@ class Munderover(Mnode, tag='munderover'):
         if (self.element[1].tag in ['mover', 'munder', 'munderover']
                 or (self.element[1].tag == 'mo' and len(elementtext(self.element[1])) == 1)):
             kwargs['width'] = self.base.bbox.xmax - self.base.bbox.xmin
-        self.increase_child_scriptlevel(self.element[1])
+        if self.element.get('accentunder', 'false').lower() == 'false':
+            self.increase_child_scriptlevel(self.element[1])
+
         self.under = Mnode.fromelement(self.element[1], parent=self, **kwargs)
 
         kwargs.pop('width', None)
@@ -236,7 +241,8 @@ class Munderover(Mnode, tag='munderover'):
             if self.element[2].get('stretchy') == 'true':
                 self.element[2].set('lspace', '0')
                 self.element[2].set('rspace', '0')
-            self.increase_child_scriptlevel(self.element[2])
+            if self.element.get('accent', 'false').lower() == 'false':
+                self.increase_child_scriptlevel(self.element[2])
 
         self.over = Mnode.fromelement(self.element[2], parent=self, **kwargs)
         self._setup(**kwargs)

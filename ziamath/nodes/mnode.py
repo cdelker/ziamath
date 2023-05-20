@@ -12,7 +12,6 @@ from ..drawable import Drawable
 from ..styles import MathStyle, parse_style
 from ..config import config
 from .. import operators
-from .spacing import space_ems
 from .nodetools import elementtext, infer_opform
 
 _node_classes: dict[str, Type['Mnode']] = {}
@@ -42,7 +41,7 @@ class Mnode(Drawable):
             self.size * (self.font.math.consts.scriptPercentScaleDown/100)**self.style.scriptlevel,
             self.font.basesize*config.minsizefraction)
         if self.style.mathsize:
-            self.glyphsize = self.ems_to_pts(space_ems(self.style.mathsize))
+            self.glyphsize = self.size_px(self.style.mathsize)
 
         self._font_pts_per_unit = self.size / self.font.info.layout.unitsperem
         self._glyph_pts_per_unit = self.glyphsize / self.font.info.layout.unitsperem
@@ -58,8 +57,9 @@ class Mnode(Drawable):
         ''' Construct a new node from the element and its parent '''
         if element.tag in ['math', 'mtd', 'mtr']:
             element.tag = 'mrow'
-
-        if element.tag == 'mi' and elementtext(element) in operators.names:
+        elif element.tag == 'ms':
+            element.tag = 'mtext'
+        elif element.tag == 'mi' and elementtext(element) in operators.names:
             # Workaround for some latex2mathml operators coming back as identifiers
             element.tag = 'mo'
 
@@ -88,10 +88,6 @@ class Mnode(Drawable):
     def points_to_units(self, value: float) -> float:
         ''' Convert points back to font units '''
         return value / self._glyph_pts_per_unit
-
-    def ems_to_pts(self, value: float) -> float:
-        ''' Convert ems at this glyph size to points '''
-        return value * self.glyphsize
 
     def increase_child_scriptlevel(self, element: ET.Element) -> None:
         ''' Increase the child element's script level one higher
@@ -130,6 +126,39 @@ class Mnode(Drawable):
             return self.nodes[-1].lastchar()
         except IndexError:
             return None
+
+    def size_px(self, size: str, fontsize: float = None) -> float:
+        ''' Get size in points from the attribute string '''
+        if fontsize is None:
+            fontsize = self.glyphsize
+
+        numsize = {"veryverythinmathspace": f'{1/18}em',
+                   "verythinmathspace": f'{2/18}em',
+                   "thinmathspace": f'{3/18}em',
+                   "mediummathspace": f'{4/18}em',
+                   "thickmathspace": f'{5/18}em',
+                   "verythickmathspace": f'{6/18}em',
+                   "veryverythickmathspace": f'{7/18}em',
+                   "negativeveryverythinmathspace": f'{-1/18}em',
+                   "negativeverythinmathspace": f'{-2/18}em',
+                   "negativethinmathspace": f'{-3/18}em',
+                   "negativemediummathspace": f'{-4/18}em',
+                   "negativethickmathspace": f'{-5/18}em',
+                   "negativeverythickmathspace": f'{-6/18}em',
+                   "negativeveryverythickmathspace": f'{-7/18}em',
+                   }.get(size, size)
+
+        numsize = numsize.rstrip('px')
+        try:
+            pxsize = float(numsize)
+        except ValueError as exc:
+            if numsize.endswith('em'):
+                pxsize = float(numsize[:-2]) * fontsize
+            elif numsize.endswith('pt'):
+                pxsize = float(numsize[:-2]) * 1.333  # 1.333 points to pixels
+            else:
+                pxsize = 0
+        return pxsize
 
     def draw(self, x: float, y: float, svg: ET.Element) -> tuple[float, float]:
         ''' Draw the node on the SVG

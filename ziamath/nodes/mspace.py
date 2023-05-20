@@ -5,16 +5,15 @@ from ziafont.fonttypes import BBox
 
 from .mnode import Mnode
 from .mrow import Mrow
-from .spacing import space_ems, topoints
 
 
 class Mspace(Mnode, tag='mspace'):
     ''' Blank space '''
     def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
         super().__init__(element, parent, **kwargs)
-        self.width = self.ems_to_pts(space_ems(element.get('width', '0')))
-        self.height = self.ems_to_pts(space_ems(element.get('height', '0')))
-        self.depth = self.ems_to_pts(space_ems(element.get('depth', '0')))
+        self.width = self.size_px(element.get('width', '0'))
+        self.height = self.size_px(element.get('height', '0'))
+        self.depth = self.size_px(element.get('depth', '0'))
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
@@ -37,13 +36,13 @@ class Mpadded(Mrow, tag='mpadded'):
                 # +X or -X means increment or decrement
                 sign = valstr[0]
                 if sign == '+':
-                    param += topoints(valstr[1:], self.glyphsize)
+                    param += self.size_px(valstr[1:])
                 else:
-                    param -= topoints(valstr[1:], self.glyphsize)
+                    param -= self.size_px(valstr[1:])
             elif valstr.endswith('%'):
                 param *= float(valstr[:-1])/100
             else:
-                param = topoints(valstr, self.glyphsize)
+                param = self.size_px(valstr)
             return param
 
         if lspace:

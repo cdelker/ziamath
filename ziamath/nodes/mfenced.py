@@ -7,7 +7,6 @@ from ziafont.fonttypes import BBox
 
 from .. import operators
 from ..drawable import Glyph
-from .spacing import space_ems
 from .mnode import Mnode
 from .msubsup import Msub, Msup, Msubsup
 from .mfrac import Mfrac
@@ -79,13 +78,13 @@ class Mfenced(Mnode, tag='mfenced'):
         yglyphmin = yglyphmax = 0.
         try:
             if self.parent.leftsibling():
-                x += self.ems_to_pts(space_ems('verythinmathspace'))
+                x += self.size_px('verythinmathspace')
         except AttributeError:
             pass
 
         if self.openchr:
             params = operators.get_params(self.openchr, 'prefix')
-            rspace = self.ems_to_pts(space_ems(params.get('rspace', '0')))
+            rspace = self.size_px(params.get('rspace', '0'))
             self.nodes.append(oglyph)
             self.nodexy.append((x, yofst))
             x += self.units_to_points(openglyph.advance())
@@ -104,7 +103,7 @@ class Mfenced(Mnode, tag='mfenced'):
                 if isinstance(mrow.nodes[-1], (Msub, Msup, Msubsup)):
                     x -= self.units_to_points(self.font.math.consts.spaceAfterScript)
                 elif isinstance(mrow.nodes[-1], Mfrac):
-                    x -= self.ems_to_pts(space_ems('verythinmathspace'))
+                    x -= self.size_px('verythinmathspace')
             except (IndexError, AttributeError):
                 pass
 
@@ -113,7 +112,7 @@ class Mfenced(Mnode, tag='mfenced'):
                     x += mrow.units_to_points(italicx)
                         
             params = operators.get_params(self.closechr, 'postfix')
-            lspace = self.ems_to_pts(space_ems(params.get('lspace', '0')))
+            lspace = self.size_px(params.get('lspace', '0'))
             x += lspace
 
             self.nodes.append(cglyph)

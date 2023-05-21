@@ -5,7 +5,7 @@ from copy import copy
 from xml.etree import ElementTree as ET
 
 from ziafont.fonttypes import BBox
-from ziafont.glyph import SimpleGlyph
+from ziafont.glyph import SimpleGlyph, fmt
 
 from ..drawable import Drawable
 from .. import operators
@@ -139,3 +139,19 @@ class Mrow(Mnode, tag='mrow'):
         except IndexError:
             return None
         return glyph
+
+
+class Merror(Mrow, tag='merror'):
+    ''' Error node <merror>. Just an <mrow> with border and fill. '''
+    def draw(self, x: float, y: float, svg: ET.Element) -> tuple[float, float]:
+        xend, yend = super().draw(x, y, svg)
+        border = ET.SubElement(svg, 'rect')
+        border.set('x', fmt(x + self.bbox.xmin - 1))
+        border.set('y', fmt(y - self.bbox.ymax - 1))
+        border.set('width', fmt((self.bbox.xmax - self.bbox.xmin)+2))
+        border.set('height', fmt((self.bbox.ymax - self.bbox.ymin)+2))
+        border.set('fill', 'yellow')
+        border.set('fill-opacity', '0.2')
+        border.set('stroke', 'red')
+        border.set('stroke-width', '1')
+        return xend, yend

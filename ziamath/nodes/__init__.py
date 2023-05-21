@@ -1,6 +1,6 @@
 ''' Math Nodes '''
 from .mnode import Mnode
-from .mrow import Mrow
+from .mrow import Mrow, Merror
 from .menclose import Menclose
 from .mfenced import Mfenced
 from .mfrac import Mfrac

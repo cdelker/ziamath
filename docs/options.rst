@@ -176,7 +176,6 @@ Not every MathML element is implemented at this time.
 Unsupported elements and attributes inculde:
 
 - <mglyph>
-- <mmultiscripts>
 - <mlabeledtr>
 - some table alignment attributes
 

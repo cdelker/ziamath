@@ -1,11 +1,12 @@
 0.8 - in development
 
-- Implement parameter for display/block mode versus inline/text mode
+- Added parameter for display/block mode versus inline/text mode
 - Added `Latex` class for creating expressions from Latex directly
 - Added `declareoperator` method for adding operator names
 - Added `decimal_separator` config option
 - Implement `\middle` operator
 - Implement negative space operators
+- Implemented <mmultiscripts>, <ms>, and <merror> MathML element
 - Fix rendering of assembled glyphs in some fonts
 - Added global configuration for math and text styles
 - Various spacing and alignment adjustments

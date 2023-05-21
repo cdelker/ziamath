@@ -190,3 +190,69 @@ class Msubsup(Mnode, tag='msubsup'):
             ymax = -supy + self.superscript.bbox.ymax
 
         self.bbox = BBox(xmin, xmax, ymin, ymax)
+
+
+class Mmultiscripts(Mnode, tag='mmultiscripts'):
+    ''' Multiple sub/superscripts in one element '''
+    def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
+        super().__init__(element, parent, **kwargs)
+
+        self.base = Mnode.fromelement(self.element[0], parent=self, **kwargs)
+        self.prescripts = []
+        self.postscripts = []
+
+        activescriptlist = self.postscripts
+        for elm in self.element[1:]:
+            if elm.tag == 'mprescripts':
+                activescriptlist = self.prescripts
+                continue
+            activescriptlist.append(elm)
+        self._setup(**kwargs)
+
+    def _setup(self, **kwargs):
+        ysub = self.units_to_points(self.font.math.consts.subscriptShiftDown)
+        ysup = -self.units_to_points(self.font.math.consts.superscriptShiftUp)
+
+        x = xmax = 0
+        ymax = self.base.bbox.ymax
+        ymin = self.base.bbox.ymin
+
+        for sub, sup in zip(self.prescripts[::2], self.prescripts[1::2]):
+            self.increase_child_scriptlevel(sub)
+            self.increase_child_scriptlevel(sup)
+            subnode = Mnode.fromelement(sub, parent=self, **kwargs)
+            supnode = Mnode.fromelement(sup, parent=self, **kwargs)
+            width = max(subnode.bbox.xmax, supnode.bbox.xmax)
+            self.nodes.append(subnode)
+            self.nodexy.append((x+width-subnode.bbox.xmax, ysub))
+            self.nodes.append(supnode)
+            self.nodexy.append((x+width-supnode.bbox.xmax, ysup))
+            
+            ymax = max(ymax, -ysup+supnode.bbox.ymax)
+            ymin = min(ymin, -ysub+subnode.bbox.ymin)
+            xmax = max(xmax, x+width)
+            x += width
+            x += self.units_to_points(self.font.math.consts.spaceAfterScript)
+
+        self.nodes.append(self.base)
+        self.nodexy.append((x, 0))
+        x += self.base.xadvance()
+        xmax = max(xmax, x+self.base.bbox.xmax)
+
+        for sub, sup in zip(self.postscripts[::2], self.postscripts[1::2]):
+            self.increase_child_scriptlevel(sub)
+            self.increase_child_scriptlevel(sup)
+            subnode = Mnode.fromelement(sub, parent=self, **kwargs)
+            supnode = Mnode.fromelement(sup, parent=self, **kwargs)
+            self.nodes.append(subnode)
+            self.nodexy.append((x, ysub))
+            self.nodes.append(supnode)
+            self.nodexy.append((x, ysup))
+
+            ymax = max(ymax, -ysup+supnode.bbox.ymax)
+            ymin = min(ymin, -ysub+subnode.bbox.ymin)
+            xmax = max(xmax, x+subnode.bbox.xmax, x+supnode.bbox.xmax)
+            x += max(subnode.xadvance(), supnode.xadvance())
+            x += self.units_to_points(self.font.math.consts.spaceAfterScript)
+
+        self.bbox = BBox(0, xmax, ymin, ymax)

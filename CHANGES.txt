@@ -7,6 +7,7 @@
 - Implement `\middle` operator
 - Implement negative space operators
 - Fix rendering of assembled glyphs in some fonts
+- Added global configuration for math and text styles
 - Various spacing and alignment adjustments
 
 

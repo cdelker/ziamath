@@ -8,6 +8,8 @@ from collections import ChainMap, namedtuple
 from dataclasses import dataclass, asdict
 from xml.etree import ElementTree as ET
 
+from .config import config
+
 
 VARIANTS = ['serif', 'sans', 'script', 'double', 'mono', 'fraktur']
 Styletype = namedtuple('Styletype', 'bold italic')
@@ -69,11 +71,11 @@ def parse_style(element: ET.Element, parent_style: MathStyle = None) -> MathStyl
         parent_variant = MathVariant()
 
     args: dict[str, Any] = {}
-    args['mathcolor'] = params.get('mathcolor', 'black')
-    args['mathbackground'] = params.get('mathbackground', 'none')
+    args['mathcolor'] = params.get('mathcolor', config.math.color)
+    args['mathbackground'] = params.get('mathbackground', config.math.background)
     args['mathsize'] = params.get('mathsize', '')
     args['scriptlevel'] = int(params.get('scriptlevel', 0))
-    args['mathvariant'] = parse_variant(element.attrib.get('mathvariant', ''), parent_variant) 
+    args['mathvariant'] = parse_variant(element.attrib.get('mathvariant', config.math.variant), parent_variant) 
     args['displaystyle'] = parse_displaystyle(params)
     
     css = params.get('style', '')

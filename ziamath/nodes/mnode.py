@@ -168,7 +168,7 @@ class Mnode(Drawable):
                 y: Vertical position in SVG coordinates
                 svg: SVG drawing as XML
         '''
-        if config.debug:
+        if config.debug.bbox:
             rect = ET.SubElement(svg, 'rect')
             rect.set('x', fmt(x + self.bbox.xmin))
             rect.set('y', fmt(y - self.bbox.ymax))
@@ -177,6 +177,7 @@ class Mnode(Drawable):
             rect.set('fill', 'none')
             rect.set('stroke', 'blue')
             rect.set('stroke-width', '0.2')
+        if config.debug.baseline:
             base = ET.SubElement(svg, 'path')
             base.set('d', f'M {x} 0 L {x+self.bbox.xmax} 0')
             base.set('stroke', 'red')

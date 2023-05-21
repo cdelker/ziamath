@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from typing import Union, Literal, Tuple, Optional, Dict
+import warnings
 import re
 from collections import ChainMap
 from math import inf, cos, sin, radians
@@ -93,20 +94,18 @@ class Math:
             size: Base font size, pixels
             font: Filename of font file. Must contain MATH typesetting table.
     '''
-    # Math class doesn't have a color parameter since color is set
-    # by the <mathcolor> tags in MML. Since Math is a single line,
-    # alignment is done at the drawon function rather than the class level.
     def __init__(self, mathml: Union[str, ET.Element],
-                 size: float = 24, font: str = None):
-        self.size = size
-        self.font: MathFont
+                 size: float = None, font: str = None):
+        self.size = size if size else config.math.fontsize
+        font = font if font else config.math.mathfont
 
+        self.font: MathFont
         if font is None:
             self.font = loadedfonts['default']
         elif font in loadedfonts:
             self.font = loadedfonts[font]
         else:
-            self.font = MathFont(font, size)
+            self.font = MathFont(font, self.size)
             loadedfonts[font] = self.font
 
         if isinstance(mathml, str):
@@ -122,7 +121,7 @@ class Math:
         self.node = Mnode.fromelement(mathml, parent=self)  # type: ignore
 
     @classmethod
-    def fromlatex(cls, latex: str, size: float = 24, mathstyle: str = None,
+    def fromlatex(cls, latex: str, size: float = None, mathstyle: str = None,
                   font: str = None, color: str = None, inline: bool = False):
         ''' Create Math Renderer from a single LaTeX expression. Requires
             latex2mathml Python package.
@@ -162,6 +161,8 @@ class Math:
                 font: Font file name
                 color: Color parameter, equivalent to "mathcolor" attribute
         '''
+        warnings.warn(r'fromlatextext is deprecated. Use ziamath.Text or \text{} command.', DeprecationWarning, stacklevel=2)
+        
         # Extract each $..$, convert to MathML, but the raw text in <mtext>, and join
         # into a single <math>
         parts = re.split(r'(\$+.*?\$+)', latex)
@@ -249,7 +250,7 @@ class Math:
 
     @classmethod
     def mathml2svg(cls, mathml: Union[str, ET.Element],
-                   size: float = 24, font: str = None):
+                   size: float = None, font: str = None):
         ''' Shortcut to just return SVG string directly '''
         return cls(mathml, size=size, font=font).svg()
 
@@ -274,7 +275,7 @@ class Latex(Math):
             color: Color parameter, equivalent to "mathcolor" attribute
             inline: Use inline math mode (default is block mode)
         '''
-    def __init__(self, latex: str, size: float = 24, mathstyle: str = None,
+    def __init__(self, latex: str, size: float = None, mathstyle: str = None,
                  font: str = None, color: str = None, inline: bool = False):
         self.latex = latex
 
@@ -312,16 +313,17 @@ class Text:
 
     '''
     def __init__(self, s, textfont: str = None, mathfont: str = None,
-                 mathstyle: str = None, size: float = 24, linespacing: float = 1,
+                 mathstyle: str = None, size: float = None, linespacing: float = None,
                  color: str = None,
                  halign: str = 'left', valign: str = 'base',
                  rotation: float = 0, rotation_mode: str = 'anchor'):
         self.str = s
         self.mathfont = mathfont
         self.mathstyle = mathstyle
-        self.size = size
-        self.linespacing = linespacing
+        self.size = size if size else config.text.fontsize
+        self.linespacing = linespacing if linespacing else config.text.linespacing
         self.color = color
+        self.textcolor = color if color else config.text.color
         self._halign = halign
         self._valign = valign
         self.rotation = rotation
@@ -330,14 +332,18 @@ class Text:
 
         # textfont can be a path to font, or style type like "serif".
         # If style type, use Stix font variation
+        textfont = textfont if textfont else config.text.textfont
+        textstyle = config.text.variant
         if textfont is None:
-            textfont = 'sans'
-        if textfont in ['sans', 'sans-serif', 'serif']:
             self.textfont = None
-            self.textstyle = textfont
+            self.textstyle = textstyle
         else:
-            self.textfont = zf.Font(textfont)
-            self.textstyle = 'sans'
+            try:
+                self.textfont = zf.Font(textfont)
+                self.textstyle = textstyle
+            except FileNotFoundError:
+                self.textfont = None
+                self.textstyle = textfont
 
     def svg(self) -> str:
         ''' Get expression as SVG string '''
@@ -424,11 +430,16 @@ class Text:
                     partsizes.append(math.getsize())
                 else:  # Text
                     if self.textfont:
-                        txt = zf.Text(part, font=self.textfont, size=self.size, color=self.color)
+                        # A specific font file is defined, use ziafont and ignore textstyle
+                        txt = zf.Text(part, font=self.textfont, size=self.size, color=self.textcolor)
                         partsizes.append(txt.getsize())
                     else:
-                        txt = Math.fromlatextext(part, textstyle=self.textstyle,
-                                                 size=self.size, color=self.color)
+                        # use math font with textstyle
+                        txt = Math.fromlatex(fr'\text{{{part}}}',
+                                             font=self.mathfont,
+                                             mathstyle=self.textstyle,
+                                             size=self.size,
+                                             color=self.textcolor)
                         partsizes.append((txt.node.bbox.xmax - txt.node.bbox.xmin,  # type: ignore
                                           txt.node.size))  # type: ignore
                     svgparts.append(txt)
@@ -509,7 +520,7 @@ class Text:
                         bbox[2]+dy, bbox[3]+dy)
 
             xform += f' rotate({-self.rotation} {x} {y})'
-            if config.debug:
+            if config.debug.bbox:
                 rect = ET.SubElement(svg, 'rect')
                 rect.attrib['x'] = fmt(bbox[0])
                 rect.attrib['y'] = fmt(bbox[2])

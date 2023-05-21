@@ -1,7 +1,7 @@
 Ziamath
 =======
 
-Ziamath renders MathML or LaTeX Math expressions as SVG paths using only the Python standard library. Does not require a Latex installation, nor rely on any third party services, but rather uses math-enabled fonts, such as `STIXTwoMath-Regular <https://www.stixfonts.org/>`_ which comes included with Ziamath
+Ziamath renders MathML or LaTeX Math expressions as SVG paths using only the Python standard library. Does not require a Latex installation, nor rely on any third party or online services. It can use any math-enabled font, such as `STIXTwoMath-Regular <https://www.stixfonts.org/>`_ which comes included with Ziamath
 for use by default. The resulting SVGs are drawn entirely with <path> elements, so the image does not depend on
 having the font available.
 

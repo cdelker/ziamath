@@ -1,7 +1,43 @@
 ''' Global configuration options '''
+from typing import Optional
+from dataclasses import dataclass
+
 from ziafont import config as zfconfig
 
 
+@dataclass
+class DebugConfig:
+    baseline: bool = False
+    bbox: bool = False
+
+    def on(self):
+        self.baseline = True
+        self.bbox = True
+
+    def off(self):
+        self.baseline = False
+        self.bbox = False
+
+
+@dataclass
+class TextStyle:
+    textfont: Optional[str] = None
+    variant: str = 'serif'
+    fontsize: float = 24
+    color: str = 'black'
+    linespacing: float = 1
+
+
+@dataclass
+class MathStyle:
+    mathfont: Optional[str] = None
+    variant: str = ''
+    fontsize: float = 24
+    color: str = 'black'
+    background: str = 'none'
+
+
+@dataclass
 class Config:
     ''' Global configuration options for Ziamath
 
@@ -16,9 +52,11 @@ class Config:
         decimal_separator: Use `.` or `,` as decimal separator. (only
             affects Latex math)
     '''
+    math: MathStyle = MathStyle()
+    text: TextStyle = TextStyle()
     minsizefraction: float = .3
-    debug: bool = False
     decimal_separator = '.'
+    debug: DebugConfig = DebugConfig()
 
     @property
     def svg2(self) -> bool:

@@ -85,6 +85,34 @@ Configuration Options
 
 Global configuration options can be set in the `ziamath.config` object.
 
+Math Style
+**********
+
+The default math style can be set with the following parameters. These settings may be overridden by arguments to `zm.Math` or `zm.Latex`.
+
+.. code-block:: python
+
+    zm.config.math.mathfont   # Path to math font file
+    zm.config.math.variant    # 'serif', 'sans', 'bold', 'script', etc.
+    zm.config.math.fontsize   # size in points
+    zm.config.math.color = 'black'      # css-supported color
+    zm.config.math.background = 'none'  # css-supported color
+
+
+Text Style
+**********
+
+The default style of plain text in `zm.Text` instances may be set using the following configuration parameters:
+
+.. code-block:: python
+
+    zm.config.text.textfont   # Path to font file
+    zm.config.text.variant    # 'serif', 'sans', 'bold', 'script', etc.
+    zm.config.text.fontsize   # size in points
+    zm.config.text.color      # css-supported color
+    zm.config.text.linespacing  # Line spacing multiplier
+
+
 SVG Version Compatibility
 *************************
 
@@ -92,9 +120,13 @@ Some SVG renderers, including recent versions of Inkscape and some OS built-in i
 Set the `ziamath.config.svg2` parameter to `False` for better compatibility. This may result in larger file sizes
 as each glyph is included as its own <path> element rather than being reused with <symbol> and <use> elements.
 
+If your images looks like all the symbols are stacked on top of each other, try setting this option to False.
+
 .. code-block:: python
 
     zm.config.svg2 = False
+
+
 
 Decimal Precision
 *****************
@@ -113,7 +145,7 @@ This fraction can be changed using `zm.config.minsizefraction`
 
 .. code-block:: python
 
-    zm.config.minsizefraction = 0.5  # Only allow sizes to be reduced in half
+    zm.config.minsizefraction = 0.5  # Only allow sizes to be reduced in half from the base font size
 
 |
 
@@ -143,7 +175,6 @@ Limitations
 Not every MathML element is implemented at this time.
 Unsupported elements and attributes inculde:
 
-- <ms>
 - <mglyph>
 - <merror>
 - <mmultiscripts>

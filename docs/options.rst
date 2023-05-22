@@ -158,13 +158,14 @@ Ziamath may be accessed from the command line, reading input from a file with
 
     python -m ziamath inputfile.txt
 
-Or reading stdin (with LaTeX input):
+Or reading stdin:
 
 .. code-block:: bash
 
-    echo "x^2 + y^2" | python -m ziamath --latex
+    echo "x^2 + y^2" | python -m ziamath
 
-Run `python -m ziamath --help` to show all the options.
+Run `python -m ziamath --help` to show all the options. It attempts to automatically determine whether
+the input is MathML or Latex, but the `--latex` argument may be provided to force Latex mode.
 
 
 |
@@ -172,10 +173,12 @@ Run `python -m ziamath --help` to show all the options.
 Limitations
 -----------
 
-Not every MathML element is implemented at this time.
-Unsupported elements and attributes inculde:
+While the most common features are supported, Ziamath is not a comprehensive implementation of the MathML or MathML Core specification.
+At this time, unsupported elements and attributes inculde:
 
-- <mglyph>
-- <mlabeledtr>
-- some table alignment attributes
+- Elementary Math Layout: <mstack>, <msrow>, <msline>, <mlongdiv>, etc.
+- Some table alignment tags and attributes, such as borders, <mlabeledtr>, and <maligngroup>
+- Right-to-left text
 
+
+Latex support is provided by `latex2mathml <https://pypi.org/project/latex2mathml/>`_.

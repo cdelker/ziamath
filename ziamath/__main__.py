@@ -1,131 +1,94 @@
+''' Command line interface to ziamath.
+
+    python -m ziamath
+'''
+
+import sys
 import argparse
+from xml.etree.ElementTree import ParseError
 
-parser = argparse.ArgumentParser(description="Process some integers.")
-
-parser.add_argument(
-    "src", metavar="INPUT", nargs='?', default=None, help="source file"
-)
-
-parser.add_argument(
-    "-o", dest="dest", metavar="OUTPUT", default=None, help="destination file"
-)
-
-parser.add_argument(
-    "--cache",
-    dest="cache",
-    action="store_true",
-    default=None,
-    help="reference identical glyph",
-)
-
-parser.add_argument(
-    "--no-cache",
-    dest="cache",
-    action="store_false",
-    help="identical glyph duplicated",
-)
-
-parser.add_argument(
-    "--latex",
-    dest="latex",
-    action="store_true",
-    default=None,
-    help="input is latex",
-)
-
-parser.add_argument(
-    "--precision",
-    "-p",
-    dest="precision",
-    type=int,
-    default=None,
-    help="decimal precision to use in SVG path coordinates",
-)
-
-parser.add_argument(
-    "--size",
-    "-s",
-    dest="size",
-    type=int,
-    default=None,
-    help="font size to use in pixels",
-)
-
-parser.add_argument(
-    "--font",
-    "-f",
-    default=None,
-    dest="font_file",
-    help="font file, must contain MATH typesetting table",
-)
-
-parser.add_argument(
-    "--defs",
-    action="store_true",
-    default=None,
-    help="Put symbols inside defs",
-)
+import ziamath as zm
 
 
-################
+def main():
+    parser = argparse.ArgumentParser(
+        description='Convert MathML and Latex to standalone SVG')
 
+    parser.add_argument(
+        'file',
+        nargs='?',
+        help='Input file containing MathML or Latex. If empty stdin is used',
+        type=argparse.FileType('r'),
+        default=sys.stdin)
 
-def as_source(path, mode="rb"):
-    if path and path != "-":
-        return open(path, mode)
-    from sys import stdin
+    parser.add_argument(
+        '-o',
+        dest='output',
+        nargs='?',
+        help='Output file. If empty, stdout is used',
+        type=argparse.FileType('w'),
+        default=sys.stdout)
 
-    return stdin.buffer if "b" in mode else stdin
+    parser.add_argument(
+        '--latex',
+        help='Use Latex input mode',
+        action='store_true')
 
+    parser.add_argument(
+        '--svg1',
+        help='Keep SVG1.x compatibility',
+        action='store_true')
 
-def as_sink(path, mode="wb"):
-    if path and path != "-":
-        return open(path, mode)
-    from sys import stdout
+    parser.add_argument(
+        '--font',
+        '-f',
+        default=None,
+        help='Font file (TTF/OTF). Must contain MATH table')
 
-    return stdout.buffer if "b" in mode else stdout
+    parser.add_argument(
+        '--size',
+        '-s',
+        type=int,
+        default=None,
+        help='Font size in points')
 
+    parser.add_argument(
+        '--precision',
+        '-p',
+        type=int,
+        default=None,
+        help='Decimal precision for SVG coordinates')
 
-args = parser.parse_args()
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=zm.__version__)
 
-from xml.etree import ElementTree as ET
+    args = parser.parse_args()
+    if args.file.isatty():
+        parser.print_help()
+        return 0
 
-kwopt = {}
+    if args.svg1:
+        zm.config.svg2 = False
+    if args.precision:
+        zm.config.precision = args.precision
 
-if args.size is not None:
-    kwopt["size"] = args.size
+    kwargs = {'font': args.font,
+              'size': args.size}
 
-if args.cache is not None:
-    from .zmath import config
-    config.svg2 = args.cache
-
-if args.precision is not None:
-    from .zmath import config
-    config.precision = args.precision
-
-
-if args.font_file is not None:
-    kwopt["font"] = args.font_file
-
-# print(args, kwopt)
-
-with as_source(args.src) as src:
-    from .zmath import Math
-
+    mathinput = args.file.read()    
     if args.latex:
-        mml = Math.fromlatex(src.read().decode("UTF-8").strip(), **kwopt)
-        svg = mml.svgxml()
+        svg = zm.Latex(mathinput, **kwargs).svg()
     else:
-        mml = ET.parse(src)
-        mmr = Math(mml.getroot(), **kwopt)
-        svg = mmr.svgxml()
-    if args.defs:
-        defs = None
-        for p in list(svg.iter("symbol")):
-            if not defs:
-                defs = ET.SubElement(svg, "defs")
-            svg.remove(p)
-            defs.append(p)
-    with as_sink(args.dest, "wb") as w:
-        etr = ET.ElementTree(svg)
-        etr.write(w)
+        try:
+            svg = zm.Math(mathinput, **kwargs).svg()
+        except ParseError:
+            svg = zm.Latex(mathinput, **kwargs).svg()
+
+    print(svg, file=args.output)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

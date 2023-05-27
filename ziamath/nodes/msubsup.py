@@ -68,15 +68,18 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont) -> tuple[float, flo
                 x -= base.units_to_points(italicx)  # Shift back on integrals
 
         if lastg and firstg and lastg.index > 0 and font.math.kernInfo:
-            # Kern and vertical-shift set by font
-            kern, shiftdn = font.math.kernsub(lastg, firstg)
+            # Horizontal kern set by font
+            # Ignoring vertical kern otherwise subscripts don't line up
+            # across the row which looks weird
+            kern, _ = font.math.kernsub(lastg, firstg)
             x += base.units_to_points(kern)
+
+        if base.mtag in ['mi', 'mn'] or (base.mtag == 'mo' and not base.string):
+            shiftdn = font.math.consts.subscriptShiftDown
         else:
-            # calculate vertical shift based on bounding box and math constants table
             shiftdn = max(font.math.consts.subscriptShiftDown,
-                          firstg.bbox.ymax - font.math.consts.subscriptTopMax if firstg else 0,
-                          font.math.consts.subscriptBaselineDropMin - base.points_to_units(base.bbox.ymin))
-                
+                      firstg.bbox.ymax - font.math.consts.subscriptTopMax if firstg else 0,
+                      font.math.consts.subscriptBaselineDropMin - base.points_to_units(base.bbox.ymin))
         suby = base.units_to_points(shiftdn)
         xadvance = x + subscript.xadvance()
     return x, suby, xadvance

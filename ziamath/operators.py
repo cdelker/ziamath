@@ -259,7 +259,7 @@ operators = {
     ('⋀', 'infix'): {'lspace': 'thinmathspace', 'rspace': 'thinmathspace'},  # &Wedge;
     ('⋄', 'infix'): {'lspace': 'thinmathspace', 'rspace': 'thinmathspace'},  # &Diamond;
     ('∖', 'infix'): {'stretchy': 'true',  'lspace': 'thinmathspace', 'rspace': 'thinmathspace'},  # &Backslash;
-    ('/','infix'): {'stretchy': 'true',  'lspace': 'thinmathspace', 'rspace': 'thinmathspace'},
+    ('/','infix'): {'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},
     ('−', 'prefix'): {'lspace': '0em', 'rspace': 'veryverythinmathspace'},
     ('+', 'prefix'): {'lspace': '0em', 'rspace': 'veryverythinmathspace'},
     ('∓', 'prefix'): {'lspace': '0em', 'rspace': 'veryverythinmathspace'},

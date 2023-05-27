@@ -234,6 +234,17 @@ EXCEPTIONS = {
     }
 
 
+def auto_italic(char: str) -> bool:
+    ''' Determine whether the character should be automatically
+        converted to italic
+    '''
+    ordchr = ord(char)
+    for ordrange in (GREEK_LOWER_RANGE, LATIN_SMALL_RANGE, LATIN_CAP_RANGE):
+        if ordrange[0] <= ordchr <= ordrange[1]:
+            return True
+    return False
+
+
 def styledchr(char, variant: MathVariant):
     ''' Convert character to its styled (bold, italic, script, etc.) variant.
         See tables at: https://en.wikipedia.org/wiki/Mathematical_Alphanumeric_Symbols

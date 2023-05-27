@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 
 from ziafont.fonttypes import BBox
 
-from ..styles import styledstr
+from ..styles import styledstr, auto_italic
 from ..drawable import Glyph
 from .nodetools import subglyph, elementtext
 from .mnode import Mnode
@@ -64,10 +64,10 @@ class Midentifier(Mnumber, tag='mi'):
             if function (eg 'sin')
         '''
         text = elementtext(self.element)
-
         if (len(text) == 1
                 and not self.style.mathvariant.italic
-                and not self.style.mathvariant.normal):
+                and not self.style.mathvariant.normal
+                and auto_italic(text)):
             self.style.mathvariant.italic = True
 
         if len(text) > 1:

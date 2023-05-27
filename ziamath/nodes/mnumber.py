@@ -29,7 +29,7 @@ class Mnumber(Mnode, tag='mn'):
         if (leftsibling := self.leftsibling()) and leftsibling.mtag == 'mfenced':
             x = self.size_px('verythinmathspace')
 
-        for char in self.string:
+        for i, char in enumerate(self.string):
             glyph = self.font.glyph(char)
             if kwargs.get('sup') or kwargs.get('sub'):
                 glyph = subglyph(glyph, self.font)
@@ -40,9 +40,11 @@ class Mnumber(Mnode, tag='mn'):
             if self.nodes[-1].bbox.xmin < 0:
                 # don't let glyphs run together if xmin < 0
                 x -= self.nodes[-1].bbox.xmin
+            
 
             self.nodexy.append((x, 0))
-            x += self.units_to_points(glyph.advance())
+            nextglyph = self.font.glyph(self.string[i+1]) if i < len(self.string)-1 else None
+            x += self.units_to_points(glyph.advance(nextchr=nextglyph))
             ymin = min(ymin, self.units_to_points(glyph.path.bbox.ymin))
             ymax = max(ymax, self.units_to_points(glyph.path.bbox.ymax))
 
@@ -86,3 +88,8 @@ class Mtext(Mnumber, tag='mtext'):
             # Don't use elementtext() since it strips whitespace
             string = styledstr(self.element.text, self.style.mathvariant)
         return string
+
+    def _setup(self, **kwargs) -> None:
+        self.font.language('DFLT', '')  # Allow standard kerning to apply
+        super()._setup(**kwargs)
+        self.font.language('math', '')

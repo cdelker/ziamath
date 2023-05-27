@@ -74,7 +74,7 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont) -> tuple[float, flo
             kern, _ = font.math.kernsub(lastg, firstg)
             x += base.units_to_points(kern)
 
-        if base.mtag in ['mi', 'mn'] or (base.mtag == 'mo' and not base.string):
+        if base.mtag in ['mi', 'mn'] or (base.mtag == 'mo' and not base.string):  # type: ignore
             shiftdn = font.math.consts.subscriptShiftDown
         else:
             shiftdn = max(font.math.consts.subscriptShiftDown,
@@ -201,8 +201,8 @@ class Mmultiscripts(Mnode, tag='mmultiscripts'):
         super().__init__(element, parent, **kwargs)
 
         self.base = Mnode.fromelement(self.element[0], parent=self, **kwargs)
-        self.prescripts = []
-        self.postscripts = []
+        self.prescripts: list[ET.Element] = []
+        self.postscripts: list[ET.Element] = []
 
         activescriptlist = self.postscripts
         for elm in self.element[1:]:

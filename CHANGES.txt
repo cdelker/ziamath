@@ -1,4 +1,4 @@
-0.8 - in development
+0.8 - 2023-05-28
 
 - Added parameter for display/block mode versus inline/text mode
 - Added `Latex` class for creating expressions from Latex directly

@@ -1,6 +1,6 @@
 ''' Global configuration options '''
 from typing import Optional
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ziafont import config as zfconfig
 
@@ -52,11 +52,11 @@ class Config:
         decimal_separator: Use `.` or `,` as decimal separator. (only
             affects Latex math)
     '''
-    math: MathStyle = MathStyle()
-    text: TextStyle = TextStyle()
+    math: MathStyle = field(default_factory=MathStyle)
+    text: TextStyle = field(default_factory=TextStyle)
     minsizefraction: float = .3
     decimal_separator = '.'
-    debug: DebugConfig = DebugConfig()
+    debug: DebugConfig = field(default_factory=DebugConfig)
 
     @property
     def svg2(self) -> bool:

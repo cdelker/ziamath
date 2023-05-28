@@ -3,7 +3,7 @@ from .styles import styledchr, styledstr
 from .zmath import Math, Latex, Text, declareoperator
 from .config import config
 
-__version__ = '0.8'
+__version__ = '0.8.1'
 
 
 declareoperator(r'\tg')

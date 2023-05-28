@@ -5,7 +5,7 @@
 from __future__ import annotations
 from typing import Any, MutableMapping
 from collections import ChainMap, namedtuple
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, field, asdict
 from xml.etree import ElementTree as ET
 
 from .config import config
@@ -27,7 +27,7 @@ class MathVariant:
 @dataclass
 class MathStyle:
     ''' Math Style parameters '''
-    mathvariant: MathVariant = MathVariant()
+    mathvariant: MathVariant = field(default_factory=MathVariant)
     displaystyle: bool = True
     mathcolor: str = 'black'
     mathbackground: str = 'none'

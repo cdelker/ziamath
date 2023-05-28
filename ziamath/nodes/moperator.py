@@ -73,7 +73,7 @@ class Moperator(Mnode, tag='mo'):
                 glyph = self.font.math.variant(
                     glyph.index, self.points_to_units(self.width), vert=False)
             elif (self.height
-                    and self.params.get('stretchy') != 'false'):
+                    and self.params.get('stretchy', 'false') != 'false'):
                 glyph = self.font.math.variant(
                     glyph.index, self.points_to_units(self.height), vert=True)
 

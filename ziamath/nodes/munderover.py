@@ -46,7 +46,7 @@ def place_over(base: Mnode,
     # Center the node by default
     x = (((base.bbox.xmax - base.bbox.xmin) - (over.bbox.xmax-over.bbox.xmin)) / 2
          - over.bbox.xmin)
-    
+
     if ((lastg := base.lastglyph())
             and node_is_singlechar(base)
             and not isinstance(over, drawable.HLine)):
@@ -58,12 +58,12 @@ def place_over(base: Mnode,
         # Use font-specific accent attachment if defined
         if (basex := font.math.topattachment(lastg.index)):
             x = base.units_to_points(basex)
-            
+
             if (node_is_singlechar(over)
                     and (attachx := font.math.topattachment(over.lastglyph().index))):  # type: ignore
                 x -= over.units_to_points(attachx)
             else:
-                x -= (over.bbox.xmax-over.bbox.xmin)/2
+                x -= (over.bbox.xmax-over.bbox.xmin)/2 + over.bbox.xmin
 
     y = -base.bbox.ymax - base.units_to_points(font.math.consts.overbarVerticalGap)
     y += over.bbox.ymin
@@ -151,8 +151,10 @@ class Mover(Mnode, tag='mover'):
         self.bbox = BBox(xmin, xmax, ymin, ymax)
         if not self._isaccent:
             self._xadvance = self.base.xadvance()
+            self.base_xadvance = self._xadvance  # For attaching subscripts
         else:
             self._xadvance = xmax
+            self.base_xadvance = basex + self.base.xadvance()
 
     def xadvance(self) -> float:
         return self._xadvance

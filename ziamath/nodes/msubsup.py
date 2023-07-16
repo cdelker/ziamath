@@ -76,10 +76,13 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont) -> tuple[float, flo
 
         if base.mtag in ['mi', 'mn'] or (base.mtag == 'mo' and not base.string):  # type: ignore
             shiftdn = font.math.consts.subscriptShiftDown
+        elif base.mtag == 'mover' and base._isaccent:  # type: ignore
+            shiftdn = font.math.consts.subscriptShiftDown
         else:
             shiftdn = max(font.math.consts.subscriptShiftDown,
-                      firstg.bbox.ymax - font.math.consts.subscriptTopMax if firstg else 0,
-                      font.math.consts.subscriptBaselineDropMin - base.points_to_units(base.bbox.ymin))
+                          firstg.bbox.ymax - font.math.consts.subscriptTopMax if firstg else 0,
+                          font.math.consts.subscriptBaselineDropMin - base.points_to_units(base.bbox.ymin))
+
         suby = base.units_to_points(shiftdn)
         xadvance = x + subscript.xadvance()
     return x, suby, xadvance
@@ -131,7 +134,10 @@ class Msub(Mnode, tag='msub'):
     def _setup(self, **kwargs) -> None:
         self.nodes.append(self.base)
         self.nodexy.append((0, 0))
-        x = self.base.xadvance()
+        if self.base.mtag == 'mover' and self.base._isaccent:  # type: ignore
+            x = self.base.base_xadvance  # type: ignore
+        else:
+            x = self.base.xadvance()
 
         subx, suby, xadv = place_sub(self.base, self.subscript, self.font)
         self.nodes.append(self.subscript)

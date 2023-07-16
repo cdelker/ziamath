@@ -10,9 +10,6 @@ from itertools import zip_longest
 import importlib.resources as pkg_resources
 import xml.etree.ElementTree as ET
 
-from latex2mathml.converter import convert  # type: ignore
-import latex2mathml.commands  # type: ignore
-
 import ziafont as zf
 from ziafont.glyph import fmt
 from .mathfont import MathFont
@@ -20,6 +17,7 @@ from .nodes import Mnode
 from .styles import parse_style
 from .escapes import unescape
 from .config import config
+from .tex import tex2mml
 
 
 Halign = Literal['left', 'center', 'right']
@@ -35,37 +33,6 @@ def denamespace(element: ET.Element) -> ET.Element:
     for elm in element:
         denamespace(elm)
     return element
-
-
-def declareoperator(name: str) -> None:
-    r''' Declare a new operator name, similar to Latex ``\DeclareMathOperator`` command.
-
-        Args:
-            name: Name of operator, should start with a ``\``.
-                Example: ``declareoperator(r'\myfunc')``
-    '''
-    latex2mathml.commands.FUNCTIONS = latex2mathml.commands.FUNCTIONS + (name,)
-
-
-def tex2mml(tex: str, inline: bool = False) -> str:
-    ''' Convert Latex to MathML. Do some hacky preprocessing to work around
-        some issues with generated MathML that ziamath doesn't support yet.
-    '''
-    tex = re.sub(r'\\binom{(.+?)}{(.+?)}', r'\\left( \1 \\atop \2 \\right)', tex)
-    # latex2mathml bug requires space after mathrm
-    tex = re.sub(r'\\mathrm{(.+?)}', r'\\mathrm {\1}', tex)
-    tex = tex.replace('||', '‖')
-    if config.decimal_separator == ',':
-        # Replace , with {,} to remove right space
-        # (must be surrounded by digits)
-        tex = re.sub(r'([0-9]),([0-9])', r'\1{,}\2', tex)
-
-    mml = convert(tex, display='inline' if inline else 'block')
-
-    # Replace some operators with "stretchy" variants
-    mml = re.sub(r'<mo>&#x0005E;', r'<mo>&#x00302;', mml)  # widehat
-    mml = re.sub(r'<mo>&#x0007E;', r'<mo>&#x00303;', mml)  # widetilde
-    return mml
 
 
 def apply_mstyle(element: ET.Element) -> ET.Element:
@@ -162,7 +129,7 @@ class Math:
                 color: Color parameter, equivalent to "mathcolor" attribute
         '''
         warnings.warn(r'fromlatextext is deprecated. Use ziamath.Text or \text{} command.', DeprecationWarning, stacklevel=2)
-        
+
         # Extract each $..$, convert to MathML, but the raw text in <mtext>, and join
         # into a single <math>
         parts = re.split(r'(\$+.*?\$+)', latex)

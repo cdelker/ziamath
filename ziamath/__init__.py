@@ -1,9 +1,10 @@
 from .mathtable import MathTable
 from .styles import styledchr, styledstr
-from .zmath import Math, Latex, Text, declareoperator
+from .zmath import Math, Latex, Text
+from .tex import declareoperator
 from .config import config
 
-__version__ = '0.8.1'
+__version__ = '0.9a0'
 
 
 declareoperator(r'\tg')

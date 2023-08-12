@@ -6,11 +6,6 @@ from latex2mathml.converter import convert  # type: ignore
 
 from .config import config
 
-# Remove units from latex2mathml tokenizer so that 1cm is rendered the same as cm
-latex2mathml.tokenizer.PATTERN = re.compile(
-    re.sub('.*# dimension.*\n', '', latex2mathml.tokenizer.PATTERN.pattern),
-    re.VERBOSE,)
-
 
 def declareoperator(name: str) -> None:
     r''' Declare a new operator name, similar to Latex ``\DeclareMathOperator`` command.

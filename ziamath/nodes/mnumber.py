@@ -19,6 +19,12 @@ class Mnumber(Mnode, tag='mn'):
     def _getstring(self) -> str:
         ''' Get the styled string for this node '''
         text = elementtext(self.element)
+        if (not self.style.mathvariant.italic
+            and not self.style.mathvariant.normal):
+                # Numbers that should really be identifiers
+                # such as '1cm' with units
+                self.style.mathvariant.italic = True
+
         return styledstr(text, self.style.mathvariant)
 
     def _setup(self, **kwargs) -> None:

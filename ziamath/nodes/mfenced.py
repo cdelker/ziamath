@@ -50,18 +50,27 @@ class Mfenced(Mnode, tag='mfenced'):
             fencebbox = mglyph.bbox
             xadvance = mglyph.xadvance()
         else:
-            # height-adjusted fence glyph variant
-            openglyph = self.font.math.variant_minmax(openglyph.index,
-                                                      self.points_to_units(mrow.bbox.ymin),
-                                                      self.points_to_units(mrow.bbox.ymax))
+            ymin = self.points_to_units(mrow.bbox.ymin)
+            if 'minsize' in self.element.attrib:
+                ymax = self.points_to_units(self.size_px(self.element.get('minsize', '0'))) + ymin
+                openglyph = self.font.math.variant(openglyph.index, ymax-ymin)
+            else:
+                ymax = self.points_to_units(mrow.bbox.ymax)# + ymin
+                openglyph = self.font.math.variant_minmax(openglyph.index,
+                                                          ymin,
+                                                          ymax)
+
             oglyph = Glyph(openglyph, self.openchr, self.glyphsize,
                            self.style, **kwargs)
-
+            
             if self.closechr:
                 closeglyph = self.font.glyph(self.closechr)
-                closeglyph = self.font.math.variant_minmax(closeglyph.index,
-                                                           self.points_to_units(mrow.bbox.ymin),
-                                                           self.points_to_units(mrow.bbox.ymax))
+                if 'minsize' in self.element.attrib:
+                    closeglyph = self.font.math.variant(closeglyph.index, ymax-ymin)
+                else:
+                    closeglyph = self.font.math.variant_minmax(closeglyph.index,
+                                                           ymin,
+                                                           ymax)
                 cglyph = Glyph(closeglyph, self.closechr, self.glyphsize,
                                self.style, **kwargs)
 

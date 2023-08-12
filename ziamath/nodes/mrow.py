@@ -17,7 +17,12 @@ class Mrow(Mnode, tag='mrow'):
     ''' Math row, list of vertically aligned Mnodes '''
     def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
         super().__init__(element, parent, **kwargs)
+        self._xadvance = 0.
         self._setup(**kwargs)
+
+    def xadvance(self) -> float:
+        ''' X-advance for the Mrow '''
+        return self._xadvance
 
     def _break_lines(self) -> list[list[ET.Element]]:
         ''' Break mrow into lines - to handle mspace linebreak (// in latex) '''
@@ -59,6 +64,7 @@ class Mrow(Mnode, tag='mrow'):
         ymin = -y+self.nodes[-1].bbox.ymin
         ymax = self.nodes[0].bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
+        self._xadvance = max([n.xadvance() for n in self.nodes])
 
     def _setup_single_line(self, line: list[ET.Element], **kwargs) -> None:
         ''' Single line mrow '''
@@ -114,6 +120,7 @@ class Mrow(Mnode, tag='mrow'):
             ymin = min(ymin, node.bbox.ymin)
             x += node.xadvance()
         self.bbox = BBox(xmin, xmax, ymin, ymax)
+        self._xadvance = x
 
     def _setup(self, **kwargs) -> None:
         kwargs = copy(kwargs)

@@ -60,6 +60,7 @@ class Mpadded(Mrow, tag='mpadded'):
         if depth:
             ymin = -adjust(depth, ymin)
         self.bbox = BBox(xmin, xmax, ymin, ymax)
+        self._xadvance = xmax
 
 
 class Mphantom(Mrow, tag='mphantom'):

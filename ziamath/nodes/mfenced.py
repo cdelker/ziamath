@@ -21,7 +21,12 @@ class Mfenced(Mnode, tag='mfenced'):
         self.openchr = element.get('open', '(')
         self.closechr = element.get('close', ')')
         self.separators = element.get('separators', ',').replace(' ', '')
+        self._xadvance = 0.
         self._setup(**kwargs)
+
+    def xadvance(self) -> float:
+        ''' X-advance for the Mrow '''
+        return self._xadvance
 
     def _setup(self, **kwargs) -> None:
         separator_elms = [ET.fromstring(f'<mo>{k}</mo>') for k in self.separators]
@@ -83,7 +88,7 @@ class Mfenced(Mnode, tag='mfenced'):
             xadvance = mrow.xadvance()
 
         self.nodes = []
-        x = yofst = base = 0.
+        x = xmax = yofst = base = 0.
         yglyphmin = yglyphmax = 0.
         try:
             if self.parent.leftsibling():
@@ -100,8 +105,10 @@ class Mfenced(Mnode, tag='mfenced'):
             x += rspace
             yglyphmin = min(-yofst+oglyph.bbox.ymin, yglyphmin)
             yglyphmax = max(-yofst+oglyph.bbox.ymax, yglyphmax)
-
+            xmax = x
+            
         if len(fencedelms) > 0:
+            xmax = max(xmax, x+mrow.bbox.xmax)
             self.nodes.append(mrow)
             self.nodexy.append((x, base))
             x += xadvance
@@ -127,7 +134,9 @@ class Mfenced(Mnode, tag='mfenced'):
             self.nodes.append(cglyph)
             self.nodexy.append((x, yofst))
             x += self.units_to_points(closeglyph.advance())
+            xmax = max(xmax, x)
             yglyphmin = min(-yofst+cglyph.bbox.ymin, yglyphmin)
             yglyphmax = max(-yofst+cglyph.bbox.ymax, yglyphmax)
 
-        self.bbox = BBox(0, x, min(yglyphmin, fencebbox.ymin), max(yglyphmax, fencebbox.ymax))
+        self.bbox = BBox(0, xmax, min(yglyphmin, fencebbox.ymin), max(yglyphmax, fencebbox.ymax))
+        self._xadvance = xmax

@@ -4,7 +4,7 @@ import xml.etree.ElementTree as ET
 from ziafont.fonttypes import BBox
 
 from ..styles import styledstr, auto_italic
-from ..drawable import Glyph
+from ..drawable import Glyph, HLine
 from .nodetools import subglyph, elementtext
 from .mnode import Mnode
 
@@ -97,5 +97,44 @@ class Mtext(Mnumber, tag='mtext'):
 
     def _setup(self, **kwargs) -> None:
         self.font.language('DFLT', '')  # Allow standard kerning to apply
-        super()._setup(**kwargs)
+        ymin = 9999.
+        ymax = -9999.
+        x = 0.
+
+        i = 0
+        while i < len(self.string):
+            char = self.string[i]
+            if char == '-':  # repeated hyphens build up into a long horizontal line
+                dashwidth = self.font.glyph('-').bbox.xmax
+                dashes = 1
+                i += 1
+                while i < len(self.string) and self.string[i] == '-':
+                    i += 1
+                    dashes += 1
+                width = self.units_to_points(dashes * dashwidth)
+                self.nodes.append(HLine(
+                    width,
+                    self.units_to_points(self.font.math.consts.fractionRuleThickness),
+                    style=self.style,
+                    **kwargs))
+                self.nodexy.append((x, -self.units_to_points(self.font.math.consts.axisHeight +
+                                                             self.font.math.consts.fractionRuleThickness/2)))
+                x += width
+
+            else:
+                glyph = self.font.glyph(char)
+                if kwargs.get('sup') or kwargs.get('sub'):
+                    glyph = subglyph(glyph, self.font)
+
+                self.nodes.append(
+                    Glyph(glyph, char, self.glyphsize, self.style, **kwargs))
+
+                self.nodexy.append((x, 0))
+                nextglyph = self.font.glyph(self.string[i+1]) if i < len(self.string)-1 else None
+                x += self.units_to_points(glyph.advance(nextchr=nextglyph))
+                ymin = min(ymin, self.units_to_points(glyph.path.bbox.ymin))
+                ymax = max(ymax, self.units_to_points(glyph.path.bbox.ymax))
+                i += 1
+
+        self.bbox = BBox(self.nodes[0].bbox.xmin, x, ymin, ymax)
         self.font.language('math', '')

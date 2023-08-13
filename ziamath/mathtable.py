@@ -415,11 +415,15 @@ class AssembledGlyph(SimpleGlyph):
             ymin = min([g.path.bbox.ymin for g in glyphs])
             ymax = max([g.path.bbox.ymax for g in glyphs])
         bbox = BBox(xmin, xmax, ymin, ymax)
+        self._xadvance = max([g.advance() for g in glyphs])
         super().__init__(index, [], bbox, font)
 
     def advance(self, nextchr=None) -> float:
         ''' X-advance '''
-        return self.bbox.xmax
+        if self.vert:
+            return self._xadvance
+        else:
+            return self.bbox.xmax
 
     def svgpath(self, x0: float = 0, y0: float = 0,
                 scale_factor: float = 1) -> Optional[ET.Element]:

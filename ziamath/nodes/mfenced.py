@@ -1,6 +1,7 @@
 ''' <mfenced> math element '''
 from typing import Union
 from itertools import chain, zip_longest
+from contextlib import suppress
 import xml.etree.ElementTree as ET
 
 from ziafont.fonttypes import BBox
@@ -8,8 +9,6 @@ from ziafont.fonttypes import BBox
 from .. import operators
 from ..drawable import Glyph
 from .mnode import Mnode
-from .msubsup import Msub, Msup, Msubsup
-from .mfrac import Mfrac
 
 
 class Mfenced(Mnode, tag='mfenced'):
@@ -90,46 +89,41 @@ class Mfenced(Mnode, tag='mfenced'):
         self.nodes = []
         x = xmax = yofst = base = 0.
         yglyphmin = yglyphmax = 0.
-        try:
+        with suppress(AttributeError):
             if self.parent.leftsibling():
                 x += self.size_px('verythinmathspace')
-        except AttributeError:
-            pass
 
         if self.openchr:
-            params = operators.get_params(self.openchr, 'prefix')
-            rspace = self.size_px(params.get('rspace', '0'))
             self.nodes.append(oglyph)
             self.nodexy.append((x, yofst))
+            params = operators.get_params(self.openchr, 'prefix')
             x += self.units_to_points(openglyph.advance())
-            x += rspace
+            x += self.size_px(params.get('rspace', '0'))
+            xmax = x
             yglyphmin = min(-yofst+oglyph.bbox.ymin, yglyphmin)
             yglyphmax = max(-yofst+oglyph.bbox.ymax, yglyphmax)
-            xmax = x
-            
+        
+        x += mrow.bbox.xmin
         if len(fencedelms) > 0:
-            xmax = max(xmax, x+mrow.bbox.xmax)
             self.nodes.append(mrow)
             self.nodexy.append((x, base))
+            xmax = max(xmax, x+mrow.bbox.xmax)
             x += xadvance
 
         if self.closechr:
-            try:
+            with suppress(IndexError, AttributeError):
                 # Mfrac, Msub adds space to right, remove it for fence
-                if isinstance(mrow.nodes[-1], (Msub, Msup, Msubsup)):
+                if mrow.nodes[-1].mtag in ['msub', 'msup', 'msubsup']:
                     x -= self.units_to_points(self.font.math.consts.spaceAfterScript)
-                elif isinstance(mrow.nodes[-1], Mfrac):
-                    x -= self.size_px('verythinmathspace')
-            except (IndexError, AttributeError):
-                pass
+                elif mrow.nodes[-1].mtag == 'mfrac':
+                    x -= self.size_px('thinmathspace')
 
             if (lastg := mrow.lastglyph()):
                 if (italicx := self.font.math.italicsCorrection.getvalue(lastg.index)):
                     x += mrow.units_to_points(italicx)
                         
             params = operators.get_params(self.closechr, 'postfix')
-            lspace = self.size_px(params.get('lspace', '0'))
-            x += lspace
+            x += self.size_px(params.get('lspace', '0'))
 
             self.nodes.append(cglyph)
             self.nodexy.append((x, yofst))

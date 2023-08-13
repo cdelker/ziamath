@@ -56,8 +56,8 @@ operators = {
     ('⊣', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &LeftTee;
     ('⊢', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &RightTee;
     ('⥰', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},  # &RoundImplies;
-    ('|', 'infix'): {'stretchy': 'true',  'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},
-    ('‖', 'infix'): {'stretchy': 'true',  'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},
+    ('|', 'infix'): {'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},
+    ('‖', 'infix'): {'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},
     ('||', 'infix'): {'lspace': '0em', 'rspace': '0em'},
     ('⩔', 'infix'): {'stretchy': 'true',  'lspace': 'mediummathspace', 'rspace': 'mediummathspace'},  # &Or;
     ('&&', 'infix'): {'lspace': 'thickmathspace', 'rspace': 'thickmathspace'},

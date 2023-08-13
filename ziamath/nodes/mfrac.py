@@ -4,6 +4,7 @@ from xml.etree import ElementTree as ET
 from ziafont.fonttypes import BBox
 
 from ..styles import parse_style
+from ..config import config
 from ..drawable import HLine
 from . import Mnode
 
@@ -33,9 +34,14 @@ class Mfrac(Mnode, tag='mfrac'):
         self._setup(**kwargs)
 
     def _setup(self, **kwargs) -> None:
-
-        linethick = self.units_to_points(self.font.math.consts.fractionRuleThickness)
+        # Keep fraction bar same thickness as minus sign
+        fbar_glyphsize = max(
+            self.size*(self.font.math.consts.scriptPercentScaleDown/100)**max(0, self.style.scriptlevel-1),
+            self.font.basesize*config.minsizefraction)
+        fracbar_pts_per_unit = fbar_glyphsize/self.font.info.layout.unitsperem
+        linethick = fracbar_pts_per_unit * self.font.math.consts.fractionRuleThickness
         if 'linethickness' in self.element.attrib:
+            # User parameter overrides thickness
             lt = self.element.get('linethickness', '')
             try:
                 linethick = self.size_px(lt)

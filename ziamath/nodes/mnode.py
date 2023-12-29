@@ -148,16 +148,41 @@ class Mnode(Drawable):
                    "negativeveryverythickmathspace": f'{-7/18}em',
                    }.get(size, size)
 
-        numsize = numsize.rstrip('px')
         try:
-            pxsize = float(numsize)
+            # Plain number, or value in px
+            pxsize = float(numsize.rstrip('px'))
         except ValueError as exc:
-            if numsize.endswith('em'):
-                pxsize = float(numsize[:-2]) * fontsize
-            elif numsize.endswith('pt'):
-                pxsize = float(numsize[:-2]) * 1.333  # 1.333 points to pixels
-            else:
-                pxsize = 0
+            pass
+        else:
+            return pxsize
+
+        try:
+            # Units are always last 2 chars
+            units = numsize[-2:]
+            value = float(numsize[:-2])
+        except ValueError:
+            return 0
+
+        # Conversion values from:
+        # https://tex.stackexchange.com/questions/8260/what-are-the-various-units-ex-em-in-pt-bp-dd-pc-expressed-in-mm
+        UNITS_TO_PT = {
+            'pt': 1,
+            'mm': 2.84526,
+            'cm': 28.45274,
+            'ex': 4.30554,
+            'em': 10.00002,
+            'bp': 1.00374,
+            'dd': 1.07,
+            'pc': 12,
+            'in': 72.27
+        }
+        # Convert units to points, then to pixels (= 1.333 px/pt)
+        pxsize = value * UNITS_TO_PT.get(units, 0) * 1.333
+
+        if units in ['em', 'ex']:
+            # These are fontsize dependent, table is based
+            # on 10-point font
+            pxsize *= fontsize/10
         return pxsize
 
     def draw(self, x: float, y: float, svg: ET.Element) -> tuple[float, float]:

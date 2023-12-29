@@ -1,3 +1,15 @@
+0.9 - IN PROGRESS
+
+- Implement long dashes from multiple hyphens in text node.
+- Implement spacing values in more units: cm, mm, in, pc, ex, bp, dd 
+- Fix italics of numbers that should be identifiers
+- Fixed `\big` for mfence elements.
+- Fixed subscripts following mover elements.
+- Adjust spacing of | operator
+- Adjust fraction bar thickness
+- Removed warnings under Python 3.12
+
+
 0.8.1 - 2023-05-28
 
 - Fixed ziamath import on Python 3.11.

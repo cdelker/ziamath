@@ -13,4 +13,4 @@ Ziamath Classes
 .. autoclass:: ziamath.config.Config
     :members:
     
-.. autofunction:: ziamath.zmath.declareoperator
+.. autofunction:: ziamath.tex.declareoperator

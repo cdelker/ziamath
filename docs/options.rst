@@ -60,7 +60,7 @@ Customization
 Declaring Operators
 *******************
 
-To declare a new math operator, use :py:meth:`ziamath.zmath.declareoperator`. This works similar to LaTeX's DeclareMathOperator to allow custom function names typeset as functions instead of identifiers.
+To declare a new math operator, use :py:meth:`ziamath.tex.declareoperator`. This works similar to LaTeX's DeclareMathOperator to allow custom function names typeset as functions instead of identifiers.
 
 Decimal Separator
 *****************

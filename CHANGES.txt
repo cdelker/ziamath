@@ -1,7 +1,8 @@
-0.9 - IN PROGRESS
+0.9 - 2023-12-29
 
 - Implement long dashes from multiple hyphens in text node.
-- Implement spacing values in more units: cm, mm, in, pc, ex, bp, dd 
+- Implement spacing values in more units: cm, mm, in, pc, mu, ex, bp, dd
+- Add verythinmathspace after functions with superscript, such as sin^2
 - Fix italics of numbers that should be identifiers
 - Fixed `\big` for mfence elements.
 - Fixed subscripts following mover elements.

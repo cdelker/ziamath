@@ -174,12 +174,13 @@ class Mnode(Drawable):
             'bp': 1.00374,
             'dd': 1.07,
             'pc': 12,
-            'in': 72.27
+            'in': 72.27,
+            'mu': 0.5555,
         }
         # Convert units to points, then to pixels (= 1.333 px/pt)
         pxsize = value * UNITS_TO_PT.get(units, 0) * 1.333
 
-        if units in ['em', 'ex']:
+        if units in ['em', 'ex', 'mu']:
             # These are fontsize dependent, table is based
             # on 10-point font
             pxsize *= fontsize/10

@@ -65,7 +65,7 @@ class Mnumber(Mnode, tag='mn'):
 
 
 class Midentifier(Mnumber, tag='mi'):
-    ''' Number node <mn> '''
+    ''' Identifier node <mi> '''
     def _getstring(self) -> str:
         ''' Get the styled string for the identifier. Applies
             italics if single-char identifier, and extra whitespace
@@ -79,6 +79,7 @@ class Midentifier(Mnumber, tag='mi'):
             self.style.mathvariant.italic = True
 
         if len(text) > 1:
+            # pad with thin space
             text = '\U00002009' + text
             if self.parent.mtag not in ['msub', 'msup', 'msubsup']:
                 text = text + '\U00002009'

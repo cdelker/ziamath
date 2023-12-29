@@ -7,6 +7,7 @@ from ziafont.fonttypes import BBox
 from ..mathfont import MathFont
 from .. import operators
 from .mnode import Mnode
+from .nodetools import elementtext
 
 
 def place_super(base: Mnode, superscript: Mnode, font: MathFont) -> tuple[float, float, float]:
@@ -42,6 +43,11 @@ def place_super(base: Mnode, superscript: Mnode, font: MathFont) -> tuple[float,
 
         supy = base.units_to_points(-shiftup)
         xadvance = x + superscript.bbox.xmax
+
+        if base.mtag == 'mi' and len(elementtext(base.element)) > 1:
+            # Add a little space after functions, such as sin^2
+            xadvance += base.size_px('verythinmathspace')
+
     return x, supy, xadvance
 
 

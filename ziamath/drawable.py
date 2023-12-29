@@ -48,7 +48,7 @@ class Glyph(Drawable):
             style: font MathStyle
     '''
     def __init__(self, glyph: SimpleGlyph, char: str, size: float,
-                 style: MathStyle = None, **kwargs):
+                 style: Optional[MathStyle] = None, **kwargs):
         super().__init__()
         self.glyph = glyph
         self.char = char
@@ -107,7 +107,7 @@ class Glyph(Drawable):
 class HLine(Drawable):
     ''' Horizontal Line. '''
     def __init__(self, length: float, lw: float,
-                 style: MathStyle = None, **kwargs):
+                 style: Optional[MathStyle] = None, **kwargs):
         super().__init__()
         self.length = length
         self.lw = lw
@@ -139,7 +139,7 @@ class HLine(Drawable):
 class VLine(Drawable):
     ''' Vertical Line. '''
     def __init__(self, height: float, lw: float,
-                 style: MathStyle = None, **kwargs):
+                 style: Optional[MathStyle] = None, **kwargs):
         super().__init__()
         self.height = height
         self.lw = lw
@@ -171,8 +171,8 @@ class VLine(Drawable):
 class Box(Drawable):
     ''' Box '''
     def __init__(self, width: float, height: float, lw: float,
-                 cornerradius: float = None,
-                 style: MathStyle = None, **kwargs):
+                 cornerradius: Optional[float] = None,
+                 style: Optional[MathStyle] = None, **kwargs):
         super().__init__()
         self.width = width
         self.height = height
@@ -209,7 +209,7 @@ class Diagonal(Drawable):
     ''' Diagonal Line - corners of Box '''
     def __init__(self, width: float, height: float, lw: float,
                  arrow: bool = False,
-                 style: MathStyle = None, **kwargs):
+                 style: Optional[MathStyle] = None, **kwargs):
         super().__init__()
         self.width = width
         self.height = height
@@ -261,7 +261,7 @@ class Diagonal(Drawable):
 class Ellipse(Drawable):
     ''' Ellipse '''
     def __init__(self, width: float, height: float, lw: float,
-                 style: MathStyle = None, **kwargs):
+                 style: Optional[MathStyle] = None, **kwargs):
         super().__init__()
         self.width = width
         self.height = height

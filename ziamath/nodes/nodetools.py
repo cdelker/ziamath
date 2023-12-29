@@ -55,7 +55,7 @@ def node_is_singlechar(node: Union['Mnode', 'Drawable']) -> bool:
 
 
 def subglyph(glyph: SimpleGlyph, font: MathFont) -> SimpleGlyph:
-    ''' Substitute glyphs using font GSUB ssty feature. This
+    r''' Substitute glyphs using font GSUB ssty feature. This
         substitutes glyphs like \prime for use in sub/superscripts.
     '''
     if font.gsub:

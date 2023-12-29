@@ -127,7 +127,7 @@ class Mnode(Drawable):
         except IndexError:
             return None
 
-    def size_px(self, size: str, fontsize: float = None) -> float:
+    def size_px(self, size: str, fontsize: Optional[float] = None) -> float:
         ''' Get size in points from the attribute string '''
         if fontsize is None:
             fontsize = self.glyphsize

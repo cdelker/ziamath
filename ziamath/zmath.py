@@ -62,7 +62,7 @@ class Math:
             font: Filename of font file. Must contain MATH typesetting table.
     '''
     def __init__(self, mathml: Union[str, ET.Element],
-                 size: float = None, font: str = None):
+                 size: Optional[float] = None, font: Optional[str] = None):
         self.size = size if size else config.math.fontsize
         font = font if font else config.math.mathfont
 
@@ -88,8 +88,8 @@ class Math:
         self.node = Mnode.fromelement(mathml, parent=self)  # type: ignore
 
     @classmethod
-    def fromlatex(cls, latex: str, size: float = None, mathstyle: str = None,
-                  font: str = None, color: str = None, inline: bool = False):
+    def fromlatex(cls, latex: str, size: Optional[float] = None, mathstyle: Optional[str] = None,
+                  font: Optional[str] = None, color: Optional[str] = None, inline: bool = False):
         ''' Create Math Renderer from a single LaTeX expression. Requires
             latex2mathml Python package.
 
@@ -113,9 +113,9 @@ class Math:
         return cls(mathml, size, font)
 
     @classmethod
-    def fromlatextext(cls, latex: str, size: float = 24, mathstyle: str = None,
-                      textstyle: str = None, font: str = None,
-                      color: str = None):
+    def fromlatextext(cls, latex: str, size: float = 24, mathstyle: Optional[str] = None,
+                      textstyle: Optional[str] = None, font: Optional[str] = None,
+                      color: Optional[str] = None):
         ''' Create Math Renderer from a sentence containing zero or more LaTeX
             expressions delimited by $..$, resulting in single MathML element.
             Requires latex2mathml Python package.
@@ -217,7 +217,7 @@ class Math:
 
     @classmethod
     def mathml2svg(cls, mathml: Union[str, ET.Element],
-                   size: float = None, font: str = None):
+                   size: Optional[float] = None, font: Optional[str] = None):
         ''' Shortcut to just return SVG string directly '''
         return cls(mathml, size=size, font=font).svg()
 
@@ -242,8 +242,8 @@ class Latex(Math):
             color: Color parameter, equivalent to "mathcolor" attribute
             inline: Use inline math mode (default is block mode)
         '''
-    def __init__(self, latex: str, size: float = None, mathstyle: str = None,
-                 font: str = None, color: str = None, inline: bool = False):
+    def __init__(self, latex: str, size: Optional[float] = None, mathstyle: Optional[str] = None,
+                 font: Optional[str] = None, color: Optional[str] = None, inline: bool = False):
         self.latex = latex
 
         mathml: Union[str, ET.Element]
@@ -279,9 +279,9 @@ class Text:
                 https://matplotlib.org/stable/gallery/text_labels_and_annotations/demo_text_rotation_mode.html
 
     '''
-    def __init__(self, s, textfont: str = None, mathfont: str = None,
-                 mathstyle: str = None, size: float = None, linespacing: float = None,
-                 color: str = None,
+    def __init__(self, s, textfont: Optional[str] = None, mathfont: Optional[str] = None,
+                 mathstyle: Optional[str] = None, size: Optional[float] = None, linespacing: Optional[float] = None,
+                 color: Optional[str] = None,
                  halign: str = 'left', valign: str = 'base',
                  rotation: float = 0, rotation_mode: str = 'anchor'):
         self.str = s
@@ -338,7 +338,7 @@ class Text:
             f.write(self.svg())
 
     def drawon(self, svg: ET.Element, x: float = 0, y: float = 0,
-               halign: str = None, valign: str = None) -> ET.Element:
+               halign: Optional[str] = None, valign: Optional[str] = None) -> ET.Element:
         ''' Draw text on existing SVG element
 
             Args:
@@ -352,7 +352,7 @@ class Text:
         return svgelm
 
     def _drawon(self, svg: ET.Element, x: float = 0, y: float = 0,
-                halign: str = None, valign: str = None) -> Tuple[ET.Element, Tuple[float, float, float, float]]:
+                halign: Optional[str] = None, valign: Optional[str] = None) -> Tuple[ET.Element, Tuple[float, float, float, float]]:
         ''' Draw text on existing SVG element
 
             Args:

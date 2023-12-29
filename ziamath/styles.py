@@ -3,7 +3,7 @@
     this does not check whether the new character glyph exists in the font.
 '''
 from __future__ import annotations
-from typing import Any, MutableMapping
+from typing import Optional, Any, MutableMapping
 from collections import ChainMap, namedtuple
 from dataclasses import dataclass, field, asdict
 from xml.etree import ElementTree as ET
@@ -60,7 +60,7 @@ def parse_displaystyle(params: MutableMapping[str, Any]) -> bool:
     return dstyle
 
 
-def parse_style(element: ET.Element, parent_style: MathStyle = None) -> MathStyle:
+def parse_style(element: ET.Element, parent_style: Optional[MathStyle] = None) -> MathStyle:
     ''' Read element style attributes into MathStyle '''
     params: MutableMapping[str, Any]
     if parent_style:

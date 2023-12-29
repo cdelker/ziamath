@@ -1,8 +1,8 @@
 ''' Latex to MathML interface '''
 import re
-import latex2mathml.tokenizer  # type: ignore
-import latex2mathml.commands  # type: ignore
-from latex2mathml.converter import convert  # type: ignore
+import latex2mathml.tokenizer
+import latex2mathml.commands
+from latex2mathml.converter import convert
 
 from .config import config
 
@@ -14,7 +14,7 @@ def declareoperator(name: str) -> None:
             name: Name of operator, should start with a ``\``.
                 Example: ``declareoperator(r'\myfunc')``
     '''
-    latex2mathml.commands.FUNCTIONS = latex2mathml.commands.FUNCTIONS + (name,)
+    latex2mathml.commands.FUNCTIONS = latex2mathml.commands.FUNCTIONS + (name,)  # type: ignore
 
 
 def tex2mml(tex: str, inline: bool = False) -> str:

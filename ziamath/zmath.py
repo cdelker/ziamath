@@ -399,6 +399,7 @@ class Text:
                     svgparts.append(math)
                     partsizes.append(math.getsize())
                 else:  # Text
+                    part = part.replace('<', '&lt;').replace('>', '&gt;')
                     if self.textfont:
                         # A specific font file is defined, use ziafont and ignore textstyle
                         txt = zf.Text(part, font=self.textfont, size=self.size, color=self.textcolor)
@@ -406,7 +407,7 @@ class Text:
                         svgparts.append(txt)
                     else:
                         # use math font with textstyle
-                        txt = Math.fromlatex(fr'\text{{{part}}}',
+                        txt = Math.fromlatex(f'\\text{{{part}}}',
                                              font=self.mathfont,
                                              mathstyle=self.textstyle,
                                              size=self.size,

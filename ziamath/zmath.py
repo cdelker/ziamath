@@ -304,10 +304,13 @@ class Text:
         if textfont is None:
             self.textfont = None
             self.textstyle = textstyle
+        elif textfont in loadedfonts:
+            self.textfont = loadedfonts[textfont]
         else:
             try:
                 self.textfont = zf.Font(textfont)
                 self.textstyle = textstyle
+                loadedfonts[textfont] = self.textfont
             except FileNotFoundError:
                 self.textfont = None
                 self.textstyle = textfont
@@ -400,6 +403,7 @@ class Text:
                         # A specific font file is defined, use ziafont and ignore textstyle
                         txt = zf.Text(part, font=self.textfont, size=self.size, color=self.textcolor)
                         partsizes.append(txt.getsize())
+                        svgparts.append(txt)
                     else:
                         # use math font with textstyle
                         txt = Math.fromlatex(fr'\text{{{part}}}',
@@ -407,9 +411,9 @@ class Text:
                                              mathstyle=self.textstyle,
                                              size=self.size,
                                              color=self.textcolor)
-                        partsizes.append((txt.node.bbox.xmax - txt.node.bbox.xmin,  # type: ignore
-                                          txt.node.size))  # type: ignore
+                        partsizes.append(txt.getsize())
                     svgparts.append(txt)
+
             if len(svgparts) > 0:
                 svglines.append(svgparts)
                 linesizes.append(partsizes)
@@ -419,11 +423,11 @@ class Text:
         linewidths = [sum(p[0] for p in line) for line in linesizes]
 
         if valign == 'bottom':
-            ystart = y + sum(lineofsts) - sum(lineheights[1:])
+            ystart = y - (len(lines)-1)*self.size*self.linespacing + lineofsts[-1]
         elif valign == 'top':
             ystart = y + lineheights[0] + lineofsts[0]
         elif valign == 'center':
-            ystart = y + lineheights[0] + lineofsts[0] - sum(lineheights)/2
+            ystart = y + (lineheights[0] + lineofsts[0] - (len(lines)-1)*self.size*self.linespacing + lineofsts[-1])/2
         else:  # 'base'
             ystart = y
 
@@ -439,22 +443,13 @@ class Text:
             xmin = min(xmin, xloc)
             xmax = max(xmax, xloc+linewidths[i])
 
-            # Include extra height of tall math expressions
-            drop = 0
-            if i > 0:
-                try:
-                    drop = min(p.node.bbox.ymin for p in line if isinstance(p, Math))
-                except ValueError:
-                    drop = 0
-
-            yloc -= drop
-            ymin = min(ymin, yloc-lineheights[i])
-            ymax = max(ymax, yloc-lineofsts[i])
             for part, size in zip(line, linesizes[i]):
                 part.drawon(svgelm, xloc, yloc)
                 xloc += size[0]
-            yloc += lineheights[i] * self.linespacing
+            yloc += self.size * self.linespacing
 
+        ymin = y - lineheights[0] - lineofsts[0]
+        ymax = yloc - self.size*self.linespacing - lineofsts[-1]
         if self.rotation:
             costh = cos(radians(self.rotation))
             sinth = sin(radians(self.rotation))
@@ -512,6 +507,10 @@ class Text:
         svg = ET.Element('svg')
         _, (xmin, xmax, ymin, ymax) = self._drawon(svg)
         return (xmin, xmax, ymin, ymax)
+
+    def getyofst(self):
+        ''' Y offset from baseline to bottom of bounding box '''
+        return -self.bbox()[3]
 
 
 # Cache the loaded fonts to prevent reloading all the time

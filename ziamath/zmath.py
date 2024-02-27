@@ -304,13 +304,13 @@ class Text:
         if textfont is None:
             self.textfont = None
             self.textstyle = textstyle
-        elif textfont in loadedfonts:
-            self.textfont = loadedfonts[textfont]
+        elif textfont in loadedtextfonts:
+            self.textfont = loadedtextfonts[textfont]
         else:
             try:
                 self.textfont = zf.Font(textfont)
                 self.textstyle = textstyle
-                loadedfonts[textfont] = self.textfont
+                loadedtextfonts[str(textfont)] = self.textfont
             except FileNotFoundError:
                 self.textfont = None
                 self.textstyle = textfont
@@ -497,19 +497,19 @@ class Text:
 
         return svgelm, (xmin, xmax, ymin, ymax)
 
-    def getsize(self):
+    def getsize(self) -> tuple[float, float]:
         ''' Get pixel width and height of Text. '''
         svg = ET.Element('svg')
         _, (xmin, xmax, ymin, ymax) = self._drawon(svg)
         return (xmax-xmin, ymax-ymin)
 
-    def bbox(self):
+    def bbox(self) -> tuple[float, float, float, float]:
         ''' Get bounding box (xmin, xmax, ymin, ymax) of Text. '''
         svg = ET.Element('svg')
         _, (xmin, xmax, ymin, ymax) = self._drawon(svg)
         return (xmin, xmax, ymin, ymax)
 
-    def getyofst(self):
+    def getyofst(self) -> float:
         ''' Y offset from baseline to bottom of bounding box '''
         return -self.bbox()[3]
 
@@ -518,3 +518,4 @@ class Text:
 with pkg_resources.path('ziamath.fonts', 'STIXTwoMath-Regular.ttf') as p:
     fontname = p
 loadedfonts: Dict[str, MathFont] = {'default': MathFont(fontname)}
+loadedtextfonts: Dict[str, zf.Font] = {}

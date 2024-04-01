@@ -89,11 +89,11 @@ class Mnode(Drawable):
         ''' Convert points back to font units '''
         return value / self._glyph_pts_per_unit
 
-    def increase_child_scriptlevel(self, element: ET.Element) -> None:
+    def increase_child_scriptlevel(self, element: ET.Element, n: int = 1) -> None:
         ''' Increase the child element's script level one higher
             than this element, if not overridden in child's attributes
         '''
-        element.attrib.setdefault('scriptlevel', str(self.style.scriptlevel+1))
+        element.attrib.setdefault('scriptlevel', str(self.style.scriptlevel+n))
 
     def leftsibling(self) -> Optional[Drawable]:
         ''' Left node sibling. The one that was just placed. '''

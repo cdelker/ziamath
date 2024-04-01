@@ -19,7 +19,7 @@ class Mroot(Mnode, tag='mroot'):
     def _getbase(self, **kwargs) -> tuple[Mnode, Optional[Mnode]]:
         ''' Get base and optional degree nodes for the root '''
         base = Mnode.fromelement(self.element[0], parent=self, **kwargs)
-        self.increase_child_scriptlevel(self.element[1])
+        self.increase_child_scriptlevel(self.element[1], n=2)
         degree = Mnode.fromelement(self.element[1], parent=self, **kwargs)
         return base, degree
 
@@ -43,17 +43,32 @@ class Mroot(Mnode, tag='mroot'):
                     self.units_to_points(self.font.math.consts.radicalRuleThickness))
             yrad = -(rtop - self.units_to_points(rglyph.path.bbox.ymax))
             ytop = yrad - self.units_to_points(rglyph.path.bbox.ymax)
+            ybot = yrad - self.units_to_points(rglyph.bbox.ymin) 
+            # Word/MathML Spec
+            ydeg = ybot - self.units_to_points(rglyph.bbox.ymax-rglyph.bbox.ymin) * \
+                self.font.math.consts.radicalDegreeBottomRaisePercent/100
+
         else:
             yrad = 0
             ytop = -self.units_to_points(rglyph.path.bbox.ymax)
-
+            ybot = yrad - self.units_to_points(rglyph.bbox.ymin) 
+            # OpenType spec
+            ydeg = yrad - self.units_to_points(rglyph.bbox.ymax) * \
+                self.font.math.consts.radicalDegreeBottomRaisePercent/100
+        
         # If the root has a degree, draw it next as it
         # determines radical x position
         self.nodes = []
         x = 0.
         if self.degree:
+            # There seem to be 2 interpretations for vertically positioning the degree.
+            # See https://github.com/stipub/stixfonts/issues/206
+            # Here, it's using the OpenType interpretation for normal-height radicals,
+            # and Word/MathML spec for extended-height radicals, which gives the best
+            # results with Stix font.
             x += self.units_to_points(self.font.math.consts.radicalKernBeforeDegree)
-            ydeg = ytop * self.font.math.consts.radicalDegreeBottomRaisePercent/100
+
+            ydeg += (self.degree.bbox.ymin)
             self.nodes.append(self.degree)
             self.nodexy.append((x, ydeg))
             x += self.degree.xadvance()

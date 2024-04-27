@@ -1,4 +1,4 @@
 jupyter_sphinx
 ipykernel
 latex2mathml
-ziafont>=0.6
+ziafont>=0.8

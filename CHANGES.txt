@@ -1,3 +1,11 @@
+0.10 - 2024-04-27
+
+- Fix/tighten bounding box of Text class
+- Fix `>` and `<` in SVG Text
+- Adjust vertical positioning of radical degree
+- Cache loaded non-math fonts used for Text class
+
+
 0.9 - 2023-12-29
 
 - Implement long dashes from multiple hyphens in text node.

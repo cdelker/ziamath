@@ -4,7 +4,7 @@ from .zmath import Math, Latex, Text
 from .tex import declareoperator
 from .config import config
 
-__version__ = '0.10a0'
+__version__ = '0.10'
 
 
 declareoperator(r'\tg')

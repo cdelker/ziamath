@@ -19,7 +19,7 @@ import pkg_resources
 # -- Project information -----------------------------------------------------
 
 project = 'ziamath'
-copyright = '2021-2023, Collin J. Delker'
+copyright = '2021-2024, Collin J. Delker'
 author = 'Collin J. Delker'
 
 release = pkg_resources.get_distribution(project).version

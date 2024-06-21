@@ -89,11 +89,13 @@ class Midentifier(Mnumber, tag='mi'):
 
 class Mtext(Mnumber, tag='mtext'):
     ''' Text Node <mtext> '''
+    SPACES_PER_TAB = 4
     def _getstring(self) -> str:
         string = ''
         if self.element.text:
             # Don't use elementtext() since it strips whitespace
             string = styledstr(self.element.text, self.style.mathvariant)
+            string = string.replace('\n', '').replace('\t', ' '*self.SPACES_PER_TAB)
         return string
 
     def _setup(self, **kwargs) -> None:

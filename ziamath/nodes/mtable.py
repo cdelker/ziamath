@@ -16,8 +16,8 @@ class Mtable(Mnode, tag='mtable'):
 
     def _setup(self, **kwargs) -> None:
         kwargs = copy(kwargs)
-        rowspace = self.size_px('0.2em')
-        colspace = self.size_px('0.2em')
+        rowspace = self.size_px('0.3em')
+        colspace = self.size_px('0.3em')
         column_align_table = self.element.get('columnalign', 'center')
 
         Cell = namedtuple('Cell', 'node columnalign')

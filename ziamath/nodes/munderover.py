@@ -118,7 +118,7 @@ class Mover(Mnode, tag='mover'):
                 and ord(elementtext(self.element[1])) in ACCENTS):
             if self.element.get('accent', 'false').lower() == 'false':
                 self.increase_child_scriptlevel(self.element[1])
-                self._isaccent = True
+            self._isaccent = True
 
         if elementtext(self.element[1]) == self.BAR:
             self.over = drawable.HLine(

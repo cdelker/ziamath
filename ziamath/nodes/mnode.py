@@ -55,7 +55,7 @@ class Mnode(Drawable):
     @classmethod
     def fromelement(cls, element: ET.Element, parent: 'Mnode', **kwargs) -> 'Mnode':
         ''' Construct a new node from the element and its parent '''
-        if element.tag in ['math', 'mtd', 'mtr']:
+        if element.tag in ['math', 'mtd', 'mtr', 'none']:
             element.tag = 'mrow'
         elif element.tag == 'ms':
             element.tag = 'mtext'

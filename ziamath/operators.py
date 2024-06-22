@@ -18,13 +18,13 @@ operators = {
     ('}', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},
     ('”', 'postfix'): {'fence': 'true',  'lspace': '0em', 'rspace': '0em'},  # &CloseCurlyDoubleQuote;
     ('’', 'postfix'): {'fence': 'true',  'lspace': '0em', 'rspace': '0em'},  # &CloseCurlyQuote;
-    ('〈', 'prefix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &LeftAngleBracket;
+    ('⟨', 'prefix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &LeftAngleBracket;
     ('⌈', 'prefix'):  {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &LeftCeiling;
     ('⟪', 'prefix'):  {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &LeftDoubleBracket;
     ('⌊', 'prefix'):  {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &LeftFloor;
     ('“', 'prefix'):  {'fence': 'true',  'lspace': '0em', 'rspace': '0em'},  # &OpenCurlyDoubleQuote;
     ('‘', 'prefix'): {'fence': 'true',  'lspace': '0em', 'rspace': '0em'},  # &OpenCurlyQuote;
-    ('〉', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightAngleBracket;
+    ('⟩', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightAngleBracket;
     ('⌉', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightCeiling;
     ('〛', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightDoubleBracket;
     ('⌋', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightFloor;

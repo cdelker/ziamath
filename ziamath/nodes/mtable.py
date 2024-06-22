@@ -50,10 +50,11 @@ class Mtable(Mnode, tag='mtable'):
             rowheights.append(max([cell.node.bbox.ymax for cell in row]))
             rowdepths.append(min([cell.node.bbox.ymin for cell in row]))
 
-        colwidths = []
-        for col in [list(i) for i in zip(*rows)]:  # transposed
-            colwidths.append(max([cell.node.bbox.xmax - cell.node.bbox.xmin for cell in col]))
-
+        colwidths = [0] * max(len(r) for r in rows)
+        for row in rows:
+            for c, col in enumerate(row):
+                colwidths[c] = max(colwidths[c], col.node.bbox.xmax - col.node.bbox.xmin)
+        
         if self.element.get('equalrows') == 'true':
             rowheights = [max(rowheights)] * len(rows)
             rowdepths = [min(rowdepths)] * len(rows)

@@ -227,7 +227,7 @@ class Mmultiscripts(Mnode, tag='mmultiscripts'):
     def _setup(self, **kwargs):
         ysub = self.units_to_points(self.font.math.consts.subscriptShiftDown)
         ysup = -self.units_to_points(self.font.math.consts.superscriptShiftUp)
-
+        mingap = self.units_to_points(self.font.math.consts.subSuperscriptGapMin)
         x = xmax = 0
         ymax = self.base.bbox.ymax
         ymin = self.base.bbox.ymin
@@ -239,12 +239,18 @@ class Mmultiscripts(Mnode, tag='mmultiscripts'):
             supnode = Mnode.fromelement(sup, parent=self, **kwargs)
             width = max(subnode.bbox.xmax, supnode.bbox.xmax)
             self.nodes.append(subnode)
-            self.nodexy.append((x+width-subnode.bbox.xmax, ysub))
-            self.nodes.append(supnode)
-            self.nodexy.append((x+width-supnode.bbox.xmax, ysup))
+            ysub_y, ysup_y = ysub, ysup
+            if ysub-subnode.bbox.ymax - (ysup-supnode.bbox.ymin) < mingap:
+                overlap = ysub-subnode.bbox.ymax - (ysup-supnode.bbox.ymin)
+                ysub_y -= overlap
+                ysup_y -= mingap
             
-            ymax = max(ymax, -ysup+supnode.bbox.ymax)
-            ymin = min(ymin, -ysub+subnode.bbox.ymin)
+            self.nodexy.append((x+width-subnode.bbox.xmax, ysub_y))
+            self.nodes.append(supnode)
+            self.nodexy.append((x+width-supnode.bbox.xmax, ysup_y))
+
+            ymax = max(ymax, -ysup_y+supnode.bbox.ymax)
+            ymin = min(ymin, -ysub_y+subnode.bbox.ymin)
             xmax = max(xmax, x+width)
             x += width
             x += self.units_to_points(self.font.math.consts.spaceAfterScript)
@@ -259,13 +265,19 @@ class Mmultiscripts(Mnode, tag='mmultiscripts'):
             self.increase_child_scriptlevel(sup)
             subnode = Mnode.fromelement(sub, parent=self, **kwargs)
             supnode = Mnode.fromelement(sup, parent=self, **kwargs)
-            self.nodes.append(subnode)
-            self.nodexy.append((x, ysub))
-            self.nodes.append(supnode)
-            self.nodexy.append((x, ysup))
+            ysub_y, ysup_y = ysub, ysup
+            if ysub-subnode.bbox.ymax - (ysup-supnode.bbox.ymin) < mingap:
+                overlap = ysub-subnode.bbox.ymax - (ysup-supnode.bbox.ymin)
+                ysub_y -= overlap
+                ysup_y -= mingap
 
-            ymax = max(ymax, -ysup+supnode.bbox.ymax)
-            ymin = min(ymin, -ysub+subnode.bbox.ymin)
+            self.nodes.append(subnode)
+            self.nodexy.append((x, ysub_y))
+            self.nodes.append(supnode)
+            self.nodexy.append((x, ysup_y))
+
+            ymax = max(ymax, -ysup_y+supnode.bbox.ymax)
+            ymin = min(ymin, -ysub_y+subnode.bbox.ymin)
             xmax = max(xmax, x+subnode.bbox.xmax, x+supnode.bbox.xmax)
             x += max(subnode.xadvance(), supnode.xadvance())
             x += self.units_to_points(self.font.math.consts.spaceAfterScript)

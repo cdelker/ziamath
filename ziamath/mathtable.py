@@ -317,6 +317,11 @@ class MathTable:
             kern2 += glyph2_kern.topleft.getkern(height2)
         return min(kern1, kern2), shiftdn
 
+    def listvariants(self, glyphid: int, vert: bool = True) -> dict[int, int]:
+        if vert:
+            return self._variantsvert.listvariants(glyphid)
+        return self._variantshorz.listvariants(glyphid)
+
     def variant(self, glyphid: int, height: float, vert: bool = True) -> GlyphType:
         ''' Get a height variant for the glyph
 
@@ -539,6 +544,15 @@ class MathVariants:
         self.minoverlap = minoverlap
         self.font = font
         self.vert = vert
+
+    def listvariants(self, glyphid: int) -> dict[int, int]:
+        ''' List all size variants '''
+        covidx = self.coverage.covidx(glyphid)
+        if covidx is None:
+            return {}
+
+        construction = self.construction[covidx]
+        return construction.variants
 
     def getvariant(self, glyphid: int, size: float) -> GlyphType:
         ''' Get the proper size variant for the glyphid '''

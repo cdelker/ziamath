@@ -1,3 +1,16 @@
+0.11 - In progress
+
+- Replace tabs with spaces in <mtext>
+- Allow <none/> elements (as an empty <mrow>)
+- Fixed spacing issues around <mover> and <munder> with <msup>
+- Increased space between <mtable> cells
+- Added missing &omicron and &epsilon mathml codes
+- Fix exception rendering tables with uneven number of columns per row
+- Fix vertical spacing of <mmultiscripts> when they could overlap
+- Fix vertical stretch of fences that aren't on the ends of an <mrow>
+- Added debugging function to list all size variants of a glyph
+
+
 0.10 - 2024-04-27
 
 - Fix/tighten bounding box of Text class

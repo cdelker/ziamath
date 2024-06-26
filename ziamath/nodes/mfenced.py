@@ -53,11 +53,13 @@ class Mfenced(Mnode, tag='mfenced'):
             # Opening fence with nothing in it
             fencebbox = mglyph.bbox
             xadvance = mglyph.xadvance()
+            oglyph = Glyph(openglyph, self.openchr, self.glyphsize,
+                           self.style, **kwargs)
         else:
             ymin = self.points_to_units(mrow.bbox.ymin)
             if 'minsize' in self.element.attrib:
                 ymax = self.points_to_units(self.size_px(self.element.get('minsize', '0'))) + ymin
-                openglyph = self.font.math.variant(openglyph.index, ymax-ymin)
+                openglyph = self.font.math.variant_minmax(openglyph.index, ymin, ymax)
             else:
                 ymax = self.points_to_units(mrow.bbox.ymax)# + ymin
                 openglyph = self.font.math.variant_minmax(openglyph.index,
@@ -121,7 +123,7 @@ class Mfenced(Mnode, tag='mfenced'):
             if (lastg := mrow.lastglyph()):
                 if (italicx := self.font.math.italicsCorrection.getvalue(lastg.index)):
                     x += mrow.units_to_points(italicx)
-                        
+
             params = operators.get_params(self.closechr, 'postfix')
             x += self.size_px(params.get('lspace', '0'))
 

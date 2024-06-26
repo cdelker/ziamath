@@ -1,4 +1,5 @@
 ''' <mo> Math Operator Element '''
+from contextlib import suppress
 import xml.etree.ElementTree as ET
 
 from ziafont.fonttypes import BBox
@@ -72,19 +73,36 @@ class Moperator(Mnode, tag='mo'):
             if self.width:
                 glyph = self.font.math.variant(
                     glyph.index, self.points_to_units(self.width), vert=False)
+
             elif (self.height
-                    and (self.params.get('stretchy', 'false') != 'false') or
-                         'minsize' in self.params or 'maxsize' in self.params):
+                    and (self.params.get('stretchy', 'false') != 'false' or
+                         'minsize' in self.params or
+                         'maxsize' in self.params)):
                 glyph = self.font.math.variant(
                     glyph.index, self.points_to_units(self.height), vert=True)
+
+            elif ('rowymin' in kwargs
+                      and self.params.get('stretchy', 'false') != 'false'):
+                glyph = self.font.math.variant_minmax(
+                    glyph.index,
+                    self.points_to_units(kwargs.get('rowymin')),
+                    self.points_to_units(kwargs.get('rowymax')),
+                    vert=True)
+
+                # Add a little space before \left fences
+                with suppress(AttributeError):
+                    if char in operators.leftfences and self.parent.leftsibling():
+                        x += self.size_px('verythinmathspace')
 
             self.nodes.append(Glyph(
                 glyph, char, self.glyphsize, self.style, **kwargs))
             self.nodexy.append((x, 0))
             xmax = max(xmax, x + self.units_to_points(glyph.path.bbox.xmax))
             x += self.units_to_points(glyph.advance())
-            ymin = min(ymin, self.units_to_points(glyph.path.bbox.ymin))
-            ymax = max(ymax, self.units_to_points(glyph.path.bbox.ymax))
+
+            if not kwargs.get('nostretch') or not (self.params.get('stretchy', 'false') != 'false'):
+                ymin = min(ymin, self.units_to_points(glyph.path.bbox.ymin))
+                ymax = max(ymax, self.units_to_points(glyph.path.bbox.ymax))
 
         if addspace:
             x += self.size_px(self.params.get('rspace', '0'))

@@ -355,6 +355,7 @@ operators = {
 
 integrals = ['∫', '∬', '∭', '∲', '∮', '∳', '∯', '∰', ]
 fences = [op[0] for op, params in operators.items() if params.get('fence') == 'true'] + ['|', '∣', '❘', '‖']
+leftfences = ['(', '[', '{', '⟨', '⌊', '⌈', '⟪']
 names = set(op[0] for op in operators.keys())
 
 

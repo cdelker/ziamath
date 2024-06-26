@@ -66,52 +66,42 @@ class Mrow(Mnode, tag='mrow'):
         self.bbox = BBox(xmin, xmax, ymin, ymax)
         self._xadvance = max([n.xadvance() for n in self.nodes])
 
-    def _setup_single_line(self, line: list[ET.Element], **kwargs) -> None:
-        ''' Single line mrow '''
+    def _get_height_nostretch(self, line: list[ET.Element], **kwargs) -> tuple[float, float]:
+        ''' Get height of mrow if no vertical stretchy elements are included.
+            Use this to determine how much to stretch them.
+        '''
         ymax = -9999
         ymin = 9999
-        height = kwargs.pop('height', None)
-        i = 0
-        x = xmin = xmax = 0.
-        while i < len(line):
-            child = line[i]
+        kwargs['nostretch'] = True  # Tell child elements not to include stretchy operators in bbox
+
+        for child in line:
             text = elementtext(child)
-            if child.tag == 'mo':
-                if (text in operators.fences
-                        and child.get('form') == 'prefix'
-                        and child.get('stretchy') != 'false'):
-                    fencekwargs = copy(kwargs)
-                    j = 0
-                    for j in range(i+1, len(self.element)):
-                        if (self.element[j].tag == 'mo'
-                                and self.element[j].get('form') == 'postfix'
-                                and elementtext(self.element[j]) in operators.fences):
-                            children = self.element[i+1: j]
-                            fencekwargs['open'] = elementtext(child)
-                            fencekwargs['close'] = elementtext(self.element[j])
-                            break
-                    else:  # No postfix closing fence. Enclose remainder of row.
-                        children = self.element[i+1:]
-                        fencekwargs['open'] = elementtext(child)
-                        fencekwargs['close'] = None
-                    fencekwargs['separators'] = ''
-                    fenced = ET.Element('mfenced')
-                    fenced.attrib.update(child.attrib)
-                    fenced.attrib.update(fencekwargs)
-                    fenced.extend(children)
-                    node = Mnode.fromelement(fenced, parent=self, **kwargs)
-                    i = j + 1
+            if child.tag == 'mo' and text == '':
+                continue
 
-                else:
-                    if text == '':
-                        i += 1
-                        continue  # InvisibleTimes, etc.
-                    node = Mnode.fromelement(child, parent=self, height=height, **kwargs)
-                    i += 1
-            else:
-                node = Mnode.fromelement(child, parent=self, **kwargs)
-                i += 1
+            # Make string copy to not overwrite element attributes
+            node = Mnode.fromelement(ET.fromstring(ET.tostring(child)),
+                                     parent=self, **kwargs)
+            ymax = max(ymax, node.bbox.ymax)
+            ymin = min(ymin, node.bbox.ymin)
+        return ymin, ymax
 
+    def _setup_single_line(self, line: list[ET.Element], **kwargs) -> None:
+        ''' Single line mrow '''
+        rowymin, rowymax = self._get_height_nostretch(line, **kwargs)
+        kwargs['rowymin'] = rowymin
+        kwargs['rowymax'] = rowymax
+
+        ymax = -9999
+        ymin = 9999
+        x = xmin = xmax = 0.
+
+        for child in line:
+            text = elementtext(child)
+            if child.tag == 'mo' and text == '':
+                continue
+
+            node = Mnode.fromelement(child, parent=self, **kwargs)
             self.nodes.append(node)
             self.nodexy.append((x, 0))
             xmax = max(xmax, x + node.bbox.xmax)

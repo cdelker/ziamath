@@ -599,6 +599,10 @@ class MathVariants:
         else:
             height = ymax-ymin
             if height > ymaxs[-1] - ymins[-1] and construction.assembly:
+                if self.vert:
+                    height = max(
+                        -2*(ymin+self.font.math.consts.axisHeight),
+                        2*(ymax-self.font.math.consts.axisHeight))
                 glf = construction.assembly.assemble(height, self.minoverlap)
             else:
                 glf = self.font.glyph_fromid(gids[-1])

@@ -25,13 +25,10 @@ class Mtable(Mnode, tag='mtable'):
         # Build node objects from table cells
         rows = []
         for rowelm in self.element:
-            assert rowelm.tag == 'mtr'
             column_align_row = rowelm.get('columnalign', column_align_table).split()
 
             cells = []
             for i, cellelm in enumerate(rowelm):
-                assert cellelm.tag == 'mtd'
-
                 if 'columnalign' in cellelm.attrib:
                     column_align = cellelm.get('columnalign')
                 elif i < len(column_align_row):

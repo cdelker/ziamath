@@ -301,7 +301,10 @@ class Text:
         # If style type, use Stix font variation
         textfont = textfont if textfont else config.text.textfont
         textstyle = config.text.variant
-        if textfont is None or loadedtextfonts.get(textfont) == 'notfound':
+        if loadedtextfonts.get(textfont) == 'notfound':
+            self.textfont = None
+            self.textstyle = textfont
+        elif textfont is None:
             self.textfont = None
             self.textstyle = textstyle
         elif textfont in loadedtextfonts:

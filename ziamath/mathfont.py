@@ -23,6 +23,6 @@ class MathFont(Font):
             raise ValueError('Font has no MATH table!')
 
         self.math = MathTable(self)
-        self.features.ssty = True  # Enable math script variants
         if 'math' in self.scripts():
             self.language('math', '')
+        self.features['ssty'] = True  # Enable math script variants

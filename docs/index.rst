@@ -40,7 +40,7 @@ To render from Latex:
 Demo
 ----
 
-See Ziamath in action as it runs in your browser through PyScript `here <https://cdelker.bitbucket.io/pyscript/ziamath.html>`_!
+See Ziamath in action as it runs in your browser through PyScript `here <https://cdelker.github.io/pyscript/ziamath.html>`_!
 
 |
 

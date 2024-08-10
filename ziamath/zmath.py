@@ -301,7 +301,7 @@ class Text:
         # If style type, use Stix font variation
         textfont = textfont if textfont else config.text.textfont
         textstyle = config.text.variant
-        if loadedtextfonts.get(textfont) == 'notfound':
+        if loadedtextfonts.get(textfont) == 'notfound':  # type: ignore
             self.textfont = None
             self.textstyle = textfont
         elif textfont is None:
@@ -316,7 +316,7 @@ class Text:
                 loadedtextfonts[str(textfont)] = self.textfont
             except FileNotFoundError:
                 # Mark as not found to not search again
-                loadedtextfonts[textfont] = 'notfound'
+                loadedtextfonts[textfont] = 'notfound'  # type: ignore
                 self.textfont = None
                 self.textstyle = textfont
 

@@ -1,4 +1,4 @@
-0.11 - In progress
+0.11 - 2024-08-10
 
 - Replace tabs with spaces in <mtext>
 - Allow <none/> elements (as an empty <mrow>)

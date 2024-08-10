@@ -423,7 +423,7 @@ class AssembledGlyph(SimpleGlyph):
         self._xadvance = max([g.advance() for g in glyphs])
         super().__init__(index, [], bbox, font)
 
-    def advance(self, nextchr=None) -> float:
+    def advance(self, nextchr=None) -> int:
         ''' X-advance '''
         if self.vert:
             return self._xadvance

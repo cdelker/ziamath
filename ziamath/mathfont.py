@@ -25,4 +25,8 @@ class MathFont(Font):
         self.math = MathTable(self)
         if 'math' in self.scripts():
             self.language('math', '')
-        self.features['ssty'] = True  # Enable math script variants
+
+    def language(self, script, language):
+        super().language(script, language)
+        if script == 'math':
+            self.features['ssty'] = True  # Enable math script variants

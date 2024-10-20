@@ -215,6 +215,10 @@ class Math:
         ''' Jupyter SVG representation '''
         return self.svg()
 
+    def mathmlstr(self) -> str:
+        ''' Get MathML as string '''
+        return ET.tostring(self.mathml)
+
     @classmethod
     def mathml2svg(cls, mathml: Union[str, ET.Element],
                    size: Optional[float] = None, font: Optional[str] = None):

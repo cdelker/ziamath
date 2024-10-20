@@ -41,10 +41,6 @@ class Moperator(Mnode, tag='mo'):
             elif maxsize:
                 self.height = maxsize
 
-        if self.string in ['|', '‖', '∣', '❘'] and self.params.get('fence') == 'true':
-            # Hack around weird spacing with \middle operators
-            self.params['rspace'] = 'thinmathspace'
-
         self._setup(**kwargs)
 
     def _setup(self, **kwargs):

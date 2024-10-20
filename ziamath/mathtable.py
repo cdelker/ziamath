@@ -508,7 +508,10 @@ class MathAssembly:
             num_extenders += 1
 
         # Decrease overlap since full extenders make it too tall
-        dy = (size - reqsize) / (len(testparts)-1)
+        try:
+            dy = (size - reqsize) / (len(testparts)-1)
+        except ZeroDivisionError:
+            dy = (size - reqsize)
 
         # Build transforms for compound glyph
         offsets = []

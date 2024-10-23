@@ -63,6 +63,12 @@ def main():
         '--version',
         action='version',
         version=zm.__version__)
+ 
+    parser.add_argument(
+        '--debug',
+        '-d',
+        action='store_true',
+        help='Debug mode')
 
     args = parser.parse_args()
     if args.file.isatty():
@@ -73,6 +79,9 @@ def main():
         zm.config.svg2 = False
     if args.precision:
         zm.config.precision = args.precision
+    if args.debug:
+        zm.config.debug.baseline = True
+        zm.config.debug.bbox = True
 
     kwargs = {'font': args.font,
               'size': args.size}

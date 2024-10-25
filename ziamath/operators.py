@@ -26,7 +26,7 @@ operators = {
     ('‘', 'prefix'): {'fence': 'true',  'lspace': '0em', 'rspace': '0em'},  # &OpenCurlyQuote;
     ('⟩', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightAngleBracket;
     ('⌉', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightCeiling;
-    ('〛', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightDoubleBracket;
+    ('⟫', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightDoubleBracket;
     ('⌋', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightFloor;
     # ('&InvisibleComma;', 'infix'): {'separator': 'true',  'lspace': '0em', 'rspace': '0em'},
     (',', 'infix'): {'separator': 'true',  'lspace': '0em', 'rspace': 'verythickmathspace'},
@@ -305,7 +305,6 @@ operators = {
     ('⥜', 'infix'): {'stretchy': 'true',  'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},  # &RightUpTeeVector;
     ('↾', 'infix'): {'stretchy': 'true',  'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},  # &RightUpVector;
     ('⥔', 'infix'): {'stretchy': 'true',  'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},  # &RightUpVectorBar;
-    ('↑', 'infix'): {'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},  # &ShortUpArrow;
     ('↑', 'infix'): {'stretchy': 'true',  'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},  # &UpArrow;
     ('⤒', 'infix'): {'stretchy': 'true',  'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},  # &UpArrowBar;
     ('⇅', 'infix'): {'stretchy': 'true',  'lspace': 'verythinmathspace', 'rspace': 'verythinmathspace'},  # &UpArrowDownArrow;

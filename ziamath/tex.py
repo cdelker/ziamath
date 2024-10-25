@@ -32,6 +32,15 @@ def tex2mml(tex: str, inline: bool = False) -> str:
 
     mml = convert(tex, display='inline' if inline else 'block')
 
+    # Tex \uparrow, \downarrow are not stretchy,
+    # but in MathML they are (as drawn by Katex and Mathjax).
+    # Keep the operators list as stretchy, but set to false when
+    # processing tex.
+    mml = re.sub(r'>&#x02191;', r' stretchy="false">&#x02191;', mml)  # \uparrow
+    mml = re.sub(r'>&#x02193;', r' stretchy="false">&#x02193;', mml)  # \downarrow
+    mml = re.sub(r'<mi>&#x027E8;', r'<mi stretchy="false">&#x027E8;', mml)  # \langle
+    mml = re.sub(r'<mi>&#x027E9;', r'<mi stretchy="false">&#x027E9;', mml)  # \rangle
+
     # Replace some operators with "stretchy" variants
     mml = re.sub(r'<mo>&#x0005E;', r'<mo>&#x00302;', mml)  # widehat
     mml = re.sub(r'<mo>&#x0007E;', r'<mo>&#x00303;', mml)  # widetilde

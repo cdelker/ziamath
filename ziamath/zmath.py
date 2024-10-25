@@ -217,7 +217,7 @@ class Math:
 
     def mathmlstr(self) -> str:
         ''' Get MathML as string '''
-        return ET.tostring(self.mathml)
+        return ET.tostring(self.mathml).decode('utf-8')
 
     @classmethod
     def mathml2svg(cls, mathml: Union[str, ET.Element],

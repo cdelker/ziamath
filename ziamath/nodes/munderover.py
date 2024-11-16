@@ -17,6 +17,7 @@ from . import Mnode
 ACCENTS = [
     0x005E,  # \hat, \widehat
     0x02D9,  # \dot
+    0x02C6,  # \hat
     0x02C7,  # \check
     0x007E,  # \tilde, \widetilde
     0x00B4,  # \acute
@@ -63,7 +64,7 @@ def place_over(base: Mnode,
                     and (attachx := font.math.topattachment(over.lastglyph().index))):  # type: ignore
                 x -= over.units_to_points(attachx)
             else:
-                x -= (over.bbox.xmax-over.bbox.xmin)/2 + over.bbox.xmin
+                x -= (over.bbox.xmax-over.bbox.xmin)/2 + over.bbox.xmin/2
 
     y = -base.bbox.ymax - base.units_to_points(font.math.consts.overbarVerticalGap)
     y += over.bbox.ymin
@@ -150,7 +151,7 @@ class Mover(Mnode, tag='mover'):
         ymax = -overy + self.over.bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
         if not self._isaccent:
-            self._xadvance = self.base.xadvance()
+            self._xadvance = basex + self.base.xadvance()
             self.base_xadvance = self._xadvance  # For attaching subscripts
         else:
             self._xadvance = xmax

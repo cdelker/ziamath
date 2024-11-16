@@ -657,7 +657,7 @@ ESCAPES = {
 '&hArr;': '⇔',
 '&harrcir;': '⥈',
 '&harrw;': '↭',
-'&Hat;': '^',
+'&Hat;': 'ˆ',
 '&hbar;': 'ℏ',
 '&hcirc;': 'ĥ',
 '&Hcirc;': 'Ĥ',

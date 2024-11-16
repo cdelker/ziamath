@@ -42,6 +42,7 @@ def tex2mml(tex: str, inline: bool = False) -> str:
     mml = re.sub(r'<mi>&#x027E9;', r'<mi stretchy="false">&#x027E9;', mml)  # \rangle
 
     # Replace some operators with "stretchy" variants
+    mml = re.sub(r'<mo stretchy="false">&#x0005E;', r'<mo stretchy="false">&#710;', mml)  # hat
     mml = re.sub(r'<mo>&#x0005E;', r'<mo>&#x00302;', mml)  # widehat
     mml = re.sub(r'<mo>&#x0007E;', r'<mo>&#x00303;', mml)  # widetilde
     return mml

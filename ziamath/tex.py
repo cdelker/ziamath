@@ -25,6 +25,9 @@ def tex2mml(tex: str, inline: bool = False) -> str:
     # latex2mathml bug requires space after mathrm
     tex = re.sub(r'\\mathrm{(.+?)}', r'\\mathrm {\1}', tex)
     tex = tex.replace('||', '‖')
+    tex = tex.replace(r'\begin{aligned}', r'\begin{align*}')
+    tex = tex.replace(r'\end{aligned}', r'\end{align*}')
+
     if config.decimal_separator == ',':
         # Replace , with {,} to remove right space
         # (must be surrounded by digits)

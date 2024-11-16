@@ -54,15 +54,28 @@ class Mrow(Mnode, tag='mrow'):
             self.nodes.append(node)
 
         y = 0
-        for i, node in enumerate(self.nodes):
-            if i > 0:
-                y += (node.bbox.ymax - self.nodes[i-1].bbox.ymin +
-                      2 * self.units_to_points(self.font.math.consts.mathLeading))
-            self.nodexy.append((0, y))
+        if self.parent.parent.mtag != 'math':
+            # Not a top-level set of rows. Center them vertically.
+            height = sum(node.bbox.ymax - node.bbox.ymin + 2 * self.units_to_points(self.font.math.consts.mathLeading) for node in self.nodes[1:])
+            for i, node in enumerate(self.nodes):
+                if i > 0:
+                    y += (node.bbox.ymax - self.nodes[i-1].bbox.ymin +
+                          2 * self.units_to_points(self.font.math.consts.mathLeading))
+                self.nodexy.append((0, y - height/2))
+            ymin = -y + self.nodes[-1].bbox.ymin + height/2
+            ymax = self.nodes[0].bbox.ymax + height/2
+
+        else:
+            # Top-level rows. First row is at y=0.
+            for i, node in enumerate(self.nodes):
+                if i > 0:
+                    y += (node.bbox.ymax - self.nodes[i-1].bbox.ymin +
+                        2 * self.units_to_points(self.font.math.consts.mathLeading))
+                self.nodexy.append((0, y))
+            ymin = -y+self.nodes[-1].bbox.ymin
+            ymax = self.nodes[0].bbox.ymax
         xmin = min([n.bbox.xmin for n in self.nodes])
         xmax = max([n.bbox.xmax for n in self.nodes])
-        ymin = -y+self.nodes[-1].bbox.ymin
-        ymax = self.nodes[0].bbox.ymax
         self.bbox = BBox(xmin, xmax, ymin, ymax)
         self._xadvance = max([n.xadvance() for n in self.nodes])
 

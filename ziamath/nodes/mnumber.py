@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 
 from ziafont.fonttypes import BBox
 
-from ..styles import styledstr, auto_italic
+from ..styles import auto_italic
 from ..drawable import Glyph, HLine
 from .nodetools import subglyph, elementtext
 from .mnode import Mnode
@@ -25,7 +25,7 @@ class Mnumber(Mnode, tag='mn'):
                 # such as '1cm' with units
                 self.style.mathvariant.italic = True
 
-        return styledstr(text, self.style.mathvariant)
+        return text
 
     def _setup(self, **kwargs) -> None:
         ymin = 9999.
@@ -36,7 +36,7 @@ class Mnumber(Mnode, tag='mn'):
             x = self.size_px('verythinmathspace')
 
         for i, char in enumerate(self.string):
-            glyph = self.font.glyph(char)
+            glyph = self.font.findglyph(char, self.style.mathvariant)
             if kwargs.get('sup') or kwargs.get('sub'):
                 glyph = subglyph(glyph, self.font)
 
@@ -49,8 +49,12 @@ class Mnumber(Mnode, tag='mn'):
             
 
             self.nodexy.append((x, 0))
-            nextglyph = self.font.glyph(self.string[i+1]) if i < len(self.string)-1 else None
-            x += self.units_to_points(glyph.advance(nextchr=nextglyph))
+            nextglyph = self.font.findglyph(self.string[i+1], self.style.mathvariant) if i < len(self.string)-1 else None
+            try:
+                x += self.units_to_points(glyph.advance(nextchr=nextglyph))
+            except IndexError:
+                # nextglyph is in a different font
+                x += self.units_to_points(glyph.advance())
             ymin = min(ymin, self.units_to_points(glyph.path.bbox.ymin))
             ymax = max(ymax, self.units_to_points(glyph.path.bbox.ymax))
 
@@ -84,7 +88,7 @@ class Midentifier(Mnumber, tag='mi'):
             if self.parent.mtag not in ['msub', 'msup', 'msubsup']:
                 text = text + '\U00002009'
 
-        return styledstr(text, self.style.mathvariant)
+        return text
 
 
 class Mtext(Mnumber, tag='mtext'):
@@ -94,7 +98,7 @@ class Mtext(Mnumber, tag='mtext'):
         string = ''
         if self.element.text:
             # Don't use elementtext() since it strips whitespace
-            string = styledstr(self.element.text, self.style.mathvariant)
+            string = self.element.text
             string = string.replace('\n', '').replace('\t', ' '*self.SPACES_PER_TAB)
         return string
 
@@ -125,7 +129,7 @@ class Mtext(Mnumber, tag='mtext'):
                 x += width
 
             else:
-                glyph = self.font.glyph(char)
+                glyph = self.font.findglyph(char, self.style.mathvariant)
                 if kwargs.get('sup') or kwargs.get('sub'):
                     glyph = subglyph(glyph, self.font)
 
@@ -133,8 +137,12 @@ class Mtext(Mnumber, tag='mtext'):
                     Glyph(glyph, char, self.glyphsize, self.style, **kwargs))
 
                 self.nodexy.append((x, 0))
-                nextglyph = self.font.glyph(self.string[i+1]) if i < len(self.string)-1 else None
-                x += self.units_to_points(glyph.advance(nextchr=nextglyph))
+                nextglyph = self.font.findglyph(self.string[i+1], self.style.mathvariant) if i < len(self.string)-1 else None
+                try:
+                    x += self.units_to_points(glyph.advance(nextchr=nextglyph))
+                except IndexError:
+                    # nextglyph is in a different font
+                    x += self.units_to_points(glyph.advance())
                 ymin = min(ymin, self.units_to_points(glyph.path.bbox.ymin))
                 ymax = max(ymax, self.units_to_points(glyph.path.bbox.ymax))
                 i += 1

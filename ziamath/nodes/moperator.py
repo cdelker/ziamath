@@ -4,7 +4,6 @@ import xml.etree.ElementTree as ET
 
 from ziafont.fonttypes import BBox
 
-from ..styles import styledstr
 from ..drawable import Glyph
 from .. import operators
 from . import Mnode
@@ -15,7 +14,7 @@ class Moperator(Mnode, tag='mo'):
     ''' Operator math element '''
     def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
         super().__init__(element, parent, **kwargs)
-        self.string = styledstr(elementtext(self.element), self.style.mathvariant)
+        self.string = elementtext(self.element)
         self.form = element.get('form', 'infix')
 
         # Load parameters from operators table for deciding how much space
@@ -44,7 +43,7 @@ class Moperator(Mnode, tag='mo'):
         self._setup(**kwargs)
 
     def _setup(self, **kwargs):
-        glyphs = [self.font.glyph(char) for char in self.string]
+        glyphs = [self.font.findglyph(char, self.style.mathvariant) for char in self.string]
 
         if kwargs.get('sup') or kwargs.get('sub'):
             addspace = False  # Dont add lspace/rspace when in super/subscripts

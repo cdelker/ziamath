@@ -35,6 +35,9 @@ class MathStyle:
     fontsize: float = 24
     color: str = 'black'
     background: str = 'none'
+    bold_font: Optional[str] = None
+    italic_font: Optional[str] = None
+    bolditalic_font: Optional[str] = None
 
 
 @dataclass

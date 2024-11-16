@@ -1,5 +1,5 @@
 from .mathtable import MathTable
-from .styles import styledchr, styledstr
+from .styles import styledchr
 from .zmath import Math, Latex, Text
 from .tex import declareoperator
 from .config import config

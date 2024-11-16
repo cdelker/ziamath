@@ -75,6 +75,22 @@ class Math:
             self.font = MathFont(font, self.size)
             loadedfonts[font] = self.font
 
+        def register_altfont(path):
+            if path in loadedfonts:
+                font = loadedfonts[path]
+            else:
+                # Lazy-load the alt fonts
+                font = zf.Font(path)
+                loadedfonts[path] = font
+            return font
+
+        if config.math.bold_font:
+            self.font.alt_fonts.bold = register_altfont(config.math.bold_font)
+        if config.math.italic_font:
+            self.font.alt_fonts.italic = register_altfont(config.math.italic_font)
+        if config.math.bolditalic_font:
+            self.font.alt_fonts.bolditalic = register_altfont(config.math.bolditalic_font)
+
         if isinstance(mathml, str):
             mathml = unescape(mathml)
             mathml = ET.fromstring(mathml)

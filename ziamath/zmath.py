@@ -60,11 +60,14 @@ class Math:
             mathml: MathML expression, in string or XML Element
             size: Base font size, pixels
             font: Filename of font file. Must contain MATH typesetting table.
+            title: Text for title alt-text tag in the SVG
     '''
     def __init__(self, mathml: Union[str, ET.Element],
-                 size: Optional[float] = None, font: Optional[str] = None):
+                 size: Optional[float] = None, font: Optional[str] = None,
+                 title: Optional[str] = None):
         self.size = size if size else config.math.fontsize
         font = font if font else config.math.mathfont
+        self.title = title
 
         self.font: MathFont
         if font is None:
@@ -175,6 +178,9 @@ class Math:
     def svgxml(self) -> ET.Element:
         ''' Get standalone SVG of expression as XML Element Tree '''
         svg = ET.Element('svg')
+        if isinstance(self.title, str):
+            title = ET.SubElement(svg, 'title')
+            title.text = self.title
         self.node.draw(1, 0, svg)
         bbox = self.node.bbox
         width = bbox.xmax - bbox.xmin + 2  # Add a 1-px border
@@ -261,9 +267,11 @@ class Latex(Math):
             font: Font file name
             color: Color parameter, equivalent to "mathcolor" attribute
             inline: Use inline math mode (default is block mode)
+            title: Text for title alt-text tag in the SVG
         '''
     def __init__(self, latex: str, size: Optional[float] = None, mathstyle: Optional[str] = None,
-                 font: Optional[str] = None, color: Optional[str] = None, inline: bool = False):
+                 font: Optional[str] = None, color: Optional[str] = None, inline: bool = False,
+                 title: Optional[str] = None):
         self.latex = latex
 
         mathml: Union[str, ET.Element]
@@ -275,7 +283,7 @@ class Latex(Math):
         if color:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathcolor'] = color
-        super().__init__(mathml, size, font)
+        super().__init__(mathml, size, font, title=title)
 
 
 class Text:
@@ -297,13 +305,14 @@ class Text:
             rotation_mode: Either 'default' or 'anchor', to
                 mimic Matplotlib behavoir. See:
                 https://matplotlib.org/stable/gallery/text_labels_and_annotations/demo_text_rotation_mode.html
-
+            title: Text for title alt-text tag in the SVG
     '''
     def __init__(self, s, textfont: Optional[str] = None, mathfont: Optional[str] = None,
                  mathstyle: Optional[str] = None, size: Optional[float] = None, linespacing: Optional[float] = None,
                  color: Optional[str] = None,
                  halign: str = 'left', valign: str = 'base',
-                 rotation: float = 0, rotation_mode: str = 'anchor'):
+                 rotation: float = 0, rotation_mode: str = 'anchor',
+                 title: Optional[str] = None):
         self.str = s
         self.mathfont = mathfont
         self.mathstyle = mathstyle
@@ -316,6 +325,7 @@ class Text:
         self.rotation = rotation
         self.rotation_mode = rotation_mode
         self.textfont: Optional[Union[MathFont, zf.Font]]
+        self.title = title
 
         # textfont can be a path to font, or style type like "serif".
         # If style type, use Stix font variation
@@ -351,6 +361,9 @@ class Text:
     def svgxml(self) -> ET.Element:
         ''' Get standalone SVG of expression as XML Element Tree '''
         svg = ET.Element('svg')
+        if self.title is not None:
+            title = ET.SubElement(svg, 'title')
+            title.text = self.title
         _, (x1, x2, y1, y2) = self._drawon(svg)
         svg.attrib['width'] = fmt(x2-x1)
         svg.attrib['height'] = fmt(y2-y1)

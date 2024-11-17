@@ -1,3 +1,13 @@
+0.12 - IN PROGRESS
+
+- Added equation numbering
+- Add parameter for specifying a <title> tag in the SVG
+- Added config option to specify alternate fonts for italic, bold, and bolditalic glyphs
+- Implemented columnspacing and rowspacing in <mtable>
+- Fix latex \hat glyph and \widehat spacing
+- Fix spacing and vertical stretchy of middle fences
+
+
 0.11 - 2024-08-10
 
 - Replace tabs with spaces in <mtext>

@@ -1,5 +1,5 @@
 ''' Global configuration options '''
-from typing import Optional
+from typing import Optional, Callable
 from dataclasses import dataclass, field
 
 from ziafont import config as zfconfig
@@ -41,6 +41,29 @@ class MathStyle:
 
 
 @dataclass
+class NumberingStyle:
+    ''' Style for equation numbers
+
+        Args:
+            autonumber: Automatically number all equations
+            format: String formatter for equation numbers
+            format_func: Function to return a formatted equation label
+            columnwidth: Width of column or page. Equation numbers
+                right-aligned with the columnwidth.
+    '''
+    autonumber: bool = False
+    format: str = '({0})'
+    format_func: Optional[Callable] = None
+    columnwidth: str = '6.5in'
+
+    def getlabel(self, i):
+        ''' Get equation label for equation number i'''
+        if self.format_func:
+            return self.format_func(i)
+        return self.format.format(i)
+
+
+@dataclass
 class Config:
     ''' Global configuration options for Ziamath
 
@@ -60,6 +83,7 @@ class Config:
     minsizefraction: float = .3
     decimal_separator = '.'
     debug: DebugConfig = field(default_factory=DebugConfig)
+    numbering: NumberingStyle = field(default_factory=NumberingStyle)
 
     @property
     def svg2(self) -> bool:

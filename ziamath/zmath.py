@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 from typing import Union, Literal, Tuple, Optional, Dict
+from contextlib import contextmanager
 import warnings
 import re
 from collections import ChainMap
@@ -53,6 +54,49 @@ def apply_mstyle(element: ET.Element) -> ET.Element:
     return ET.fromstring(elmstr)
 
 
+class EqNumbering:
+    ''' Manage automatic equation numbers '''
+    count: int = 1
+    enable: bool = True
+
+    @classmethod
+    def number(cls) -> Optional[int]:
+        ''' Get next number in the sequence '''
+        if EqNumbering.enable:
+            number = EqNumbering.count
+            EqNumbering.count += 1
+            return number
+        return None
+
+    @classmethod
+    @contextmanager
+    def pause(cls):
+        ''' Context manager to pause equation numbering '''
+        EqNumbering.enable = False
+        yield
+        EqNumbering.enable = True
+
+    @classmethod
+    def reset(cls, number: int = 1) -> None:
+        ''' Reset the current number '''
+        EqNumbering.count = number
+
+    @classmethod
+    def text(cls, number = None) -> Optional[str]:
+        ''' Get text to use as equation label '''
+        if EqNumbering.enable:
+            if number is None:
+                number = EqNumbering.number()
+            return config.numbering.getlabel(number)
+        return None
+
+
+def reset_numbering(number: int = 1):
+    ''' Reset equation numbering '''
+    EqNumbering.reset(number)
+
+
+
 class Math:
     ''' MathML Element Renderer
 
@@ -62,12 +106,20 @@ class Math:
             font: Filename of font file. Must contain MATH typesetting table.
             title: Text for title alt-text tag in the SVG
     '''
-    def __init__(self, mathml: Union[str, ET.Element],
-                 size: Optional[float] = None, font: Optional[str] = None,
-                 title: Optional[str] = None):
+    def __init__(self,
+                 mathml: Union[str, ET.Element],
+                 size: Optional[float] = None,
+                 font: Optional[str] = None,
+                 title: Optional[str] = None,
+                 number: Optional[str] = None):
         self.size = size if size else config.math.fontsize
         font = font if font else config.math.mathfont
         self.title = title
+
+        if number is None and config.numbering.autonumber:
+            self.eqnumber = EqNumbering.text()
+        else:
+            self.eqnumber = number
 
         self.font: MathFont
         if font is None:
@@ -178,21 +230,50 @@ class Math:
     def svgxml(self) -> ET.Element:
         ''' Get standalone SVG of expression as XML Element Tree '''
         svg = ET.Element('svg')
+        svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
+        if not config.svg2:
+            svg.attrib['xmlns:xlink'] = 'http://www.w3.org/1999/xlink'
+
         if isinstance(self.title, str):
             title = ET.SubElement(svg, 'title')
             title.text = self.title
-        self.node.draw(1, 0, svg)
+
         bbox = self.node.bbox
         width = bbox.xmax - bbox.xmin + 2  # Add a 1-px border
         height = bbox.ymax - bbox.ymin + 2
 
-        # Note: viewbox goes negative.
+        if self.eqnumber is not None:
+            colwidth = self.node.size_px(config.numbering.columnwidth, self.size)
+            x = (colwidth - width) / 2
+            width = colwidth
+
+            with EqNumbering.pause():
+                eqnode = Latex(self.eqnumber, size=self.size)
+            eqnode.drawon(svg, width, 0, halign='right')
+            y0 = min(-bbox.ymax-1, -eqnode.node.bbox.ymax-1)
+            y1 = max(-bbox.ymin, -eqnode.node.bbox.ymin)
+            height = max(height, y1-y0)
+            viewbox = f'0 {fmt(y0)} {fmt(width)} {fmt(height)}'
+        else:
+            x = 1
+            viewbox = f'{fmt(bbox.xmin-1)} {fmt(-bbox.ymax-1)} {fmt(width)} {fmt(height)}'
+
+        self.node.draw(x, 0, svg)
+
         svg.attrib['width'] = fmt(width)
         svg.attrib['height'] = fmt(height)
-        svg.attrib['xmlns'] = 'http://www.w3.org/2000/svg'
-        if not config.svg2:
-            svg.attrib['xmlns:xlink'] = 'http://www.w3.org/1999/xlink'
-        svg.attrib['viewBox'] = f'{fmt(bbox.xmin-1)} {fmt(-bbox.ymax-1)} {fmt(width)} {fmt(height)}'
+        svg.attrib['viewBox'] = viewbox
+
+        if self.eqnumber is not None and config.debug.bbox:
+            rect = ET.SubElement(svg, 'rect')
+            rect.attrib['x'] = '0'
+            rect.attrib['y'] = fmt(y0)
+            rect.attrib['width'] = fmt(width)
+            rect.attrib['height'] = fmt(height)
+            rect.attrib['fill'] = 'yellow'
+            rect.attrib['opacity'] = '.2'
+            rect.attrib['stroke'] = 'red'
+
         return svg
 
     def drawon(self, svg: ET.Element, x: float = 0, y: float = 0,
@@ -271,11 +352,20 @@ class Latex(Math):
         '''
     def __init__(self, latex: str, size: Optional[float] = None, mathstyle: Optional[str] = None,
                  font: Optional[str] = None, color: Optional[str] = None, inline: bool = False,
-                 title: Optional[str] = None):
+                 title: Optional[str] = None,
+                 number: Optional[str] = None):
         self.latex = latex
 
+        if number is not None:
+            number = EqNumbering.text(number)
+        elif (tags := re.findall(r'\\tag\{(.*)\}', self.latex)):
+            if len(tags) > 1:
+                raise ValueError(r'Multiple \tag')
+            number = EqNumbering.text(tags[0])
+            self.latex = re.sub(r'\\tag\{(.*)\}', '', self.latex)
+
         mathml: Union[str, ET.Element]
-        mathml = tex2mml(latex, inline=inline)
+        mathml = tex2mml(self.latex, inline=inline)
         if mathstyle:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathvariant'] = mathstyle
@@ -283,7 +373,7 @@ class Latex(Math):
         if color:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathcolor'] = color
-        super().__init__(mathml, size, font, title=title)
+        super().__init__(mathml, size, font, title=title, number=number)
 
 
 class Text:

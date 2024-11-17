@@ -87,6 +87,73 @@ Latex math is drawn in display (block) mode by default. To render inline (text) 
 |
 
 
+Equation Numbering
+------------------
+
+Ziamath supports numbering of equations using either the LaTeX `\tag` command,
+a number label argument to `Math` or `Latex`, or automatic numbering.
+
+Equation numbers are right-aligned to the edge of the "page" with the equation
+centered on the page. The page or column width is defined in the config option,
+whose value may be defined using the common Latex units `in`, `cm`, `pt`, etc.:
+
+.. jupyter-execute::
+
+    zm.config.numbering.columnwidth = '6.5in'
+
+Use the `number` parameter to add an equation number:
+
+.. jupyter-execute::
+
+    zm.Latex(r'y = mx + b', number='1.1')
+
+In LaTeX, the `\tag{}` command may also be used with any LaTeX code embedded:
+
+.. jupyter-execute::
+
+    zm.Latex(r'y = mx + b \tag{5 \star}')
+
+Alternatively, equations may be automatially numbered sequentially:
+
+.. jupyter-execute::
+
+    zm.config.numbering.autonumber = True
+    zm.Latex('a = 1')
+
+.. jupyter-execute::
+
+    zm.Latex('b = 2')
+
+Reset the equation number with :py:meth:`ziamath.zmath.reset_numbering`
+
+.. jupyter-execute::
+
+    zm.reset_numbering(10)
+    zm.Latex('c = a + b')
+
+Alternate number formats are specified using the config options.
+The format is a Python format-string. For example, to use square brackets
+and numbering preceeded with a chapter number:
+
+.. jupyter-execute::
+
+    zm.config.numbering.format = '[1.{0}]'
+    zm.Latex('x + y + z')
+
+More complex numbering schemes may be created by specifying a `format_func`
+callable that takes the equation number as input and returns a formatted string.
+For example, to use letters as the equation numbers:
+
+.. jupyter-execute::
+
+    zm.reset_numbering(1)
+    zm.config.numbering.format_func = lambda i: '({})'.format(chr(ord('A')+i-1))
+    zm.Latex('a^2 + b^2 = c^2')
+
+
+|
+
+
 Mixed Math and Text
 -------------------
 

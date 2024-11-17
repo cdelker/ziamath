@@ -14,3 +14,5 @@ Ziamath Classes
     :members:
     
 .. autofunction:: ziamath.tex.declareoperator
+
+.. autofunction:: ziamath.zmath.reset_numbering

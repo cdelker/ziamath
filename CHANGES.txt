@@ -1,8 +1,9 @@
-0.12 - IN PROGRESS
+0.12 - 2025-03-02
 
 - Added equation numbering
 - Add parameter for specifying a <title> tag in the SVG
 - Added config option to specify alternate fonts for italic, bold, and bolditalic glyphs
+- Added function to get MahtML as a string
 - Implemented columnspacing and rowspacing in <mtable>
 - Fix latex \hat glyph and \widehat spacing
 - Fix spacing and vertical stretchy of middle fences

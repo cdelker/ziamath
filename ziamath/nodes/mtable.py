@@ -59,7 +59,7 @@ class Mtable(Mnode, tag='mtable'):
         colwidths = [0] * max(len(r) for r in rows)
         for row in rows:
             for c, col in enumerate(row):
-                colwidths[c] = max(colwidths[c], col.node.bbox.xmax - col.node.bbox.xmin)
+                colwidths[c] = max(colwidths[c], col.node.bbox.xmax)
 
         if self.element.get('equalrows') == 'true':
             rowheights = [max(rowheights)] * len(rows)

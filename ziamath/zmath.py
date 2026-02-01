@@ -105,16 +105,19 @@ class Math:
             size: Base font size, pixels
             font: Filename of font file. Must contain MATH typesetting table.
             title: Text for title alt-text tag in the SVG
+            margin: Pixel margin between equation and edge of image
     '''
     def __init__(self,
                  mathml: Union[str, ET.Element],
                  size: Optional[float] = None,
                  font: Optional[str] = None,
                  title: Optional[str] = None,
-                 number: Optional[str] = None):
+                 number: Optional[str] = None,
+                 margin: float = 1.0):
         self.size = size if size else config.math.fontsize
         font = font if font else config.math.mathfont
         self.title = title
+        self.margin = margin
 
         if number is None and config.numbering.autonumber:
             self.eqnumber = EqNumbering.text()
@@ -160,7 +163,8 @@ class Math:
 
     @classmethod
     def fromlatex(cls, latex: str, size: Optional[float] = None, mathstyle: Optional[str] = None,
-                  font: Optional[str] = None, color: Optional[str] = None, inline: bool = False):
+                  font: Optional[str] = None, color: Optional[str] = None, inline: bool = False,
+                  margin: float = 1.0):
         ''' Create Math Renderer from a single LaTeX expression. Requires
             latex2mathml Python package.
 
@@ -181,7 +185,7 @@ class Math:
         if color:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathcolor'] = color
-        return cls(mathml, size, font)
+        return cls(mathml, size, font, margin=margin)
 
     @classmethod
     def fromlatextext(cls, latex: str, size: float = 24, mathstyle: Optional[str] = None,
@@ -239,8 +243,8 @@ class Math:
             title.text = self.title
 
         bbox = self.node.bbox
-        width = bbox.xmax - bbox.xmin + 2  # Add a 1-px border
-        height = bbox.ymax - bbox.ymin + 2
+        width = bbox.xmax - bbox.xmin + self.margin*2
+        height = bbox.ymax - bbox.ymin + self.margin*2
 
         if self.eqnumber is not None:
             colwidth = self.node.size_px(config.numbering.columnwidth, self.size)
@@ -250,15 +254,15 @@ class Math:
             with EqNumbering.pause():
                 eqnode = Latex(self.eqnumber, size=self.size)
             eqnode.drawon(svg, width, 0, halign='right')
-            y0 = min(-bbox.ymax-1, -eqnode.node.bbox.ymax-1)
+            y0 = min(-bbox.ymax, -eqnode.node.bbox.ymax)
             y1 = max(-bbox.ymin, -eqnode.node.bbox.ymin)
-            height = max(height, y1-y0)
+            height = max(height, y1-y0+self.margin*2)
             viewbox = f'0 {fmt(y0)} {fmt(width)} {fmt(height)}'
         else:
-            x = 1
-            viewbox = f'{fmt(bbox.xmin-1)} {fmt(-bbox.ymax-1)} {fmt(width)} {fmt(height)}'
+            #x = 0
+            viewbox = f'{fmt(bbox.xmin-self.margin)} {fmt(-bbox.ymax-self.margin)} {fmt(width)} {fmt(height)}'
 
-        self.node.draw(x, 0, svg)
+        self.node.draw(0, 0, svg)
 
         svg.attrib['width'] = fmt(width)
         svg.attrib['height'] = fmt(height)
@@ -353,7 +357,8 @@ class Latex(Math):
     def __init__(self, latex: str, size: Optional[float] = None, mathstyle: Optional[str] = None,
                  font: Optional[str] = None, color: Optional[str] = None, inline: bool = False,
                  title: Optional[str] = None,
-                 number: Optional[str] = None):
+                 number: Optional[str] = None,
+                 margin: float = 1.0):
         self.latex = latex
 
         if number is not None:
@@ -373,7 +378,7 @@ class Latex(Math):
         if color:
             mathml = ET.fromstring(mathml)
             mathml.attrib['mathcolor'] = color
-        super().__init__(mathml, size, font, title=title, number=number)
+        super().__init__(mathml, size, font, title=title, number=number, margin=margin)
 
 
 class Text:

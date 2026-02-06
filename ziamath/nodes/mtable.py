@@ -1,11 +1,13 @@
 ''' <mtable> Math Element '''
 from xml.etree import ElementTree as ET
 from collections import namedtuple
+from contextlib import suppress
 from copy import copy
 
 from ziafont.fonttypes import BBox
 
 from . import Mnode
+from .. import operators
 
 
 class Mtable(Mnode, tag='mtable'):
@@ -71,6 +73,7 @@ class Mtable(Mnode, tag='mtable'):
         # Compute baselines to each row
         totheight = sum(rowheights) - sum(rowdepths) + sum(rowspaces[:-1])
         width = sum(colwidths) + sum(colspace[c % len(colspace)] for c in range(len(colwidths)-1))
+        extrawidth = 0.
         ytop = -totheight/2 - self.units_to_points(self.font.math.consts.axisHeight)
         baselines = []
         y = ytop
@@ -78,8 +81,15 @@ class Mtable(Mnode, tag='mtable'):
             baselines.append(y + h)
             y += h - d + rsp
 
+        # Arrays have more left margin than matrix or align environments
+        with suppress(AttributeError, IndexError):
+            if (self.leftsibling().string in operators.leftfences and    # type: ignore
+                    self.element.get('displaystyle') not in [True, 'true'] and
+                    self.element[0][0].get('columnalign') is not None):
+                extrawidth = self.size_px('mediummathspace')
+
         for r, row in enumerate(rows):
-            x = 0
+            x = extrawidth
             for c, cell in enumerate(row):
                 self.nodes.append(cell.node)
                 cellw = cell.node.bbox.xmax - cell.node.bbox.xmin
@@ -95,4 +105,4 @@ class Mtable(Mnode, tag='mtable'):
 
         ymin = min([cell.node.bbox.ymin-baselines[-1] for cell in rows[-1]])
         ymax = max([-baselines[0]+cell.node.bbox.ymax for cell in rows[0]])
-        self.bbox = BBox(0, width, ymin, ymax)
+        self.bbox = BBox(0, width+extrawidth*2, ymin, ymax)

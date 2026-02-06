@@ -85,7 +85,7 @@ def place_sub(base: Mnode, subscript: Mnode, font: MathFont) -> tuple[float, flo
         elif base.mtag == 'mover' and base._isaccent:  # type: ignore
             shiftdn = font.math.consts.subscriptShiftDown
         else:
-            shiftdn = max(font.math.consts.subscriptShiftDown,
+            shiftdn = max(font.math.consts.subscriptShiftDown,  # type: ignore
                           firstg.bbox.ymax - font.math.consts.subscriptTopMax if firstg else 0,
                           font.math.consts.subscriptBaselineDropMin - base.points_to_units(base.bbox.ymin))
 

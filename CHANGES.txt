@@ -1,3 +1,12 @@
+0.13 - 2026-02-06
+
+- Added `margin` parameter for adding whitespace around equation
+- Draw overbar using line when the font doesn't have an overbar glyph
+- Remove trailing space after postfix comma
+- Fix `<mtable>` column width
+- Adjust whitespace in aligned environment
+
+
 0.12 - 2025-03-02
 
 - Added equation numbering

@@ -102,6 +102,7 @@ class Mover(Mnode, tag='mover'):
     # Over/underbar character. Fonts not consistent with using stretchy/assembled
     # glyphs, so draw with HLine instead of glyph.
     BAR = '―'  # 0x2015
+    BAR2 = '¯'  # 0x00AF
 
     def __init__(self, element: ET.Element, parent: 'Mnode', **kwargs):
         super().__init__(element, parent, **kwargs)
@@ -121,7 +122,8 @@ class Mover(Mnode, tag='mover'):
                 self.increase_child_scriptlevel(self.element[1])
             self._isaccent = True
 
-        if elementtext(self.element[1]) == self.BAR:
+        if (elementtext(self.element[1]) == self.BAR or
+                (elementtext(self.element[1]) == self.BAR2 and self.font.glyphindex(self.BAR2) == 0)):
             self.over = drawable.HLine(
                 kwargs['width'],
                 self.units_to_points(self.font.math.consts.overbarRuleThickness))

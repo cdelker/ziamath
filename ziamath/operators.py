@@ -30,6 +30,7 @@ operators = {
     ('⌋', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightFloor;
     # ('&InvisibleComma;', 'infix'): {'separator': 'true',  'lspace': '0em', 'rspace': '0em'},
     (',', 'infix'): {'separator': 'true',  'lspace': '0em', 'rspace': 'verythickmathspace'},
+    (',', 'postfix'): {'lspace': '0em', 'rspace': '0em'},
     ('─', 'infix'): {'stretchy': 'true', 'minsize':'0',  'lspace': '0em', 'rspace': '0em'},  # '&HorizontalLine;'
     (';', 'infix'): {'separator': 'true',  'lspace': '0em', 'rspace': 'thickmathspace'},
     (';', 'postfix'): {'separator': 'true',  'lspace': '0em', 'rspace': '0em'},

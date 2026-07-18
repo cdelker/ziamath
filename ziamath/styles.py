@@ -33,6 +33,8 @@ class MathStyle:
     mathbackground: str = 'none'
     mathsize: str = ''
     scriptlevel: int = 0
+    scriptsizemultiplier: float = 0
+    scriptminsize: float = 0
 
 
 def parse_variant(variant: str, parent_variant: MathVariant) -> MathVariant:
@@ -77,7 +79,9 @@ def parse_style(element: ET.Element, parent_style: Optional[MathStyle] = None) -
     args['scriptlevel'] = int(params.get('scriptlevel', 0))
     args['mathvariant'] = parse_variant(element.attrib.get('mathvariant', config.math.variant), parent_variant) 
     args['displaystyle'] = parse_displaystyle(params)
-    
+    args['scriptsizemultiplier'] = float(params.get('scriptsizemultiplier', 0))
+    args['scriptminsize'] = float(params.get('scriptminsize', 0))
+
     css = params.get('style', '')
     if css:
         cssparams = css.split(';')

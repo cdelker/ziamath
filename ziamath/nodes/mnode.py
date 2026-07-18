@@ -37,9 +37,25 @@ class Mnode(Drawable):
         self.params: MutableMapping[str, str] = {}
         self.nodes: list[Drawable] = []
         self.nodexy: list[tuple[float, float]] = []
-        self.glyphsize = max(
-            self.size * (self.font.math.consts.scriptPercentScaleDown/100)**self.style.scriptlevel,
-            self.font.basesize*config.minsizefraction)
+
+        if self.style.scriptsizemultiplier == 0:
+            if self.style.scriptlevel == 0:
+                scaledown = 1
+            elif self.style.scriptlevel == 1:
+                scaledown = self.font.math.consts.scriptPercentScaleDown/100
+            elif self.style.scriptlevel == 2:
+                scaledown = self.font.math.consts.scriptScriptPercentScaleDown/100
+            elif self.style.scriptlevel == -2:
+                scaledown = 1/(self.font.math.consts.scriptScriptPercentScaleDown/100)
+            else:
+                # Revert to MathML suggestion of sqrt(1/2)
+                scaledown = 0.707**self.style.scriptlevel
+        else:
+            scaledown = self.style.scriptsizemultiplier**self.style.scriptlevel
+
+        minsize = self.style.scriptminsize if self.style.scriptminsize else self.font.basesize*config.minsizefraction
+        self.glyphsize = max(self.size * scaledown, minsize)
+
         if self.style.mathsize:
             self.glyphsize = self.size_px(self.style.mathsize)
 

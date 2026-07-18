@@ -29,7 +29,7 @@ operators = {
     ('⟫', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightDoubleBracket;
     ('⌋', 'postfix'): {'fence': 'true', 'stretchy': 'true',  'lspace': '0em', 'rspace': '0em'},  # &RightFloor;
     # ('&InvisibleComma;', 'infix'): {'separator': 'true',  'lspace': '0em', 'rspace': '0em'},
-    (',', 'infix'): {'separator': 'true',  'lspace': '0em', 'rspace': 'verythickmathspace'},
+    (',', 'infix'): {'separator': 'true',  'lspace': '0em', 'rspace': 'thinmathspace'},
     (',', 'postfix'): {'lspace': '0em', 'rspace': '0em'},
     ('─', 'infix'): {'stretchy': 'true', 'minsize':'0',  'lspace': '0em', 'rspace': '0em'},  # '&HorizontalLine;'
     (';', 'infix'): {'separator': 'true',  'lspace': '0em', 'rspace': 'thickmathspace'},

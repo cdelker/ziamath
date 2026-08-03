@@ -5,6 +5,8 @@
 - Remove trailing space after postfix comma
 - Fix `<mtable>` column width
 - Adjust whitespace in aligned environment
+- Pin `latex2mathml<3.78` to honor `python_requires = >= 3.8`
+  (3.78 dropped 3.8 support via PEP 585 syntax)
 
 
 0.12 - 2025-03-02

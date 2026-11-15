@@ -9,4 +9,4 @@ Other Math-enabled Open Type fonts (TTF or OTF files) may also be used.
 
 Documentation is available at [readthedocs](https://ziamath.readthedocs.io).
 
-Also try the [online demo](https://cdelker.github.io/pyscript/ziamath.html) based on Pyscript.
+Try it online with the [ziamath web app](https://cdelker.codeberg.page/ziamath-app), which runs ziamath in your browser through pyodide to render LaTeX equations to SVG with several font options.

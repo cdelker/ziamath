@@ -1,4 +1,5 @@
 jupyter_sphinx
 ipykernel
 latex2mathml
+sphinx_autodoc_typehints
 ziafont>=0.8

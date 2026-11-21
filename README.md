@@ -1,3 +1,6 @@
+**This repository has moved to [codeberg](https://codeberg.org/cdelker/ziamath).**
+
+
 # ziamath
 
 Render MathML or LaTeX Math expressions as SVG using pure Python. Does not require a Latex installation, nor a network connection.
